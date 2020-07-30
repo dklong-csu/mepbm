@@ -173,6 +173,7 @@ namespace Models
 	public:
 		virtual RateVector right_hand_side(const StateVector& x,
 										   const ParametersBase& parameters) const = 0;
+
 	};
 	
 
@@ -213,9 +214,9 @@ namespace Models
 			*/
 			RateVector f(two_step_parameters.n_variables);
 			// loss from nucleation
-			f[0] = -two_step_parameters.w * two_step_parameters.k1 * std::pow(x[1], 1. * two_step_parameters.w);
+			f[0] = -((int)two_step_parameters.w * (int)two_step_parameters.k1 * std::pow(x[0], 1. * (int)two_step_parameters.w));
 			// gain from nucleation
-			f[1] = two_step_parameters.k1 * std::pow(x[1], 1. * two_step_parameters.w);
+			f[1] = two_step_parameters.k1 * std::pow(x[0], 1. * two_step_parameters.w);
 			for (unsigned int i = 2; i < two_step_parameters.n_variables; i++)
 			{
 				// gain from growth
@@ -231,7 +232,7 @@ namespace Models
 
 			// loss from growth on largest particle -- I'm torn about including this
 			f[two_step_parameters.n_variables - 1] -= two_step_parameters.k2 * x[0] * available_atoms(two_step_parameters.maxsize) * x[two_step_parameters.n_variables - 1];
-
+			f[0] -= two_step_parameters.k2 * x[0] * available_atoms(two_step_parameters.maxsize) * x[two_step_parameters.n_variables - 1];
 			return f;
 		}
 	};
@@ -273,7 +274,7 @@ namespace Models
 			/*
 			f[0] = dn_0
 			f[1] = dn_s
-			f[2] = p
+			f[2] = dp
 			f[3] = dn_w
 			f[4] = dn_{w+1}
 			...
@@ -281,7 +282,7 @@ namespace Models
 			*/
 			RateVector f(two_step_alt_parameters.n_variables);
 			// precursor -- loss from dissociative step, gain from dissociative step
-			f[0] = -two_step_alt_parameters.k_forward * x[0] * two_step_alt_parameters.solvent * two_step_alt_parameters.solvent + two_step_alt_parameters.k_backward*x[2];
+			f[0] = -two_step_alt_parameters.k_forward * x[0] * two_step_alt_parameters.solvent * two_step_alt_parameters.solvent + two_step_alt_parameters.k_backward*x[1]*x[2];
 			// dissasociated precursor -- opposite effect from the dissociative step as the precursor
 			f[1] = -f[0];
 			// precursor -- loss from nucleation
@@ -308,7 +309,7 @@ namespace Models
 
 			// loss from growth on largest particle -- I'm torn about including this
 			f[two_step_alt_parameters.n_variables - 1] -= two_step_alt_parameters.k2 * x[0] * available_atoms(two_step_alt_parameters.maxsize) * x[two_step_alt_parameters.n_variables - 1];
-
+			f[0] -= two_step_alt_parameters.k2 * x[0] * available_atoms(two_step_alt_parameters.maxsize) * x[two_step_alt_parameters.n_variables - 1];
 			// assign ligand rate now that precursor rate is final
 			f[2] = -f[0];
 
@@ -343,6 +344,16 @@ namespace Models
 			}
 		};
 
+		double rate_constant(const unsigned int& size,
+									 const ParametersBase& parameters) const
+		{
+			const Models::ThreeStep::Parameters& three_step_parameters = dynamic_cast<const Models::ThreeStep::Parameters&>(parameters);
+			if (size <= three_step_parameters.particle_size_cutoff)
+				return three_step_parameters.k2;
+			else
+				return three_step_parameters.k3;
+		}
+
 		virtual RateVector right_hand_side(const StateVector& x,
 										   const ParametersBase& parameters) const
 		{
@@ -353,24 +364,17 @@ namespace Models
 			f[1] = dn_w
 			f[2] = dn_{w+1}
 			...
-			f[two_step_parameters.n_variable - 1) = dn_{maxsize}
+			f[three_step_parameters.n_variable - 1) = dn_{maxsize}
 			*/
 			RateVector f(three_step_parameters.n_variables);
 			// precursor -- loss from nucleation
-			f[0] = -three_step_parameters.w * three_step_parameters.k1 * std::pow(x[1], 1. * three_step_parameters.w);
+			f[0] = -(int)three_step_parameters.w * three_step_parameters.k1 * std::pow(x[0], 1. * three_step_parameters.w);
 			// nucleated particle -- gain from nucleation
-			f[1] = three_step_parameters.k1 * std::pow(x[1], 1. * three_step_parameters.w);
-			for (unsigned int i = 2; i < three_step_parameters.particle_size_cutoff+1; i++)
+			f[1] = three_step_parameters.k1 * std::pow(x[0], 1. * three_step_parameters.w);
+			for (unsigned int i = 2; i < three_step_parameters.n_variables; i++)
 			{
-				// small particle gain from growth
-				f[i] = three_step_parameters.k2 * x[0] * available_atoms(three_step_parameters.w + i - 2) * x[i - 1];
-				f[0] -= f[i];
-			}
-
-			for (unsigned int i = three_step_parameters.particle_size_cutoff + 1; i < three_step_parameters.n_variables; i++)
-			{
-				// large particle gain from growth
-				f[i] = three_step_parameters.k3 * x[0] * available_atoms(three_step_parameters.w + i - 2) * x[i - 1];
+				// particle gain from growth
+				f[i] = rate_constant(three_step_parameters.w + i - 2,three_step_parameters)*x[0]* available_atoms(three_step_parameters.w + i - 2) * x[i - 1];
 				f[0] -= f[i];
 			}
 
@@ -381,8 +385,8 @@ namespace Models
 			}
 
 			// loss from growth on largest particle -- I'm torn about including this
-			f[three_step_parameters.n_variables - 1] -= three_step_parameters.k3 * x[0] * available_atoms(three_step_parameters.maxsize) * x[three_step_parameters.n_variables - 1];
-
+			f[three_step_parameters.n_variables - 1] -= rate_constant(three_step_parameters.maxsize,three_step_parameters)* x[0] * available_atoms(three_step_parameters.maxsize) * x[three_step_parameters.n_variables - 1];
+			f[0] -= rate_constant(three_step_parameters.maxsize, three_step_parameters) * x[0] * available_atoms(three_step_parameters.maxsize) * x[three_step_parameters.n_variables - 1];
 			return f;
 		}
 	};
@@ -414,11 +418,21 @@ namespace Models
 				k3 = k3_value;
 				w = nucleation_order;
 				maxsize = maxsize_value;
-				n_variables = maxsize - w + 2;
+				n_variables = maxsize - w + 4;
 				particle_size_cutoff = particle_size_cutoff_value;
 				solvent = solvent_value;
 			}
 		};
+
+		double rate_constant(const unsigned int& size,
+			const ParametersBase& parameters) const
+		{
+			const Models::ThreeStepAlternative::Parameters& three_step_alt_parameters = dynamic_cast<const Models::ThreeStepAlternative::Parameters&>(parameters);
+			if (size <= three_step_alt_parameters.particle_size_cutoff)
+				return three_step_alt_parameters.k2;
+			else
+				return three_step_alt_parameters.k3;
+		}
 
 		virtual RateVector right_hand_side(const StateVector& x,
 			const ParametersBase& parameters) const
@@ -427,14 +441,16 @@ namespace Models
 
 			/*
 			f[0] = dn_0
-			f[1] = dn_w
-			f[2] = dn_{w+1}
+			f[1] = dn_s
+			f[2] = dp
+			f[3] = dn_w
+			f[4] = dn_{w+1}
 			...
-			f[two_step_parameters.n_variable - 1) = dn_{maxsize}
+			f[three_step_alt_parameters.n_variable - 1) = dn_{maxsize}
 			*/
 			RateVector f(three_step_alt_parameters.n_variables);
 			// precursor -- loss from dissociative step, gain from dissociative step
-			f[0] = -three_step_alt_parameters.k_forward * x[0] * three_step_alt_parameters.solvent * three_step_alt_parameters.solvent + three_step_alt_parameters.k_backward * x[2];
+			f[0] = -three_step_alt_parameters.k_forward * x[0] * three_step_alt_parameters.solvent * three_step_alt_parameters.solvent + three_step_alt_parameters.k_backward * x[1]*x[2];
 			// dissasociated precursor -- opposite effect from the dissociative step as the precursor
 			f[1] = -f[0];
 			// precursor -- loss from nucleation
@@ -446,19 +462,10 @@ namespace Models
 			// nucleated particle -- gain from nucleation
 			f[3] = three_step_alt_parameters.k1 * x[0] * x[1] * x[1];
 
-			for (unsigned int i = 4; i < three_step_alt_parameters.particle_size_cutoff + 3; i++)
+			for (unsigned int i = 4; i < three_step_alt_parameters.n_variables; i++)
 			{
-				// small particle gain from growth
-				f[i] = three_step_alt_parameters.k2 * x[0] * available_atoms(i - 1) * x[i - 1];
-				// precursor loss from growth
-				f[0] -= f[i];
-			}
-
-			for (unsigned int i = three_step_alt_parameters.particle_size_cutoff + 3; i < three_step_alt_parameters.n_variables; i++)
-			{
-				// small particle gain from growth
-				f[i] = three_step_alt_parameters.k3 * x[0] * available_atoms(i - 1) * x[i - 1];
-				// precursor loss from growth
+				// particle gain from growth
+				f[i] = rate_constant(three_step_alt_parameters.w + i - 4, three_step_alt_parameters) * x[0] * available_atoms(three_step_alt_parameters.w + i - 4) * x[i - 1];
 				f[0] -= f[i];
 			}
 
@@ -469,8 +476,8 @@ namespace Models
 			}
 
 			// loss from growth on largest particle -- I'm torn about including this
-			f[three_step_alt_parameters.n_variables - 1] -= three_step_alt_parameters.k3 * x[0] * available_atoms(three_step_alt_parameters.maxsize) * x[three_step_alt_parameters.n_variables - 1];
-
+			f[three_step_alt_parameters.n_variables - 1] -= rate_constant(three_step_alt_parameters.maxsize,three_step_alt_parameters) * x[0] * available_atoms(three_step_alt_parameters.maxsize) * x[three_step_alt_parameters.n_variables - 1];
+			f[0] -= rate_constant(three_step_alt_parameters.maxsize, three_step_alt_parameters) * x[0] * available_atoms(three_step_alt_parameters.maxsize) * x[three_step_alt_parameters.n_variables - 1];
 			// assign ligand rate now that precursor rate is final
 			f[2] = -f[0];
 
@@ -506,13 +513,30 @@ namespace Models
 			// explicit euler update step
 			x += time_step * model.right_hand_side(x, parameters);
 		}
+
+		return x;
 	}
 }
 
+namespace Debugging
+{
+	// function for successive right hand side calls to ensure it works
+	void calc_rhs(Models::ModelsBase& model, StateVector& state, Models::ParametersBase& prm)
+	{
+		RateVector rhs_output = model.right_hand_side(state, prm);
+
+		std::cout << "Right hand side evaluates to: " << std::endl;
+		for (unsigned int i = 0; i < rhs_output.size(); i++)
+		{
+			std::cout << rhs_output[i] << ' ';
+		}
+		std::cout << std::endl;
+	}
+}
 int main()
 {
 	// histogram debugging
-
+	/*
 	// check we can make proper histogram parameters
 	Histograms::Parameters prm(25, 0., 4.5);
 
@@ -590,16 +614,61 @@ int main()
 		std::cout << hist2.count[i] << ' ';
 	}
 	std::cout << std::endl;
+	*/
 
 	// models debugging
 
-	// test two step model
-	Models::TwoStep::Parameters prm2step(100, 10, 3, 10);
+	/*
+	// two step
+	std::cout << "Two-step testing" << std::endl;
+
+	Models::TwoStep::Parameters prm2step(100, 10, 3, 5);
 	Models::TwoStep model2step;
 
-	StateVector ic(0., prm2step.n_variables);
-	ic[0] = 1;
-	// calculate right hand side of two step
-	RateVector 2step_rhs = model2step.right_hand_side(ic, prm2step);
+	StateVector ic1 = { 1,0.5,0.3,0.2 };
+
+	Debugging::calc_rhs(model2step, ic1, prm2step);
+	// confirmed with calculations in excel
+	*/
+
+	/*
+	// two step alt
+	std::cout << "Two-step alt testing" << std::endl;
+
+	Models::TwoStepAlternative::Parameters prm2stepalt(100, 70,60,40,2,3,5);
+	Models::TwoStepAlternative model2stepalt;
+
+	StateVector ic2 = { 1,.8,.6,.4,.2,.1 };
+
+	Debugging::calc_rhs(model2stepalt, ic2, prm2stepalt);
+	// confirmed with calculations in excel
+	*/
+
+	/*
+	// three step
+	std::cout << "Three-step testing" << std::endl;
+
+	Models::ThreeStep::Parameters prm3step(100, 10, 5, 3, 6, 4);
+	Models::ThreeStep model3step;
+
+	StateVector ic3 = { 1,.8,.6,.4,.2 };
+
+	Debugging::calc_rhs(model3step, ic3, prm3step);
+	// confirmed with calculations in excel
+	*/
+
+	/*
+	// three step alt
+	std::cout << "Three-step alt testing" << std::endl;
+
+	Models::ThreeStepAlternative::Parameters prm3stepalt(100, 90, 80, 70, 60, 2, 3, 6, 4);
+	Models::ThreeStepAlternative model3stepalt;
+
+	StateVector ic4 = { 1,.9,.8,.7,.6,.5,.4 };
+
+	Debugging::calc_rhs(model3stepalt, ic4, prm3stepalt);
+	// confirmed with calculations in excel
+	*/
+
 
 }
