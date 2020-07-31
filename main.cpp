@@ -34,18 +34,18 @@ namespace Histograms
     }
   };
 
+
+
   /*
   This class describes a histogram.
-
-
   */
-  
   class Histogram
   {
   public:
     double min_x, max_x;
     unsigned int num_bins;
     HistVector interval_pts, count;
+
 
     // constructor
     Histogram(const Histograms::Parameters& parameters)
@@ -73,6 +73,7 @@ namespace Histograms
       count = c;
     }
 
+
     void AddToBins(const HistVector& y,
              const HistVector& x)
     {
@@ -99,6 +100,8 @@ namespace Histograms
         }
       }
     }
+
+
   private:
     unsigned int bisection_method(double x)
     {
@@ -129,7 +132,9 @@ namespace Histograms
 
     }
   };
-  
+
+
+
   /*
   This is a function to create a histogram
 
@@ -138,7 +143,6 @@ namespace Histograms
 
   The function will create a Histogram object and add the desired data to the histogram.
   */
-  
   Histogram create_histogram(const std::valarray<double>& counts,
     const std::valarray<double>& labels,
     const Parameters& parameters)
@@ -151,8 +155,10 @@ namespace Histograms
 
     return histogram;
   }
-  
+
 }
+
+
 
 namespace Models
 {
@@ -161,12 +167,16 @@ namespace Models
     return size * 2.677 * std::pow(size, -0.28);
   }
 
+
+
   class ParametersBase
   {
   public:
     // what does this do?
     virtual ~ParametersBase() = default;
   };
+
+
 
   class ModelsBase
   {
@@ -175,7 +185,8 @@ namespace Models
                        const ParametersBase& parameters) const = 0;
 
   };
-  
+
+
 
   class TwoStep : public ModelsBase
   {
@@ -199,6 +210,7 @@ namespace Models
         n_variables = maxsize - w + 2;
       }
     };
+
 
     virtual RateVector right_hand_side(const StateVector& x,
                        const ParametersBase& parameters) const
@@ -236,7 +248,9 @@ namespace Models
       return f;
     }
   };
-  
+
+
+
   class TwoStepAlternative : public ModelsBase
   {
   public:
@@ -265,6 +279,7 @@ namespace Models
         solvent = solvent_value;
       }
     };
+
 
     virtual RateVector right_hand_side(const StateVector& x,
                        const ParametersBase& parameters) const
@@ -317,6 +332,8 @@ namespace Models
     }
   };
 
+
+
   class ThreeStep : public ModelsBase
   {
   public:
@@ -344,6 +361,7 @@ namespace Models
       }
     };
 
+
     double rate_constant(const unsigned int& size,
                    const ParametersBase& parameters) const
     {
@@ -353,6 +371,7 @@ namespace Models
       else
         return three_step_parameters.k3;
     }
+
 
     virtual RateVector right_hand_side(const StateVector& x,
                        const ParametersBase& parameters) const
@@ -391,6 +410,8 @@ namespace Models
     }
   };
 
+
+
   class ThreeStepAlternative : public ModelsBase
   {
   public:
@@ -424,6 +445,7 @@ namespace Models
       }
     };
 
+
     double rate_constant(const unsigned int& size,
       const ParametersBase& parameters) const
     {
@@ -433,6 +455,7 @@ namespace Models
       else
         return three_step_alt_parameters.k3;
     }
+
 
     virtual RateVector right_hand_side(const StateVector& x,
       const ParametersBase& parameters) const
@@ -485,6 +508,8 @@ namespace Models
     }
   };
 
+
+
   // Function to integrate the ODE
   // Explicit Euler
   StateVector integrate_ode_explicit_euler(const StateVector& x0,
@@ -518,6 +543,8 @@ namespace Models
   }
 }
 
+
+
 namespace Debugging
 {
   // function for successive right hand side calls to ensure it works
@@ -533,6 +560,9 @@ namespace Debugging
     std::cout << std::endl;
   }
 }
+
+
+
 int main()
 {
   // histogram debugging
