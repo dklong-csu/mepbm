@@ -533,10 +533,13 @@ namespace Debugging
     std::cout << std::endl;
   }
 }
+
+
+
 int main()
 {
   // histogram debugging
-  /*
+{
   // check we can make proper histogram parameters
   Histograms::Parameters prm(25, 0., 4.5);
 
@@ -614,11 +617,11 @@ int main()
     std::cout << hist2.count[i] << ' ';
   }
   std::cout << std::endl;
-  */
+}
 
   // models debugging
 
-  /*
+{
   // two step
   std::cout << "Two-step testing" << std::endl;
 
@@ -629,9 +632,9 @@ int main()
 
   Debugging::calc_rhs(model2step, ic1, prm2step);
   // confirmed with calculations in excel
-  */
+}
 
-  /*
+{
   // two step alt
   std::cout << "Two-step alt testing" << std::endl;
 
@@ -642,9 +645,9 @@ int main()
 
   Debugging::calc_rhs(model2stepalt, ic2, prm2stepalt);
   // confirmed with calculations in excel
-  */
+}
 
-  /*
+{
   // three step
   std::cout << "Three-step testing" << std::endl;
 
@@ -655,9 +658,9 @@ int main()
 
   Debugging::calc_rhs(model3step, ic3, prm3step);
   // confirmed with calculations in excel
-  */
+}
 
-  /*
+{
   // three step alt
   std::cout << "Three-step alt testing" << std::endl;
 
@@ -668,7 +671,7 @@ int main()
 
   Debugging::calc_rhs(model3stepalt, ic4, prm3stepalt);
   // confirmed with calculations in excel
-  */
+}
 
 
 }
