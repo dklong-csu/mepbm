@@ -15,3 +15,11 @@ SET (CMAKE_CXX_EXTENSIONS OFF)
 ### it needs to be compiled.
 ADD_EXECUTABLE(mepbm
 	       main.cpp)
+
+
+
+#########################################
+### Set up the testsuite machinery
+
+ENABLE_TESTING()
+ADD_SUBDIRECTORY(tests)
