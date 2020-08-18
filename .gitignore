@@ -8,6 +8,7 @@ mepbm
 # Eclipse project files
 .cproject
 .project
+.settings
 
 # Make and Ninja files
 Makefile
@@ -26,3 +27,4 @@ CTestTestfile.cmake
 tests/*
 !tests/*cc
 !tests/*output
+
