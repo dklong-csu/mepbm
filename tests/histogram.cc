@@ -79,6 +79,9 @@ int main()
 
 
   // Check create histogram function
+  std::cout << "Checking for: create_histogram function"
+            << std::endl;
+
   HistVector labels = { 0,4.5,1.7, 1.7 };
   HistVector counts = { 1,1.1,3,2 };
 
