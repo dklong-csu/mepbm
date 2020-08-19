@@ -56,7 +56,7 @@ FOREACH(_testfile ${_testfiles})
     TARGET_COMPILE_OPTIONS(${_testname} PRIVATE "-Werror")
   ENDIF()
   TARGET_LINK_LIBRARIES (${_testname} Threads::Threads)
-  TARGET_LINK_LIBRARIES (${_testname} libmepbm)
+  TARGET_LINK_LIBRARIES (${_testname} $<TARGET_OBJECTS:libmepbm>)
 
   # Then specify what it means to run a test:
   #

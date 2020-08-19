@@ -18,7 +18,7 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 # the functionality that is used by the main executable, as well as by
 # the tests.
 ADD_LIBRARY(libmepbm
-            SHARED
+            OBJECT
             histogram.cpp
             models.cpp)
 
@@ -28,7 +28,7 @@ ADD_LIBRARY(libmepbm
 ADD_EXECUTABLE(mepbm
 	       main.cpp)
 TARGET_LINK_LIBRARIES(mepbm
-                      libmepbm)
+                      $<TARGET_OBJECTS:libmepbm>)
 
 
 #########################################
