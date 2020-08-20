@@ -305,7 +305,7 @@ std::valarray<double> Models::ThreeStepAlternative::right_hand_side(const std::v
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // ODE solver
-std::valarray<double> integrate_ode_explicit_euler(const std::valarray<double>& x0,
+std::valarray<double> Models::integrate_ode_explicit_euler(const std::valarray<double>& x0,
                                                    const Models::ModelsBase& model,
                                                    const Models::ParametersBase& parameters,
                                                    const double start_time,
@@ -315,7 +315,7 @@ std::valarray<double> integrate_ode_explicit_euler(const std::valarray<double>& 
   double time_step = 1e-6;
 
   double time = start_time;
-  while (time <= end_time)
+  while (time < end_time)
   {
     // advance to next time
     if (time + time_step > end_time)
