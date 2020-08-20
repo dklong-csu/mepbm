@@ -304,24 +304,34 @@ std::valarray<double> Models::ThreeStepAlternative::right_hand_side(const std::v
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// ODE solver
-std::valarray<double> Models::integrate_ode_explicit_euler(const std::valarray<double>& x0,
-                                                   const Models::ModelsBase& model,
-                                                   const Models::ParametersBase& parameters,
-                                                   const double start_time,
-                                                   const double end_time)
+// class to hold integration hyperparameters
+Models::explEulerParameters::explEulerParameters(const double startTimeValue,
+                      const double endTimeValue,
+                      const std::valarray<double> initialConditionValues)
 {
-  std::valarray<double> x = x0;
+  startTime = startTimeValue;
+  endTime = endTimeValue;
+  initialCondition = initialConditionValues;
+}
+
+
+
+// ODE solver
+std::valarray<double> Models::integrate_ode_explicit_euler(const Models::explEulerParameters solverParameters,
+                                                   const Models::ModelsBase& model,
+                                                   const Models::ParametersBase& modelParameters)
+{
+  std::valarray<double> x = solverParameters.initialCondition;
   double time_step = 1e-6;
 
-  double time = start_time;
-  while (time < end_time)
+  double time = solverParameters.startTime;
+  while (time < solverParameters.endTime)
   {
     // advance to next time
-    if (time + time_step > end_time)
+    if (time + time_step > solverParameters.endTime)
     {
-      time_step = end_time - time;
-      time = end_time;
+      time_step = solverParameters.endTime - time;
+      time = solverParameters.endTime;
     }
     else
     {
@@ -329,7 +339,7 @@ std::valarray<double> Models::integrate_ode_explicit_euler(const std::valarray<d
     }
 
     // explicit euler update step
-    x += time_step * model.right_hand_side(x, parameters);
+    x += time_step * model.right_hand_side(x, modelParameters);
   }
 
   return x;

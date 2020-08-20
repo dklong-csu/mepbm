@@ -159,13 +159,25 @@ namespace Models
 
 
 
-  // Function to integrate the ODE
+  // Integrate the ODE
+  // class to hold integration hyperparameters
+  class explEulerParameters
+  {
+  public:
+    double startTime, endTime;
+    std::valarray<double> initialCondition;
+
+    // constructor
+    explEulerParameters(const double startTimeValue,
+                        const double endTimeValue,
+                        const std::valarray<double> initialConditionValues);
+  };
+
+
   // Explicit Euler
-  std::valarray<double> integrate_ode_explicit_euler(const std::valarray<double>& x0,
+  std::valarray<double> integrate_ode_explicit_euler(const Models::explEulerParameters solverParameters,
                        const Models::ModelsBase& model,
-                       const Models::ParametersBase& parameters,
-                       const double start_time,
-                       const double end_time);
+                       const Models::ParametersBase& parameters);
 }
 
 
