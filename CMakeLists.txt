@@ -20,7 +20,8 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 ADD_LIBRARY(libmepbm
             OBJECT
             histogram.cpp
-            models.cpp)
+            models.cpp
+			statistics.cpp)
 
 #########################################
 ### Describe the main executable and from which files
