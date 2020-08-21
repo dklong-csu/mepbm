@@ -1,5 +1,6 @@
 #include <cmath>
 #include <valarray>
+#include <stdexcept>
 #include "models.h"
 
 
@@ -117,6 +118,178 @@ double Models::ThreeStepAlternative::rate_constant(const unsigned int& size,
 
 
 
+// convert particle size to index of the solution/right hand side vector
+
+unsigned int Models::TwoStep::particleSizeToIndex(const unsigned int& particleSize,
+                                                  const ParametersBase& parameters) const
+{
+  const Models::TwoStep::Parameters& twoStepParameters = dynamic_cast<const Models::TwoStep::Parameters&>(parameters);
+
+  if (particleSize == 1)
+    return 0;
+  else if ((particleSize >= twoStepParameters.w) && (particleSize <= twoStepParameters.maxsize))
+      return particleSize - twoStepParameters.w + 1;
+  else
+    throw std::domain_error("Particle size outside of tracked range. Check the nucleation order and maximum particle size.");
+}
+
+
+
+unsigned int Models::TwoStepAlternative::particleSizeToIndex(const unsigned int& particleSize,
+                                                             const ParametersBase& parameters) const
+{
+  const Models::TwoStepAlternative::Parameters& twoStepAltParameters = dynamic_cast<const Models::TwoStepAlternative::Parameters&>(parameters);
+
+  if (particleSize == 1)
+    return 0;
+  else if ((particleSize >= twoStepAltParameters.w) && (particleSize <= twoStepAltParameters.maxsize))
+      return particleSize - twoStepAltParameters.w + 3;
+  else
+    throw std::domain_error("Particle size outside of tracked range. Check the nucleation order and maximum particle size.");
+}
+
+
+
+unsigned int Models::ThreeStep::particleSizeToIndex(const unsigned int& particleSize,
+                                                    const ParametersBase& parameters) const
+{
+  const Models::ThreeStep::Parameters& threeStepParameters = dynamic_cast<const Models::ThreeStep::Parameters&>(parameters);
+
+  if (particleSize == 1)
+    return 0;
+  else if ((particleSize >= threeStepParameters.w) && (particleSize <= threeStepParameters.maxsize))
+      return particleSize - threeStepParameters.w + 1;
+  else
+    throw std::domain_error("Particle size outside of tracked range. Check the nucleation order and maximum particle size.");
+}
+
+
+
+unsigned int Models::ThreeStepAlternative::particleSizeToIndex(const unsigned int& particleSize,
+                                                               const ParametersBase& parameters) const
+{
+  const Models::ThreeStepAlternative::Parameters& threeStepAltParameters = dynamic_cast<const Models::ThreeStepAlternative::Parameters&>(parameters);
+
+  if (particleSize == 1)
+    return 0;
+  else if ((particleSize >= threeStepAltParameters.w) && (particleSize <= threeStepAltParameters.maxsize))
+      return particleSize - threeStepAltParameters.w + 3;
+  else
+    throw std::domain_error("Particle size outside of tracked range. Check the nucleation order and maximum particle size.");
+}
+
+
+
+// get largest and smallest recognized particle sizes
+unsigned int Models::TwoStep::getSmallestParticleSize(const ParametersBase& parameters) const
+{
+  const Models::TwoStep::Parameters& twoStepParameters = dynamic_cast<const Models::TwoStep::Parameters&>(parameters);
+  return twoStepParameters.w;
+}
+
+
+
+unsigned int Models::TwoStep::getLargestParticleSize(const ParametersBase& parameters) const
+{
+  const Models::TwoStep::Parameters& twoStepParameters = dynamic_cast<const Models::TwoStep::Parameters&>(parameters);
+  return twoStepParameters.maxsize;
+}
+
+
+
+unsigned int Models::TwoStepAlternative::getSmallestParticleSize(const ParametersBase& parameters) const
+{
+  const Models::TwoStepAlternative::Parameters& twoStepAltParameters = dynamic_cast<const Models::TwoStepAlternative::Parameters&>(parameters);
+  return twoStepAltParameters.w;
+}
+
+
+
+unsigned int Models::TwoStepAlternative::getLargestParticleSize(const ParametersBase& parameters) const
+{
+  const Models::TwoStepAlternative::Parameters& twoStepAltParameters = dynamic_cast<const Models::TwoStepAlternative::Parameters&>(parameters);
+  return twoStepAltParameters.maxsize;
+}
+
+
+
+unsigned int Models::ThreeStep::getSmallestParticleSize(const ParametersBase& parameters) const
+{
+  const Models::ThreeStep::Parameters& threeStepParameters = dynamic_cast<const Models::ThreeStep::Parameters&>(parameters);
+  return threeStepParameters.w;
+}
+
+
+
+unsigned int Models::ThreeStep::getLargestParticleSize(const ParametersBase& parameters) const
+{
+  const Models::ThreeStep::Parameters& threeStepParameters = dynamic_cast<const Models::ThreeStep::Parameters&>(parameters);
+  return threeStepParameters.maxsize;
+}
+
+
+
+unsigned int Models::ThreeStepAlternative::getSmallestParticleSize(const ParametersBase& parameters) const
+{
+  const Models::ThreeStepAlternative::Parameters& threeStepAltParameters = dynamic_cast<const Models::ThreeStepAlternative::Parameters&>(parameters);
+  return threeStepAltParameters.w;
+}
+
+
+
+unsigned int Models::ThreeStepAlternative::getLargestParticleSize(const ParametersBase& parameters) const
+{
+  const Models::ThreeStepAlternative::Parameters& threeStepAltParameters = dynamic_cast<const Models::ThreeStepAlternative::Parameters&>(parameters);
+  return threeStepAltParameters.maxsize;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Functions to return concentrations from a solution vector of a given model.
+
+double Models::TwoStep::returnConcentration(const std::valarray<double>& particleSizeDistribution,
+                                            const unsigned int& particleSize,
+                                            const ParametersBase& parameters) const
+{
+  const Models::TwoStep::Parameters& twoStepParameters = dynamic_cast<const Models::TwoStep::Parameters&>(parameters);
+
+  return particleSizeDistribution[Models::TwoStep::particleSizeToIndex(particleSize, twoStepParameters)];
+}
+
+
+
+double Models::TwoStepAlternative::returnConcentration(const std::valarray<double>& particleSizeDistribution,
+                                                       const unsigned int& particleSize,
+                                                       const ParametersBase& parameters) const
+{
+  const Models::TwoStepAlternative::Parameters& twoStepAltParameters = dynamic_cast<const Models::TwoStepAlternative::Parameters&>(parameters);
+
+  return particleSizeDistribution[Models::TwoStepAlternative::particleSizeToIndex(particleSize, twoStepAltParameters)];
+}
+
+
+
+double Models::ThreeStep::returnConcentration(const std::valarray<double>& particleSizeDistribution,
+                                              const unsigned int& particleSize,
+                                              const ParametersBase& parameters) const
+{
+  const Models::ThreeStep::Parameters& threeStepParameters = dynamic_cast<const Models::ThreeStep::Parameters&>(parameters);
+
+  return particleSizeDistribution[Models::ThreeStep::particleSizeToIndex(particleSize, threeStepParameters)];
+}
+
+
+
+double Models::ThreeStepAlternative::returnConcentration(const std::valarray<double>& particleSizeDistribution,
+                                                       const unsigned int& particleSize,
+                                                       const ParametersBase& parameters) const
+{
+  const Models::ThreeStepAlternative::Parameters& threeStepAltParameters = dynamic_cast<const Models::ThreeStepAlternative::Parameters&>(parameters);
+
+  return particleSizeDistribution[Models::ThreeStepAlternative::particleSizeToIndex(particleSize, threeStepAltParameters)];
+}
+
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -145,7 +318,7 @@ std::valarray<double> Models::TwoStep::right_hand_side(const std::valarray<doubl
     f[0] -= f[i];
   }
 
-  for (unsigned int i = 1; i < two_step_parameters.n_variables - 1; i++)
+  for (unsigned int i = 1; i < two_step_parameters.n_variables; i++)
   {
     // loss from growth
     f[i] -= f[i + 1];
