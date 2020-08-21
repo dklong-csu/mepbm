@@ -16,12 +16,13 @@ int main()
   double startTime = 0.0;
   double endTime = 1e-6;
 
+  // set up solver parameters
+  Models::explEulerParameters solverParameters(startTime, endTime, initialCondition);
+
   // run one time step
-  std::valarray<double> particleSizeDistr = Models::integrate_ode_explicit_euler(initialCondition,
+  std::valarray<double> particleSizeDistr = Models::integrate_ode_explicit_euler(solverParameters,
                                                                                  model,
-                                                                                 prm,
-                                                                                 startTime,
-                                                                                 endTime);
+                                                                                 prm);
 
 
   // output result for checking
@@ -34,11 +35,11 @@ int main()
 
   // run two time steps
   double newEndTime = 2e-6;
-  std::valarray<double> newParticleSizeDistr = Models::integrate_ode_explicit_euler(initialCondition,
+
+  solverParameters.endTime = newEndTime;
+  std::valarray<double> newParticleSizeDistr = Models::integrate_ode_explicit_euler(solverParameters,
                                                                                     model,
-                                                                                    prm,
-                                                                                    startTime,
-                                                                                    newEndTime);
+                                                                                    prm);
 
 
   // output result for checking
