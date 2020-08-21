@@ -14,7 +14,7 @@ int main()
   // set up initial conditions, start time, and end time
   std::valarray<double> initialCondition = { 1,.9,.8,.7,.6,.5,.4 };
   double startTime = 0.0;
-  double endTime = 1e-6;
+  double endTime = 1e-5;
 
   // set up solver parameters
   Models::explEulerParameters solverParameters(startTime, endTime, initialCondition);
@@ -34,7 +34,7 @@ int main()
   }
 
   // run two time steps
-  double newEndTime = 2e-6;
+  double newEndTime = 2e-5;
 
   solverParameters.endTime = newEndTime;
   std::valarray<double> newParticleSizeDistr = Models::integrate_ode_explicit_euler(solverParameters,

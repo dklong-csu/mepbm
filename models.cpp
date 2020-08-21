@@ -495,7 +495,7 @@ std::valarray<double> Models::integrate_ode_explicit_euler(const Models::explEul
                                                    const Models::ParametersBase& modelParameters)
 {
   std::valarray<double> x = solverParameters.initialCondition;
-  double time_step = 1e-6;
+  double time_step = 1e-5;
 
   double time = solverParameters.startTime;
   while (time < solverParameters.endTime)
