@@ -27,23 +27,23 @@ int main()
 
 
   // create dummy model
-  Models::ThreeStepAlternative::Parameters prm(3.6e-2, 7.27e4, 6.45e4, 1.63e4, 5.56e3, 11.3, 3, 2500, 274);
+  const Models::ThreeStepAlternative::Parameters prm(3.6e-2, 7.27e4, 6.45e4, 1.63e4, 5.56e3, 11.3, 3, 2500, 274);
   Models::ThreeStepAlternative model;
 
   // set up dummy initial conditions, start time, and end time
   std::valarray<double> initialCondition(0.0,2500);
   initialCondition[0] = 0.0012;
-  double startTime = 0.0;
-  double endTime = 1.170;
+  const double startTime = 0.0;
+  const double endTime = 1.170;
 
   // set up solver parameters
   Models::explEulerParameters solverParameters(startTime, endTime, initialCondition);
 
   // define parameters for the histogram
-  Histograms::Parameters histogramParameters(25, 3.0, 2500.0);
+  const Histograms::Parameters histogramParameters(25, 3.0, 2500.0);
 
   // calculate log likelihood
-  double logLikeliVal = Statistics::logLikelihood(dataAtoms, model, prm, solverParameters, histogramParameters);
+  const double logLikeliVal = Statistics::logLikelihood(dataAtoms, model, prm, solverParameters, histogramParameters);
 
   // print likelihood result
   std::cout << "log likelihood: "
@@ -70,7 +70,7 @@ int main()
   // print probability mass function
 
   // Step 1 - solve the ODE
-   std::valarray<double> particleSizeDistr = Models::integrate_ode_explicit_euler(solverParameters, model, prm);
+   const std::valarray<double> particleSizeDistr = Models::integrate_ode_explicit_euler(solverParameters, model, prm);
   // Step 2 - convert ODE solution to probability distribution on relevant particle sizes (i.e. sizes nucleationOrder - maxSize)
 
   // identify smallest and largest particle sizes
