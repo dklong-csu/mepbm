@@ -10,14 +10,14 @@
 // This function solves the ODE based on odeModel, odeParameters, and solverParameters
 // Then the ODE solution and data are converted to histograms based on histogramParameters.
 // Finally the log likelihood is computed using the multinomial distribution and the two histograms.
-double Statistics::logLikelihood(std::valarray<double>& particleSizeData,
-                                 Models::ModelsBase& odeModel,
-                                 Models::ParametersBase& odeParameters,
-                                 Models::explEulerParameters& solverParameters,
-                                 Histograms::Parameters& histogramParameters)
+double Statistics::logLikelihood(const std::valarray<double>& particleSizeData,
+                                 const Models::ModelsBase& odeModel,
+                                 const Models::ParametersBase& odeParameters,
+                                 const Models::explEulerParameters& solverParameters,
+                                 const Histograms::Parameters& histogramParameters)
 {
   // Step 1 - solve the ODE
-  std::valarray<double> particleSizeDistr = Models::integrate_ode_explicit_euler(solverParameters, odeModel, odeParameters);
+  const std::valarray<double> particleSizeDistr = Models::integrate_ode_explicit_euler(solverParameters, odeModel, odeParameters);
 
   // Step 2 - convert ODE solution to probability distribution on relevant particle sizes (i.e. sizes nucleationOrder - maxSize)
 
