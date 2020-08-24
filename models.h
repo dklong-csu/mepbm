@@ -2,6 +2,7 @@
 #define MODELS_H_
 
 #include <cmath>
+#include <ostream>
 #include <valarray>
 
 
@@ -166,7 +167,24 @@ namespace Models
              const unsigned int nucleation_order,
              const unsigned int maxsize_value,
              const unsigned int particle_size_cutoff_value);
+
+      friend
+      std::ostream &
+      operator<< (std::ostream &out,
+                  const Parameters &prm)
+        {
+          out << "k1=" << prm.k1 << ", "
+              << "k2=" << prm.k2 << ", "
+              << "k3=" << prm.k3 << ", "
+              << "w=" << prm.w << ", "
+              << "maxsize=" << prm.maxsize << ", "
+              << "n_variables=" << prm.n_variables << ", "
+              << "particle_size_cutoff=" << prm.particle_size_cutoff;
+          return out;
+        }
     };
+
+
 
 
     // The growth rate for particles depends on their size.
@@ -224,6 +242,21 @@ namespace Models
              const unsigned int nucleation_order,
              const unsigned int maxsize_value,
              const unsigned int particle_size_cutoff_value);
+
+      friend
+      std::ostream &
+      operator<< (std::ostream &out,
+                  const Parameters &prm)
+        {
+          out << "k1=" << prm.k1 << ", "
+              << "k2=" << prm.k2 << ", "
+              << "k3=" << prm.k3 << ", "
+              << "w=" << prm.w << ", "
+              << "maxsize=" << prm.maxsize << ", "
+              << "n_variables=" << prm.n_variables << ", "
+              << "particle_size_cutoff=" << prm.particle_size_cutoff;
+          return out;
+        }
     };
 
     // The growth rate for particles depends on their size.
