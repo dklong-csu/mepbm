@@ -9,6 +9,9 @@ SET (CMAKE_CXX_STANDARD 11)
 SET (CMAKE_CXX_STANDARD_REQUIRED ON)
 SET (CMAKE_CXX_EXTENSIONS OFF)
 
+# Also make sure we link with the threads library in question
+FIND_PACKAGE (Threads)
+
 # Find include files in the current directory
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -46,6 +49,8 @@ ADD_EXECUTABLE(mepbm
 	       main.cpp)
 TARGET_LINK_LIBRARIES(mepbm
                       $<TARGET_OBJECTS:libmepbm>)
+TARGET_LINK_LIBRARIES (mepbm
+                       Threads::Threads)
 
 
 #########################################
