@@ -63,6 +63,10 @@ double log_prior (const SampleType &prm)
 {
   // FIXME: It would be nice if this could automatically detect the member variables
   // we would like to optimize
+  //
+  // WB: You'd do that by putting a 'within_reasonable_range()'
+  // function into the various Parameter classes. Then here you'd just
+  // call 'prm.within_reasonable_range()' in the 'if' clause.
   if (
       prm.k_backward < 1000. || prm.k_backward > 200000.
       || prm.k1 < 4800. || prm.k1 > 8e+07
