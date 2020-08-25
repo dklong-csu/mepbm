@@ -108,9 +108,9 @@ double rand_btwn_double (const double small_num, const double big_num)
 
 
 
-// A function given two real numbers returns a random number
+// A function given two integers returns a random number
 // between those numbers based on a uniform distribution
-int rand_btwn_int (const double small_num, const double big_num)
+int rand_btwn_int (const int small_num, const int big_num)
 {
   static std::mt19937 gen;
   std::uniform_int_distribution<> unif(small_num,big_num);
