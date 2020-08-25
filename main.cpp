@@ -8,6 +8,7 @@
 
 #include <sampleflow/producers/metropolis_hastings.h>
 #include <sampleflow/consumers/stream_output.h>
+#include <sampleflow/consumers/mean_value.h>
 
 
 // The data type that describes the samples we want to draw from some
@@ -158,10 +159,20 @@ int main()
   SampleFlow::Producers::MetropolisHastings<SampleType> mh_sampler;
   SampleFlow::Consumers::StreamOutput<SampleType> stream_output (samples);
   stream_output.connect_to_producer (mh_sampler);
+
+  SampleFlow::Consumers::MeanValue<SampleType> mean_value;
+  mean_value.connect_to_producer (mh_sampler);
   
   // Sample from the given distribution
+  const unsigned int n_samples = 10;
   mh_sampler.sample (starting_guess,
                      &log_probability,
                      &perturb,
-                     10);
+                     n_samples);
+
+  // Output the statistics we have computed in the process of sampling
+  // everything
+  std::cout << "Mean value of all samples:\n"
+            << mean_value.get()
+            << std::endl;
 }
