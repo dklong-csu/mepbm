@@ -79,15 +79,18 @@ double log_prior (const SampleType &prm)
 
 double log_probability (const SampleType &prm)
 {
-  // FIXME: is there a reason we don't just write
-  // return log_likelihood(prm) + log_prior(prm)?
-  // readability seems the same to me.
-  const double log_like = log_likelihood(prm);
   const double logPrior = log_prior(prm);
 
+  // If the prior probability for a sample is zero, multiplication
+  // with the (expensive to compute) likelihood isn't going to change
+  // that. So just return what we already got.
+  if (logPrior == -std::numeric_limits<double>::max())
+    return logPrior;
+  
+  else
   // Return the probability=likelihood*prior, except of course we're
   // only dealing with logarithms.
-  return log_like + logPrior;
+    return log_likelihood(prm) + logPrior;
 }
 
 
