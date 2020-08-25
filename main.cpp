@@ -96,8 +96,7 @@ double log_probability (const SampleType &prm)
 // between those numbers based on a uniform distribution
 double rand_btwn_double (const double small_num, const double big_num)
 {
-  std::random_device rd;
-  std::mt19937 gen(rd());
+  static std::mt19937 gen;
   std::uniform_real_distribution<> unif(small_num,big_num);
 
   return unif(gen);
@@ -109,8 +108,7 @@ double rand_btwn_double (const double small_num, const double big_num)
 // between those numbers based on a uniform distribution
 int rand_btwn_int (const double small_num, const double big_num)
 {
-  std::random_device rd;
-  std::mt19937 gen(rd());
+  static std::mt19937 gen;
   std::uniform_int_distribution<> unif(small_num,big_num);
 
   return unif(gen);
