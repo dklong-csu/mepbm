@@ -83,18 +83,18 @@ Models::ThreeStepAlternative::Parameters::Parameters(const double k_forward_valu
                                                      const unsigned int nucleation_order,
                                                      const unsigned int maxsize_value,
                                                      const unsigned int particle_size_cutoff_value)
-{
-  k_forward = k_forward_value;
-  k_backward = k_backward_value;
-  k1 = k1_value;
-  k2 = k2_value;
-  k3 = k3_value;
-  w = nucleation_order;
-  maxsize = maxsize_value;
-  n_variables = maxsize - w + 4;
-  particle_size_cutoff = particle_size_cutoff_value;
-  solvent = solvent_value;
-}
+:
+k_forward (k_forward_value),
+  k_backward (k_backward_value),
+  k1 (k1_value),
+  k2 (k2_value),
+  k3 (k3_value),
+  w (nucleation_order),
+  maxsize (maxsize_value),
+  n_variables (maxsize - w + 4),
+  particle_size_cutoff (particle_size_cutoff_value),
+  solvent (solvent_value)
+{}
 
 
 
