@@ -1,0 +1,27 @@
+name: mepbm CI test
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: install dependencies
+      run: |
+        sudo apt-get install doxygen graphviz libboost-all-dev numdiff -y
+        doxygen --version
+        git clone https://github.com/bangerth/SampleFlow.git
+    - name: cmake
+      run: cmake -DSAMPLEFLOW_DIR="$PWD/SampleFlow" .
+    -name: build
+      run: make
+    - name: ctest
+      run: ctest --output-on-failure -j2
