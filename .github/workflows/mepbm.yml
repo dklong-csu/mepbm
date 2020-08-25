@@ -21,7 +21,7 @@ jobs:
         git clone https://github.com/bangerth/SampleFlow.git
     - name: cmake
       run: cmake -DSAMPLEFLOW_DIR="$PWD/SampleFlow" .
-    -name: build
+    - name: build
       run: make
     - name: ctest
       run: ctest --output-on-failure -j2
