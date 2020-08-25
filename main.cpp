@@ -1,4 +1,6 @@
 #include <iostream>
+#include <limits>
+#include <random>
 #include "models.h"
 #include "histogram.h"
 #include "statistics.h"
@@ -53,24 +55,93 @@ double log_likelihood (const SampleType &prm)
 }
 
 
-double log_probability (const SampleType &prm)
-{
-  const double log_like = log_likelihood(prm);
-  const double log_prior = 0;   // FIXME
 
-  // Return the probability=likelihood*prior, except of course we're
-  // only dealing with logarithms.
-  return log_like + log_prior;
+// A function that given three SampleType objects (i.e., one for maximum allowable parameters,
+// one for minimum allowable parameters, and one for the current set of parameters) computes
+// the corresponding prior.
+double log_prior (const SampleType &prm)
+{
+  // FIXME: It would be nice if this could automatically detect the member variables
+  // we would like to optimize
+  if (
+      prm.k_backward < 1000. || prm.k_backward > 200000.
+      || prm.k1 < 4800. || prm.k1 > 8e+07
+      || prm.k2 < 10. || prm.k2 > 85000.
+      || prm.k3 < 10. || prm.k3 > 25000.
+      || prm.particle_size_cutoff < 10 || prm.particle_size_cutoff > 800
+  )
+    return -std::numeric_limits<double>::max();
+  else
+    return 0.;
 }
 
 
 
+double log_probability (const SampleType &prm)
+{
+  // FIXME: is there a reason we don't just write
+  // return log_likelihood(prm) + log_prior(prm)?
+  // readability seems the same to me.
+  const double log_like = log_likelihood(prm);
+  const double logPrior = log_prior(prm);
+
+  // Return the probability=likelihood*prior, except of course we're
+  // only dealing with logarithms.
+  return log_like + logPrior;
+}
+
+
+
+// A function given two real numbers returns a random number
+// between those numbers based on a uniform distribution
+double rand_btwn_double (const double small_num, const double big_num)
+{
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<> unif(small_num,big_num);
+
+  return unif(gen);
+}
+
+
+
+// A function given two real numbers returns a random number
+// between those numbers based on a uniform distribution
+int rand_btwn_int (const double small_num, const double big_num)
+{
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<> unif(small_num,big_num);
+
+  return unif(gen);
+}
+
+
+
+// A function given a SampleType object returns a SampleType
+// object whose member variables have been randomly perturbed
+// along with the ratio of the probabilities of prm->new_prm /
+// new_prm->prm
 std::pair<SampleType,double> perturb (const SampleType &prm)
 {
-  // FIXME: We need to perturb the given sample here. Then return the
-  // new sample and the ratio of probabilities prm->new_sample /
-  // new_sample->prm
-  return {prm, 1.};
+  // perturb each non-constant parameter with a uniform distribution
+  double new_k_backward = prm.k_backward + rand_btwn_double(-1.e3, 1.e3);
+  double new_k1 = prm.k1 + rand_btwn_double(-1.e4, 1.e4);
+  double new_k2 = prm.k2 + rand_btwn_double(-1.e3, 1.e3);
+  double new_k3 = prm.k3 + rand_btwn_double(-1.e3, 1.e3);
+  double new_part_sz_cutoff = prm.particle_size_cutoff + rand_btwn_int(-10, 10);
+
+  SampleType new_prm(prm.k_forward,
+                     new_k_backward,
+                     new_k1,
+                     new_k2,
+                     new_k3,
+                     prm.solvent,
+                     prm.w,
+                     prm.maxsize,
+                     new_part_sz_cutoff);
+
+  return {new_prm, 1.};
 }
 
 
