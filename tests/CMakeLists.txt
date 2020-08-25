@@ -49,14 +49,17 @@ FOREACH(_testfile ${_testfiles})
   # necessary to run the test. Compile the executable with -Werror
   # to ensure that there are no warnings in either the tests, or the
   # header files these tests #include.
-  ADD_EXECUTABLE(${_testname} EXCLUDE_FROM_ALL ${_testfile})
+  ADD_EXECUTABLE(${_testname}
+                 EXCLUDE_FROM_ALL
+                 ${_testfile}
+                 $<TARGET_OBJECTS:libmepbm>)
   IF(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     TARGET_COMPILE_OPTIONS(${_testname} PRIVATE "/WX")
   ELSE()
     TARGET_COMPILE_OPTIONS(${_testname} PRIVATE "-Werror")
   ENDIF()
   TARGET_LINK_LIBRARIES (${_testname} Threads::Threads)
-  TARGET_LINK_LIBRARIES (${_testname} $<TARGET_OBJECTS:libmepbm>)
+
 
   # Then specify what it means to run a test:
   #
