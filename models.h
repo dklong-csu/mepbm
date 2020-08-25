@@ -232,6 +232,9 @@ namespace Models
       double k1, k2, k3, k_forward, k_backward, solvent;
       unsigned int w, maxsize, n_variables, particle_size_cutoff;
 
+      // default constructor. creates an invalid object
+      Parameters();
+      
       // constructor
       Parameters(const double k_forward_value,
              const double k_backward_value,
@@ -243,6 +246,15 @@ namespace Models
              const unsigned int maxsize_value,
              const unsigned int particle_size_cutoff_value);
 
+      // Add and subtract two sets of parameters, treating them as
+      // simple tuples of numbers
+      Parameters operator += (const Parameters &prm);
+      Parameters operator -= (const Parameters &prm);
+
+      // Divide a set of parameters, considered as a tuple of numbers,
+      // by an integer.
+      Parameters operator /= (const unsigned int n);
+      
       friend
       std::ostream &
       operator<< (std::ostream &out,
