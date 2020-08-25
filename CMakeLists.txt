@@ -46,9 +46,8 @@ ADD_LIBRARY(libmepbm
 ### Describe the main executable and from which files
 ### it needs to be compiled.
 ADD_EXECUTABLE(mepbm
-	       main.cpp)
-TARGET_LINK_LIBRARIES(mepbm
-                      $<TARGET_OBJECTS:libmepbm>)
+	       main.cpp
+               $<TARGET_OBJECTS:libmepbm>)
 TARGET_LINK_LIBRARIES (mepbm
                        Threads::Threads)
 
