@@ -58,6 +58,22 @@ Models::ThreeStep::Parameters::Parameters(const double k1_value,
 
 
 
+Models::ThreeStepAlternative::Parameters::Parameters()
+:
+// just defer to the other constructor, using invalid values
+Parameters(std::numeric_limits<double>::signaling_NaN(),
+           std::numeric_limits<double>::signaling_NaN(),
+           std::numeric_limits<double>::signaling_NaN(),
+           std::numeric_limits<double>::signaling_NaN(),
+           std::numeric_limits<double>::signaling_NaN(),
+           std::numeric_limits<double>::signaling_NaN(),
+           std::numeric_limits<unsigned int>::max(),
+           std::numeric_limits<unsigned int>::max(),
+           std::numeric_limits<unsigned int>::max())
+{}
+
+           
+
 Models::ThreeStepAlternative::Parameters::Parameters(const double k_forward_value,
                                                      const double k_backward_value,
                                                      const double k1_value,
@@ -78,6 +94,62 @@ Models::ThreeStepAlternative::Parameters::Parameters(const double k_forward_valu
   n_variables = maxsize - w + 4;
   particle_size_cutoff = particle_size_cutoff_value;
   solvent = solvent_value;
+}
+
+
+
+Models::ThreeStepAlternative::Parameters
+Models::ThreeStepAlternative::Parameters::operator += (const Parameters &prm)
+{
+  k1 += prm.k1;
+  k2 += prm.k2;
+  k3 += prm.k3;
+  k_forward += prm.k_forward;
+  k_backward += prm.k_backward;
+  solvent += prm.solvent;
+  w += prm.w;
+  maxsize += prm.maxsize;
+  n_variables += prm.n_variables;
+  particle_size_cutoff += prm.particle_size_cutoff;
+
+  return *this;
+}
+
+
+
+Models::ThreeStepAlternative::Parameters
+Models::ThreeStepAlternative::Parameters::operator -= (const Parameters &prm)
+{
+  k1 -= prm.k1;
+  k2 -= prm.k2;
+  k3 -= prm.k3;
+  k_forward -= prm.k_forward;
+  k_backward -= prm.k_backward;
+  solvent -= prm.solvent;
+  w -= prm.w;
+  maxsize -= prm.maxsize;
+  n_variables -= prm.n_variables;
+  particle_size_cutoff -= prm.particle_size_cutoff;
+
+  return *this;
+}
+
+
+Models::ThreeStepAlternative::Parameters
+Models::ThreeStepAlternative::Parameters::operator /= (const unsigned int n)
+{
+  k1 /= n;
+  k2 /= n;
+  k3 /= n;
+  k_forward /= n;
+  k_backward /= n;
+  solvent /= n;
+  w /= n;
+  maxsize /= n;
+  n_variables /= n;
+  particle_size_cutoff /= n;
+
+  return *this;
 }
 
 
