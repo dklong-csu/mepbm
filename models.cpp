@@ -6,18 +6,42 @@
 
 
 // Parameters constructors
+Models::TwoStep::Parameters::Parameters()
+:
+// just defer to the other constructor, using invalid values
+Parameters(std::numeric_limits<double>::signaling_NaN(),
+           std::numeric_limits<double>::signaling_NaN(),
+           std::numeric_limits<unsigned int>::max(),
+           std::numeric_limits<unsigned int>::max())
+{}
+
+
+
 Models::TwoStep::Parameters::Parameters(const double k1_value,
                                         const double k2_value,
                                         const unsigned int nucleation_order,
                                         const unsigned int maxsize_value)
-{
-  k1 = k1_value;
-  k2 = k2_value;
-  w = nucleation_order;
-  maxsize = maxsize_value;
-  n_variables = maxsize - w + 2;
-}
+:
+  k1 (k1_value),
+  k2 (k2_value),
+  w (nucleation_order),
+  maxsize (maxsize_value),
+  n_variables (maxsize - w + 2)
+{}
 
+
+
+Models::TwoStepAlternative::Parameters::Parameters()
+:
+// just defer to the other constructor, using invalid values
+Parameters(std::numeric_limits<double>::signaling_NaN(),
+           std::numeric_limits<double>::signaling_NaN(),
+           std::numeric_limits<double>::signaling_NaN(),
+           std::numeric_limits<double>::signaling_NaN(),
+           std::numeric_limits<double>::signaling_NaN(),
+           std::numeric_limits<unsigned int>::max(),
+           std::numeric_limits<unsigned int>::max())
+{}
 
 
 Models::TwoStepAlternative::Parameters::Parameters(const double k_forward_value,
@@ -27,16 +51,29 @@ Models::TwoStepAlternative::Parameters::Parameters(const double k_forward_value,
                                                    const double solvent_value,
                                                    const unsigned int nucleation_order,
                                                    const unsigned int maxsize_value)
-{
-  k_forward = k_forward_value;
-  k_backward = k_backward_value;
-  k1 = k1_value;
-  k2 = k2_value;
-  w = nucleation_order;
-  maxsize = maxsize_value;
-  n_variables = maxsize - w + 4;
-  solvent = solvent_value;
-}
+:
+  k_forward (k_forward_value),
+  k_backward (k_backward_value),
+  k1 (k1_value),
+  k2 (k2_value),
+  w (nucleation_order),
+  maxsize (maxsize_value),
+  n_variables (maxsize - w + 4),
+  solvent (solvent_value)
+{}
+
+
+
+Models::ThreeStep::Parameters::Parameters()
+:
+// just defer to the other constructor, using invalid values
+Parameters(std::numeric_limits<double>::signaling_NaN(),
+           std::numeric_limits<double>::signaling_NaN(),
+           std::numeric_limits<double>::signaling_NaN(),
+           std::numeric_limits<unsigned int>::max(),
+           std::numeric_limits<unsigned int>::max(),
+           std::numeric_limits<unsigned int>::max())
+{}
 
 
 
@@ -46,15 +83,15 @@ Models::ThreeStep::Parameters::Parameters(const double k1_value,
                                           const unsigned int nucleation_order,
                                           const unsigned int maxsize_value,
                                           const unsigned int particle_size_cutoff_value)
-{
-  k1 = k1_value;
-  k2 = k2_value;
-  k3 = k3_value;
-  w = nucleation_order;
-  maxsize = maxsize_value;
-  n_variables = maxsize - w + 2;
-  particle_size_cutoff = particle_size_cutoff_value;
-}
+:
+  k1 (k1_value),
+  k2 (k2_value),
+  k3 (k3_value),
+  w (nucleation_order),
+  maxsize (maxsize_value),
+  n_variables (maxsize - w + 2),
+  particle_size_cutoff (particle_size_cutoff_value)
+{}
 
 
 

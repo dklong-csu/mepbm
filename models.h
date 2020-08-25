@@ -64,6 +64,9 @@ namespace Models
       double k1, k2;
       unsigned int w, maxsize, n_variables;
 
+      // default constructor. creates an invalid object
+      Parameters();
+
       // constructor
       Parameters(const double k1_value,
              const double k2_value,
@@ -110,6 +113,9 @@ namespace Models
     public:
       double k1, k2, k_forward, k_backward, solvent;
       unsigned int w, maxsize, n_variables;
+
+      // default constructor. creates an invalid object
+      Parameters();
 
       // constructor
       Parameters(const double k_forward_value,
@@ -159,6 +165,9 @@ namespace Models
     public:
       double k1, k2, k3;
       unsigned int w, maxsize, n_variables, particle_size_cutoff;
+
+      // default constructor. creates an invalid object
+      Parameters();
 
       // constructor
       Parameters(const double k1_value,
