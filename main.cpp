@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <limits>
 #include <random>
 #include "models.h"
@@ -152,8 +153,10 @@ int main()
   const SampleType
     starting_guess (3.6e-2, 7.27e4, 6.45e4, 1.63e4, 5.56e3, 11.3, 3, 2500, 274);
 
+  std::ofstream samples ("samples.txt");
+  
   SampleFlow::Producers::MetropolisHastings<SampleType> mh_sampler;
-  SampleFlow::Consumers::StreamOutput<SampleType> stream_output (std::cout);
+  SampleFlow::Consumers::StreamOutput<SampleType> stream_output (samples);
   stream_output.connect_to_producer (mh_sampler);
   
   // Sample from the given distribution
