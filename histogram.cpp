@@ -85,20 +85,17 @@ unsigned int Histograms::Histogram::bisection_method(double x)
   // data is assumed unstructured, so we always start by considering all bins
   unsigned int index_left = 0;
   unsigned int index_right = num_bins;
-
+  unsigned int middle = (index_right + index_left) / 2;
+  
   // check middle index
-  bool not_found = true;
-  while (not_found)
+  bool found = false;
+  while (!found)
   {
-
-    // determine midpoint of considered values
-    unsigned int middle = (index_right + index_left) / 2;
-
     // check if x is in the middle bin -- if it is, we're done!
     if (x >= interval_pts[middle] && x < interval_pts[middle + 1])
     {
-      not_found = false;
-      return middle;
+      found = true;
+      break;
     }
     // if x is larger than the middle bin, then we do not need to check bins left,...,middle anymore
     else if (x >= interval_pts[middle + 1])
@@ -110,8 +107,10 @@ unsigned int Histograms::Histogram::bisection_method(double x)
     {
       index_right = middle;
     }
-
+    // determine midpoint of considered values
+    middle = (index_right + index_left) / 2;
   }
+  return middle;
 }
 
 
