@@ -111,7 +111,8 @@ namespace Models
     class Parameters : public ParametersBase
     {
     public:
-      double k1, k2, k_forward, k_backward, solvent;
+      double k1, k2, k_forward, k_backward;
+      double solvent;
       unsigned int w, maxsize, n_variables;
 
       // default constructor. creates an invalid object
@@ -164,7 +165,13 @@ namespace Models
     {
     public:
       double k1, k2, k3;
-      unsigned int w, maxsize, n_variables, particle_size_cutoff;
+      unsigned int w, maxsize, n_variables;
+      // physically, this should be an integer, but this
+      // is a variable parameter and if we wish to perform
+      // statistics (e.g. compute a mean value from a 
+      // probability distribution) we need this to be stored
+      // as a double.
+      double particle_size_cutoff;
 
       // default constructor. creates an invalid object
       Parameters();
@@ -175,7 +182,7 @@ namespace Models
              const double k3_value,
              const unsigned int nucleation_order,
              const unsigned int maxsize_value,
-             const unsigned int particle_size_cutoff_value);
+             const double particle_size_cutoff_value);
 
       friend
       std::ostream &
@@ -238,8 +245,15 @@ namespace Models
     class Parameters : public ParametersBase
     {
     public:
-      double k1, k2, k3, k_forward, k_backward, solvent;
-      unsigned int w, maxsize, n_variables, particle_size_cutoff;
+      double k1, k2, k3, k_forward, k_backward;
+      double solvent;
+      unsigned int w, maxsize, n_variables;
+      // physically, this should be an integer, but this
+      // is a variable parameter and if we wish to perform
+      // statistics (e.g. compute a mean value from a 
+      // probability distribution) we need this to be stored
+      // as a double.
+      double particle_size_cutoff;
 
       // default constructor. creates an invalid object
       Parameters();
@@ -253,7 +267,7 @@ namespace Models
              const double solvent_value,
              const unsigned int nucleation_order,
              const unsigned int maxsize_value,
-             const unsigned int particle_size_cutoff_value);
+             const double particle_size_cutoff_value);
 
       // Add and subtract two sets of parameters, treating them as
       // simple tuples of numbers

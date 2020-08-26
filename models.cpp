@@ -72,7 +72,7 @@ Parameters(std::numeric_limits<double>::signaling_NaN(),
            std::numeric_limits<double>::signaling_NaN(),
            std::numeric_limits<unsigned int>::max(),
            std::numeric_limits<unsigned int>::max(),
-           std::numeric_limits<unsigned int>::max())
+           std::numeric_limits<double>::max())
 {}
 
 
@@ -82,7 +82,7 @@ Models::ThreeStep::Parameters::Parameters(const double k1_value,
                                           const double k3_value,
                                           const unsigned int nucleation_order,
                                           const unsigned int maxsize_value,
-                                          const unsigned int particle_size_cutoff_value)
+                                          const double particle_size_cutoff_value)
 :
   k1 (k1_value),
   k2 (k2_value),
@@ -106,7 +106,7 @@ Parameters(std::numeric_limits<double>::signaling_NaN(),
            std::numeric_limits<double>::signaling_NaN(),
            std::numeric_limits<unsigned int>::max(),
            std::numeric_limits<unsigned int>::max(),
-           std::numeric_limits<unsigned int>::max())
+           std::numeric_limits<double>::max())
 {}
 
            
@@ -119,7 +119,7 @@ Models::ThreeStepAlternative::Parameters::Parameters(const double k_forward_valu
                                                      const double solvent_value,
                                                      const unsigned int nucleation_order,
                                                      const unsigned int maxsize_value,
-                                                     const unsigned int particle_size_cutoff_value)
+                                                     const double particle_size_cutoff_value)
 :
 k_forward (k_forward_value),
   k_backward (k_backward_value),
@@ -143,10 +143,6 @@ Models::ThreeStepAlternative::Parameters::operator += (const Parameters &prm)
   k3 += prm.k3;
   k_forward += prm.k_forward;
   k_backward += prm.k_backward;
-  solvent += prm.solvent;
-  w += prm.w;
-  maxsize += prm.maxsize;
-  n_variables += prm.n_variables;
   particle_size_cutoff += prm.particle_size_cutoff;
 
   return *this;
@@ -162,10 +158,6 @@ Models::ThreeStepAlternative::Parameters::operator -= (const Parameters &prm)
   k3 -= prm.k3;
   k_forward -= prm.k_forward;
   k_backward -= prm.k_backward;
-  solvent -= prm.solvent;
-  w -= prm.w;
-  maxsize -= prm.maxsize;
-  n_variables -= prm.n_variables;
   particle_size_cutoff -= prm.particle_size_cutoff;
 
   return *this;
@@ -180,10 +172,6 @@ Models::ThreeStepAlternative::Parameters::operator /= (const unsigned int n)
   k3 /= n;
   k_forward /= n;
   k_backward /= n;
-  solvent /= n;
-  w /= n;
-  maxsize /= n;
-  n_variables /= n;
   particle_size_cutoff /= n;
 
   return *this;
