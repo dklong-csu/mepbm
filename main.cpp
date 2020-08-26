@@ -7,8 +7,10 @@
 #include "statistics.h"
 
 #include <sampleflow/producers/metropolis_hastings.h>
+#include <sampleflow/filters/conversion.h>
 #include <sampleflow/consumers/stream_output.h>
 #include <sampleflow/consumers/mean_value.h>
+#include <sampleflow/consumers/histogram.h>
 
 
 // The data type that describes the samples we want to draw from some
@@ -162,6 +164,18 @@ int main()
 
   SampleFlow::Consumers::MeanValue<SampleType> mean_value;
   mean_value.connect_to_producer (mh_sampler);
+
+
+  SampleFlow::Filters::Conversion<SampleType,double>
+    extract_k1 ([](const SampleType &prm) { return prm.k1; });
+  extract_k1.connect_to_producer (mh_sampler);
+
+  const double k1_min = 0;
+  const double k1_max = 3e5;
+  const unsigned int n_bins = 100;
+  SampleFlow::Consumers::Histogram<double> histogram_k1 (k1_min, k1_max, n_bins);
+  histogram_k1.connect_to_producer (extract_k1);
+  
   
   // Sample from the given distribution
   const unsigned int n_samples = 10;
@@ -175,4 +189,7 @@ int main()
   std::cout << "Mean value of all samples:\n"
             << mean_value.get()
             << std::endl;
+
+  // Now also output the histograms for all parameters:
+  histogram_k1.write_gnuplot (std::ofstream("histogram_k1.txt"));
 }
