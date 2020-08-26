@@ -72,6 +72,31 @@ namespace Models
              const double k2_value,
              const unsigned int nucleation_order,
              const unsigned int maxsize_value);
+             
+      // Setting parameters equal, skipping the const members
+      Parameters operator = (const Parameters &prm);
+      
+      // Add and subtract two sets of parameters, treating them as
+      // simple tuples of numbers
+      Parameters operator += (const Parameters &prm);
+      Parameters operator -= (const Parameters &prm);
+
+      // Divide a set of parameters, considered as a tuple of numbers,
+      // by an integer.
+      Parameters operator /= (const unsigned int n);
+      
+      friend
+      std::ostream &
+      operator<< (std::ostream &out,
+                  const Parameters &prm)
+        {
+          out << "k1=" << prm.k1 << ", "
+              << "k2=" << prm.k2 << ", "
+              << "w=" << prm.w << ", "
+              << "maxsize=" << prm.maxsize << ", "
+              << "n_variables=" << prm.n_variables;
+          return out;
+        }
     };
 
     // subroutine defining how the right hand side of the ODE is formed
@@ -126,6 +151,33 @@ namespace Models
              const double solvent_value,
              const unsigned int nucleation_order,
              const unsigned int maxsize_value);
+             
+      // Setting parameters equal, skipping the const members
+      Parameters operator = (const Parameters &prm);
+      
+      // Add and subtract two sets of parameters, treating them as
+      // simple tuples of numbers
+      Parameters operator += (const Parameters &prm);
+      Parameters operator -= (const Parameters &prm);
+
+      // Divide a set of parameters, considered as a tuple of numbers,
+      // by an integer.
+      Parameters operator /= (const unsigned int n);
+      
+      friend
+      std::ostream &
+      operator<< (std::ostream &out,
+                  const Parameters &prm)
+        {
+          out << "kf=" << prm.k_forward << ", "
+              << "kb=" << prm.k_backward << ", "
+              << "k1=" << prm.k1 << ", "
+              << "k2=" << prm.k2 << ", "
+              << "w=" << prm.w << ", "
+              << "maxsize=" << prm.maxsize << ", "
+              << "n_variables=" << prm.n_variables;
+          return out;
+        }
     };
 
     // subroutine defining how the right hand side of the ODE is formed
@@ -184,6 +236,18 @@ namespace Models
              const unsigned int maxsize_value,
              const double particle_size_cutoff_value);
 
+      // Setting parameters equal, skipping the const members
+      Parameters operator = (const Parameters &prm);
+      
+      // Add and subtract two sets of parameters, treating them as
+      // simple tuples of numbers
+      Parameters operator += (const Parameters &prm);
+      Parameters operator -= (const Parameters &prm);
+
+      // Divide a set of parameters, considered as a tuple of numbers,
+      // by an integer.
+      Parameters operator /= (const unsigned int n);
+      
       friend
       std::ostream &
       operator<< (std::ostream &out,
@@ -246,8 +310,8 @@ namespace Models
     {
     public:
       double k1, k2, k3, k_forward, k_backward;
-      double solvent;
-      unsigned int w, maxsize, n_variables;
+      const double solvent;
+      const unsigned int w, maxsize, n_variables;
       // physically, this should be an integer, but this
       // is a variable parameter and if we wish to perform
       // statistics (e.g. compute a mean value from a 
@@ -269,6 +333,9 @@ namespace Models
              const unsigned int maxsize_value,
              const double particle_size_cutoff_value);
 
+      // Setting parameters equal, skipping the const members
+      Parameters operator = (const Parameters &prm);
+      
       // Add and subtract two sets of parameters, treating them as
       // simple tuples of numbers
       Parameters operator += (const Parameters &prm);
