@@ -135,6 +135,170 @@ k_forward (k_forward_value),
 
 
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// operators
+Models::TwoStep::Parameters
+Models::TwoStep::Parameters::operator = (const Parameters &prm)
+{
+  k1 = prm.k1;
+  k2 = prm.k2;
+
+  return *this;
+}
+
+
+
+Models::TwoStep::Parameters
+Models::TwoStep::Parameters::operator += (const Parameters &prm)
+{
+  k1 += prm.k1;
+  k2 += prm.k2;
+
+  return *this;
+}
+
+
+
+Models::TwoStep::Parameters
+Models::TwoStep::Parameters::operator -= (const Parameters &prm)
+{
+  k1 -= prm.k1;
+  k2 -= prm.k2;
+
+  return *this;
+}
+
+
+Models::TwoStep::Parameters
+Models::TwoStep::Parameters::operator /= (const unsigned int n)
+{
+  k1 /= n;
+  k2 /= n;
+
+  return *this;
+}
+
+
+
+Models::TwoStepAlternative::Parameters
+Models::TwoStepAlternative::Parameters::operator = (const Parameters &prm)
+{
+  k1 = prm.k1;
+  k2 = prm.k2;
+  k_forward = prm.k_forward;
+  k_backward = prm.k_backward;
+
+  return *this;
+}
+
+
+
+Models::TwoStepAlternative::Parameters
+Models::TwoStepAlternative::Parameters::operator += (const Parameters &prm)
+{
+  k1 += prm.k1;
+  k2 += prm.k2;
+  k_forward += prm.k_forward;
+  k_backward += prm.k_backward;
+
+  return *this;
+}
+
+
+
+Models::TwoStepAlternative::Parameters
+Models::TwoStepAlternative::Parameters::operator -= (const Parameters &prm)
+{
+  k1 -= prm.k1;
+  k2 -= prm.k2;
+  k_forward -= prm.k_forward;
+  k_backward -= prm.k_backward;
+
+  return *this;
+}
+
+
+Models::TwoStepAlternative::Parameters
+Models::TwoStepAlternative::Parameters::operator /= (const unsigned int n)
+{
+  k1 /= n;
+  k2 /= n;
+  k_forward /= n;
+  k_backward /= n;
+
+  return *this;
+}
+
+
+
+Models::ThreeStep::Parameters
+Models::ThreeStep::Parameters::operator = (const Parameters &prm)
+{
+  k1 = prm.k1;
+  k2 = prm.k2;
+  k3 = prm.k3;
+  particle_size_cutoff = prm.particle_size_cutoff;
+
+  return *this;
+}
+
+
+
+Models::ThreeStep::Parameters
+Models::ThreeStep::Parameters::operator += (const Parameters &prm)
+{
+  k1 += prm.k1;
+  k2 += prm.k2;
+  k3 += prm.k3;
+  particle_size_cutoff += prm.particle_size_cutoff;
+
+  return *this;
+}
+
+
+
+Models::ThreeStep::Parameters
+Models::ThreeStep::Parameters::operator -= (const Parameters &prm)
+{
+  k1 -= prm.k1;
+  k2 -= prm.k2;
+  k3 -= prm.k3;
+  particle_size_cutoff -= prm.particle_size_cutoff;
+
+  return *this;
+}
+
+
+Models::ThreeStep::Parameters
+Models::ThreeStep::Parameters::operator /= (const unsigned int n)
+{
+  k1 /= n;
+  k2 /= n;
+  k3 /= n;
+  particle_size_cutoff /= n;
+
+  return *this;
+}
+
+
+
+Models::ThreeStepAlternative::Parameters
+Models::ThreeStepAlternative::Parameters::operator = (const Parameters &prm)
+{
+  k1 = prm.k1;
+  k2 = prm.k2;
+  k3 = prm.k3;
+  k_forward = prm.k_forward;
+  k_backward = prm.k_backward;
+  particle_size_cutoff = prm.particle_size_cutoff;
+
+  return *this;
+}
+
+
+
 Models::ThreeStepAlternative::Parameters
 Models::ThreeStepAlternative::Parameters::operator += (const Parameters &prm)
 {
