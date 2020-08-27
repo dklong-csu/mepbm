@@ -11,6 +11,7 @@
 #include <sampleflow/consumers/stream_output.h>
 #include <sampleflow/consumers/mean_value.h>
 #include <sampleflow/consumers/histogram.h>
+#include <sampleflow/consumers/acceptance_ratio.h>
 
 
 // The data type that describes the samples we want to draw from some
@@ -165,6 +166,9 @@ int main()
   SampleFlow::Consumers::MeanValue<SampleType> mean_value;
   mean_value.connect_to_producer (mh_sampler);
 
+  SampleFlow::Consumers::AcceptanceRatio<SampleType> acceptance_ratio;
+  acceptance_ratio.connect_to_producer (mh_sampler);
+  
 
   SampleFlow::Filters::Conversion<SampleType,double>
     extract_k1 ([](const SampleType &prm) { return prm.k1; });
@@ -188,6 +192,9 @@ int main()
   // everything
   std::cout << "Mean value of all samples:\n"
             << mean_value.get()
+            << std::endl;
+  std::cout << "MH acceptance ratio: "
+            << acceptance_ratio.get()
             << std::endl;
 
   // Now also output the histograms for all parameters:
