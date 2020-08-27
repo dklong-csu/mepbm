@@ -336,6 +336,9 @@ namespace Models
       // Setting parameters equal, skipping the const members
       Parameters operator = (const Parameters &prm);
       
+      // Compare two parameter objects
+      bool operator == (const Parameters &prm) const;
+      
       // Add and subtract two sets of parameters, treating them as
       // simple tuples of numbers
       Parameters operator += (const Parameters &prm);

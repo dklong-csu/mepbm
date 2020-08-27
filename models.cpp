@@ -1,6 +1,7 @@
 #include <cmath>
 #include <valarray>
 #include <stdexcept>
+#include <cassert>
 #include "models.h"
 
 
@@ -280,6 +281,28 @@ Models::ThreeStep::Parameters::operator /= (const unsigned int n)
   particle_size_cutoff /= n;
 
   return *this;
+}
+
+
+
+bool
+Models::ThreeStepAlternative::Parameters::operator == (const Parameters &prm) const
+{
+  // We'd be in trouble if we tried to compare two objects for which
+  // the 'const' variables are different -- that would mean comparing
+  // models of completely different kind.
+  assert (solvent == prm.solvent);
+  assert (w == prm.w);
+  assert (maxsize == prm.maxsize);
+  assert (n_variables == prm.n_variables);
+  
+  return
+    ((k1 == prm.k1) &&
+     (k2 == prm.k2) &&
+     (k3 == prm.k3) &&
+     (k_forward == prm.k_forward) &&
+     (k_backward == prm.k_backward) &&
+     (particle_size_cutoff == prm.particle_size_cutoff));
 }
 
 
