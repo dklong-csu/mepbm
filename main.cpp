@@ -18,6 +18,12 @@
 // probability distribution.
 using SampleType = Models::ThreeStepAlternative::Parameters;
 
+// A data type we will use to convert samples to whenever we want to
+// do arithmetic with them, such as if we want to compute mean values,
+// covariances, etc.
+using VectorType = std::valarray<double>;
+
+
 
 // A function that given a SampleType object (i.e., a set of model
 // parameters) computes the corresponding likelihood
@@ -163,11 +169,14 @@ int main()
   SampleFlow::Consumers::StreamOutput<SampleType> stream_output (samples);
   stream_output.connect_to_producer (mh_sampler);
 
-  SampleFlow::Consumers::MeanValue<SampleType> mean_value;
-  mean_value.connect_to_producer (mh_sampler);
+  SampleFlow::Filters::Conversion<SampleType,VectorType> convert_to_vector;
+  convert_to_vector.connect_to_producer (mh_sampler);
+  
+  SampleFlow::Consumers::MeanValue<VectorType> mean_value;
+  mean_value.connect_to_producer (convert_to_vector);
 
-  SampleFlow::Consumers::AcceptanceRatio<SampleType> acceptance_ratio;
-  acceptance_ratio.connect_to_producer (mh_sampler);
+  SampleFlow::Consumers::AcceptanceRatio<VectorType> acceptance_ratio;
+  acceptance_ratio.connect_to_producer (convert_to_vector);
   
 
   SampleFlow::Filters::Conversion<SampleType,double>
@@ -190,9 +199,10 @@ int main()
 
   // Output the statistics we have computed in the process of sampling
   // everything
-  std::cout << "Mean value of all samples:\n"
-            << mean_value.get()
-            << std::endl;
+  std::cout << "Mean value of all samples:\n";
+  for (auto x : mean_value.get())
+    std::cout << x << ' ';
+  std::cout << std::endl;
   std::cout << "MH acceptance ratio: "
             << acceptance_ratio.get()
             << std::endl;

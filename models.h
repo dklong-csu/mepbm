@@ -76,15 +76,6 @@ namespace Models
       // Setting parameters equal, skipping the const members
       Parameters operator = (const Parameters &prm);
       
-      // Add and subtract two sets of parameters, treating them as
-      // simple tuples of numbers
-      Parameters operator += (const Parameters &prm);
-      Parameters operator -= (const Parameters &prm);
-
-      // Divide a set of parameters, considered as a tuple of numbers,
-      // by an integer.
-      Parameters operator /= (const unsigned int n);
-      
       friend
       std::ostream &
       operator<< (std::ostream &out,
@@ -154,15 +145,6 @@ namespace Models
              
       // Setting parameters equal, skipping the const members
       Parameters operator = (const Parameters &prm);
-      
-      // Add and subtract two sets of parameters, treating them as
-      // simple tuples of numbers
-      Parameters operator += (const Parameters &prm);
-      Parameters operator -= (const Parameters &prm);
-
-      // Divide a set of parameters, considered as a tuple of numbers,
-      // by an integer.
-      Parameters operator /= (const unsigned int n);
       
       friend
       std::ostream &
@@ -238,15 +220,6 @@ namespace Models
 
       // Setting parameters equal, skipping the const members
       Parameters operator = (const Parameters &prm);
-      
-      // Add and subtract two sets of parameters, treating them as
-      // simple tuples of numbers
-      Parameters operator += (const Parameters &prm);
-      Parameters operator -= (const Parameters &prm);
-
-      // Divide a set of parameters, considered as a tuple of numbers,
-      // by an integer.
-      Parameters operator /= (const unsigned int n);
       
       friend
       std::ostream &
@@ -335,18 +308,11 @@ namespace Models
 
       // Setting parameters equal, skipping the const members
       Parameters operator = (const Parameters &prm);
-      
-      // Compare two parameter objects
-      bool operator == (const Parameters &prm) const;
-      
-      // Add and subtract two sets of parameters, treating them as
-      // simple tuples of numbers
-      Parameters operator += (const Parameters &prm);
-      Parameters operator -= (const Parameters &prm);
 
-      // Divide a set of parameters, considered as a tuple of numbers,
-      // by an integer.
-      Parameters operator /= (const unsigned int n);
+      // Convert the current parameters object into a tuple of numbers
+      // that contains all of the free variables we want to optimize
+      // over.
+      operator std::valarray<double> () const;
       
       friend
       std::ostream &
