@@ -20,4 +20,5 @@ int main()
    std::cout << rhs_output[i]
              << std::endl;
   }
+  std::cout << prm << std::endl;
 }

@@ -82,10 +82,7 @@ namespace Models
                   const Parameters &prm)
         {
           out << "k1=" << prm.k1 << ", "
-              << "k2=" << prm.k2 << ", "
-              << "w=" << prm.w << ", "
-              << "maxsize=" << prm.maxsize << ", "
-              << "n_variables=" << prm.n_variables;
+              << "k2=" << prm.k2 ;
           return out;
         }
     };
@@ -151,13 +148,9 @@ namespace Models
       operator<< (std::ostream &out,
                   const Parameters &prm)
         {
-          out << "kf=" << prm.k_forward << ", "
-              << "kb=" << prm.k_backward << ", "
+          out << "kb=" << prm.k_backward << ", "
               << "k1=" << prm.k1 << ", "
-              << "k2=" << prm.k2 << ", "
-              << "w=" << prm.w << ", "
-              << "maxsize=" << prm.maxsize << ", "
-              << "n_variables=" << prm.n_variables;
+              << "k2=" << prm.k2;
           return out;
         }
     };
@@ -229,9 +222,6 @@ namespace Models
           out << "k1=" << prm.k1 << ", "
               << "k2=" << prm.k2 << ", "
               << "k3=" << prm.k3 << ", "
-              << "w=" << prm.w << ", "
-              << "maxsize=" << prm.maxsize << ", "
-              << "n_variables=" << prm.n_variables << ", "
               << "particle_size_cutoff=" << prm.particle_size_cutoff;
           return out;
         }
@@ -319,14 +309,10 @@ namespace Models
       operator<< (std::ostream &out,
                   const Parameters &prm)
         {
-          out << "kf=" << prm.k_forward << ", "
-              << "kb=" << prm.k_backward << ", "
+          out << "kb=" << prm.k_backward << ", "
               << "k1=" << prm.k1 << ", "
               << "k2=" << prm.k2 << ", "
               << "k3=" << prm.k3 << ", "
-              << "w=" << prm.w << ", "
-              << "maxsize=" << prm.maxsize << ", "
-              << "n_variables=" << prm.n_variables << ", "
               << "particle_size_cutoff=" << prm.particle_size_cutoff;
           return out;
         }
