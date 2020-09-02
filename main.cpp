@@ -75,11 +75,11 @@ double log_prior (const SampleType &prm)
   // FIXME: It would be nice if this could automatically detect the member variables
   // we would like to optimize
   if (
-      prm.k_backward < 1000. || prm.k_backward > 200000.
+      prm.k_backward < 1000. || prm.k_backward > 2000000.
       || prm.k1 < 4800. || prm.k1 > 8e+07
-      || prm.k2 < 10. || prm.k2 > 85000.
-      || prm.k3 < 10. || prm.k3 > 25000.
-      || prm.particle_size_cutoff < 10 || prm.particle_size_cutoff > 800
+      || prm.k2 < 10. || prm.k2 > 850000.
+      || prm.k3 < 10. || prm.k3 > 250000.
+      || prm.particle_size_cutoff < 10 || prm.particle_size_cutoff > 2000
   )
     return -std::numeric_limits<double>::max();
   else
@@ -137,11 +137,11 @@ int rand_btwn_int (const int small_num, const int big_num)
 std::pair<SampleType,double> perturb (const SampleType &prm)
 {
   // perturb each non-constant parameter with a uniform distribution
-  double new_k_backward = prm.k_backward + rand_btwn_double(-1.e3, 1.e3);
-  double new_k1 = prm.k1 + rand_btwn_double(-1.e4, 1.e4);
-  double new_k2 = prm.k2 + rand_btwn_double(-1.e3, 1.e3);
-  double new_k3 = prm.k3 + rand_btwn_double(-1.e3, 1.e3);
-  double new_part_sz_cutoff = prm.particle_size_cutoff + rand_btwn_int(-10, 10);
+  double new_k_backward = prm.k_backward + rand_btwn_double(-1.e4, 1.e4);
+  double new_k1 = prm.k1 + rand_btwn_double(-5.e4, 5.e4);
+  double new_k2 = prm.k2 + rand_btwn_double(-5.e3, 5.e3);
+  double new_k3 = prm.k3 + rand_btwn_double(-4.e3, 4.e3);
+  double new_part_sz_cutoff = prm.particle_size_cutoff + rand_btwn_int(-30, 30);
 
   SampleType new_prm(prm.k_forward,
                      new_k_backward,
