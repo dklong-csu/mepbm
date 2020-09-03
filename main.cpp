@@ -2,6 +2,7 @@
 #include <fstream>
 #include <limits>
 #include <random>
+#include <functional>
 #include "models.h"
 #include "histogram.h"
 #include "statistics.h"
@@ -158,14 +159,21 @@ std::pair<SampleType,double> perturb (const SampleType &prm)
 
 
 
-int main()
+int main(int argc, char **argv)
 {
   const SampleType
     starting_guess (3.6e-2, 7.27e4, 6.45e4, 1.63e4, 5.56e3, 11.3, 3, 2500, 274);
 
-  std::ofstream samples ("samples.txt");
-  
+  std::ofstream samples ("samples"
+                         +
+                         (argc > 1 ?
+                          std::string(".") + argv[1] :
+                          std::string(""))
+                         +
+                         ".txt");
+
   SampleFlow::Producers::MetropolisHastings<SampleType> mh_sampler;
+  
   SampleFlow::Consumers::StreamOutput<SampleType> stream_output (samples);
   stream_output.connect_to_producer (mh_sampler);
 
@@ -190,12 +198,21 @@ int main()
   histogram_k1.connect_to_producer (extract_k1);
   
   
-  // Sample from the given distribution
+  // Sample from the given distribution.
+  //
+  // If an argument was given on the command line,
+  // use that string to create a hash value and use that has value as
+  // seed for the sampler.
+  const std::uint_fast32_t random_seed
+    = (argc > 1 ?
+       std::hash<std::string>()(std::string(argv[1])) :
+       std::uint_fast32_t());
   const unsigned int n_samples = 10;
   mh_sampler.sample (starting_guess,
                      &log_probability,
                      &perturb,
-                     n_samples);
+                     n_samples,
+                     random_seed);
 
   // Output the statistics we have computed in the process of sampling
   // everything
