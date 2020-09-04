@@ -40,7 +40,8 @@ ADD_LIBRARY(libmepbm
             OBJECT
             histogram.cpp
             models.cpp
-            statistics.cpp)
+            statistics.cpp
+            data.cpp)
 
 #########################################
 ### Describe the main executable and from which files
