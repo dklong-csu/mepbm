@@ -1,0 +1,49 @@
+#include <iostream>
+#include <string>
+#include <valarray>
+#include <typeinfo>
+#include "data.h"
+
+
+
+void print_array(std::valarray<double> array)
+{
+  for (unsigned int i = 0; i < array.size(); i++)
+    {
+      std::cout << array[i]
+                << std::endl;
+    }
+}
+
+
+
+int main ()
+{
+  // create data
+  Data::PomData my_data;
+
+  // check that each is initialized properly
+  print_array(my_data.chcrr_concentration);
+  std::cout << std::endl;
+  print_array(my_data.chcrr_time);
+  std::cout << std::endl;
+
+  print_array(my_data.tem_diam_time1);
+  std::cout << std::endl;
+  std::cout << my_data.tem_time1 << std::endl;
+  std::cout << std::endl;
+
+  print_array(my_data.tem_diam_time2);
+  std::cout << std::endl;
+  std::cout << my_data.tem_time2 << std::endl;
+  std::cout << std::endl;
+
+  print_array(my_data.tem_diam_time3);
+  std::cout << std::endl;
+  std::cout << my_data.tem_time3 << std::endl;
+  std::cout << std::endl;
+
+  print_array(my_data.tem_diam_time4);
+  std::cout << std::endl;
+  std::cout << my_data.tem_time4 << std::endl;
+}
