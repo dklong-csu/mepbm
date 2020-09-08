@@ -6,6 +6,7 @@
 #include "models.h"
 #include "histogram.h"
 #include "statistics.h"
+#include "data.h"
 
 #include <sampleflow/producers/metropolis_hastings.h>
 #include <sampleflow/filters/conversion.h>
@@ -31,6 +32,7 @@ using VectorType = std::valarray<double>;
 double log_likelihood (const SampleType &prm)
 {
   // S3 data
+  /*
   const std::valarray<double> dataDiam = {2.98, 2.82, 1.84, 2.04, 1.56, 1.56,
                                           1.2, 1.18, 2.06, 2.27, 2.54, 2.09,
                                           1.63, 1.91, 1.96, 2.09, 2.39, 2.17,
@@ -42,9 +44,17 @@ double log_likelihood (const SampleType &prm)
                                           3.19, 1.73, 1.94, 2.14, 2.91, 2.85,
                                           2.8, 2.37, 2.42, 2.68, 2.01, 1.9,
                                           2.14};
+*/
+  const Data::PomData pom_data;
+  const std::valarray<double> dataDiam = pom_data.tem_diam_time2;
 
+  std::vector<std::valarray<double>> fitData(1);
+  fitData[0] = std::pow(dataDiam/0.3000805, 3);
 
-  const std::valarray<double> dataAtoms = std::pow(dataDiam/0.3000805, 3);
+  std::vector<double> fitTime(1);
+  fitTime[0] = pom_data.tem_time2;
+
+ // const std::valarray<double> dataAtoms = std::pow(dataDiam/0.3000805, 3);
 
 
   // create dummy model
@@ -54,16 +64,16 @@ double log_likelihood (const SampleType &prm)
   std::valarray<double> initialCondition(0.0,2500);
   initialCondition[0] = 0.0012;
   const double startTime = 0.0;
-  const double endTime = 1.170;
 
   // set up solver parameters
-  Models::explEulerParameters solverParameters(startTime, endTime, initialCondition);
+  Models::explEulerParameters solverParameters(startTime, fitTime, initialCondition);
 
   // define parameters for the histogram
   const Histograms::Parameters histogramParameters(25, 3.0, 2500.0);
+  const double time_step = 1.0e-5;
 
   // calculate log likelihood and return it
-  return Statistics::logLikelihood(dataAtoms, model, prm, solverParameters, histogramParameters);
+  return Statistics::logLikelihood(fitData, model, prm, solverParameters, histogramParameters, time_step);
 }
 
 
