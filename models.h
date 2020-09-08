@@ -4,6 +4,7 @@
 #include <cmath>
 #include <ostream>
 #include <valarray>
+#include <vector>
 
 
 
@@ -354,20 +355,22 @@ namespace Models
   class explEulerParameters
   {
   public:
-    double startTime, endTime;
+    double startTime;
+    std::vector<double> outputTimes;
     std::valarray<double> initialCondition;
 
     // constructor
     explEulerParameters(const double startTimeValue,
-                        const double endTimeValue,
+                        const std::vector<double> outputTimes,
                         const std::valarray<double> initialConditionValues);
   };
 
 
   // Explicit Euler
-  std::valarray<double> integrate_ode_explicit_euler(const Models::explEulerParameters solverParameters,
-                       const Models::ModelsBase& model,
-                       const Models::ParametersBase& parameters);
+  std::vector<std::valarray<double>> integrate_ode_explicit_euler(const Models::explEulerParameters solverParameters,
+                                                     const Models::ModelsBase& model,
+                                                     const Models::ParametersBase& parameters,
+                                                     const double time_step);
 }
 
 

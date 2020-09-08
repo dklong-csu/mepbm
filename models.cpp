@@ -2,6 +2,7 @@
 #include <valarray>
 #include <stdexcept>
 #include <cassert>
+#include <vector>
 #include "models.h"
 
 
@@ -596,41 +597,50 @@ std::valarray<double> Models::ThreeStepAlternative::right_hand_side(const std::v
 
 // class to hold integration hyperparameters
 Models::explEulerParameters::explEulerParameters(const double startTimeValue,
-                      const double endTimeValue,
+                      const std::vector<double> outputTimesValue,
                       const std::valarray<double> initialConditionValues)
 {
   startTime = startTimeValue;
-  endTime = endTimeValue;
+  outputTimes = outputTimesValue;
   initialCondition = initialConditionValues;
 }
 
 
 
 // ODE solver
-std::valarray<double> Models::integrate_ode_explicit_euler(const Models::explEulerParameters solverParameters,
-                                                   const Models::ModelsBase& model,
-                                                   const Models::ParametersBase& modelParameters)
+std::vector<std::valarray<double>> Models::integrate_ode_explicit_euler(const Models::explEulerParameters solverParameters,
+                                                           const Models::ModelsBase& model,
+                                                           const Models::ParametersBase& modelParameters,
+                                                           const double time_step)
 {
+  const std::vector<double> evalTimes = solverParameters.outputTimes;
+
+    std::vector<std::valarray<double>> solution(evalTimes.size());
   std::valarray<double> x = solverParameters.initialCondition;
-  double time_step = 1e-5;
 
   double time = solverParameters.startTime;
-  while (time < solverParameters.endTime)
+  double dt = time_step;
+  for (unsigned int i = 0; i < evalTimes.size(); i++)
   {
-    // advance to next time
-    if (time + time_step > solverParameters.endTime)
+    while (time < evalTimes[i])
     {
-      time_step = solverParameters.endTime - time;
-      time = solverParameters.endTime;
-    }
-    else
-    {
-      time += time_step;
-    }
+      //double endTime = evalTimes[i];
+      // advance to next time
+      if (time + dt > evalTimes[i])
+      {
+        dt = evalTimes[i] - time;
+        time = evalTimes[i];
+      }
+      else
+      {
+        time += dt;
+      }
 
-    // explicit euler update step
-    x += time_step * model.right_hand_side(x, modelParameters);
+      // explicit euler update step
+      x += dt * model.right_hand_side(x, modelParameters);
+    }
+    solution[i] = x;
+    dt = time_step;
   }
-
-  return x;
+  return solution;
 }
