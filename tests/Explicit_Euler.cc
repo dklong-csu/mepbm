@@ -14,39 +14,34 @@ int main()
   // set up initial conditions, start time, and end time
   std::valarray<double> initialCondition = { 1,.9,.8,.7,.6,.5,.4 };
   double startTime = 0.0;
-  double endTime = 1e-5;
+  std::vector<double> evalTimes(2);
+  evalTimes[0] = 1e-5;
+  evalTimes[1] = 2e-5;
 
   // set up solver parameters
-  Models::explEulerParameters solverParameters(startTime, endTime, initialCondition);
+  Models::explEulerParameters solverParameters(startTime, evalTimes, initialCondition);
 
   // run one time step
-  std::valarray<double> particleSizeDistr = Models::integrate_ode_explicit_euler(solverParameters,
-                                                                                 model,
-                                                                                 prm);
+  const double time_step = 1e-5;
+  std::vector<std::valarray<double>> particleSizeDistr = Models::integrate_ode_explicit_euler(solverParameters,
+                                                                                              model,
+                                                                                              prm,
+                                                                                              time_step);
 
 
   // output result for checking
   std::cout << "Checking first time step:" << std::endl;
-  for (unsigned int i = 0; i < particleSizeDistr.size(); i++)
+  for (unsigned int i = 0; i < particleSizeDistr[0].size(); i++)
   {
-    std::cout << particleSizeDistr[i]
+    std::cout << particleSizeDistr[0][i]
               << std::endl;
   }
 
-  // run two time steps
-  double newEndTime = 2e-5;
-
-  solverParameters.endTime = newEndTime;
-  std::valarray<double> newParticleSizeDistr = Models::integrate_ode_explicit_euler(solverParameters,
-                                                                                    model,
-                                                                                    prm);
-
-
   // output result for checking
   std::cout << "Checking second time step:" << std::endl;
-  for (unsigned int i = 0; i < newParticleSizeDistr.size(); i++)
+  for (unsigned int i = 0; i < particleSizeDistr[1].size(); i++)
   {
-    std::cout << newParticleSizeDistr[i]
+    std::cout << particleSizeDistr[1][i]
               << std::endl;
   }
 }

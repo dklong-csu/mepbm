@@ -10,7 +10,9 @@
 int main()
 {
   // create dummy data
-  std::valarray<double> data = {3,4,5,6,4,5};
+  std::valarray<double> dataPre = {3,4,5,6,4,5};
+  std::vector<std::valarray<double>> data(1);
+  data[0] = dataPre;
 
   // create dummy model
   Models::ThreeStepAlternative::Parameters prm(100, 90, 80, 70, 60, 2, 3, 6, 4);
@@ -20,15 +22,18 @@ int main()
   std::valarray<double> initialCondition = { 1,.9,.8,.7,.6,.5,.4 };
   double startTime = 0.0;
   double endTime = 2e-6;
+  std::vector<double> evalTimes(1);
+  evalTimes[0] = endTime;
 
   // set up solver parameters
-  Models::explEulerParameters solverParameters(startTime, endTime, initialCondition);
+  Models::explEulerParameters solverParameters(startTime, evalTimes, initialCondition);
 
   // define parameters for the histogram
   Histograms::Parameters histogramParameters(4, 3.0, 6.0);
 
   // calculate log likelihood
-  double logLikeliVal = Statistics::logLikelihood(data, model, prm, solverParameters, histogramParameters);
+  const double dt = 1e-5;
+  double logLikeliVal = Statistics::logLikelihood(data, model, prm, solverParameters, histogramParameters, dt);
 
   // print result
   std::cout << "log likelihood: " << logLikeliVal;
