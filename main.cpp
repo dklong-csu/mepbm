@@ -2,6 +2,7 @@
 #include <fstream>
 #include <limits>
 #include <random>
+#include <functional>
 #include "models.h"
 #include "histogram.h"
 #include "statistics.h"
@@ -75,11 +76,11 @@ double log_prior (const SampleType &prm)
   // FIXME: It would be nice if this could automatically detect the member variables
   // we would like to optimize
   if (
-      prm.k_backward < 1000. || prm.k_backward > 200000.
+      prm.k_backward < 1000. || prm.k_backward > 2000000.
       || prm.k1 < 4800. || prm.k1 > 8e+07
-      || prm.k2 < 10. || prm.k2 > 85000.
-      || prm.k3 < 10. || prm.k3 > 25000.
-      || prm.particle_size_cutoff < 10 || prm.particle_size_cutoff > 800
+      || prm.k2 < 10. || prm.k2 > 850000.
+      || prm.k3 < 10. || prm.k3 > 250000.
+      || prm.particle_size_cutoff < 10 || prm.particle_size_cutoff > 2000
   )
     return -std::numeric_limits<double>::max();
   else
@@ -137,11 +138,11 @@ int rand_btwn_int (const int small_num, const int big_num)
 std::pair<SampleType,double> perturb (const SampleType &prm)
 {
   // perturb each non-constant parameter with a uniform distribution
-  double new_k_backward = prm.k_backward + rand_btwn_double(-1.e3, 1.e3);
-  double new_k1 = prm.k1 + rand_btwn_double(-1.e4, 1.e4);
-  double new_k2 = prm.k2 + rand_btwn_double(-1.e3, 1.e3);
-  double new_k3 = prm.k3 + rand_btwn_double(-1.e3, 1.e3);
-  double new_part_sz_cutoff = prm.particle_size_cutoff + rand_btwn_int(-10, 10);
+  double new_k_backward = prm.k_backward + rand_btwn_double(-1.e4, 1.e4);
+  double new_k1 = prm.k1 + rand_btwn_double(-5.e4, 5.e4);
+  double new_k2 = prm.k2 + rand_btwn_double(-5.e3, 5.e3);
+  double new_k3 = prm.k3 + rand_btwn_double(-4.e3, 4.e3);
+  double new_part_sz_cutoff = prm.particle_size_cutoff + rand_btwn_int(-30, 30);
 
   SampleType new_prm(prm.k_forward,
                      new_k_backward,
@@ -158,14 +159,21 @@ std::pair<SampleType,double> perturb (const SampleType &prm)
 
 
 
-int main()
+int main(int argc, char **argv)
 {
   const SampleType
     starting_guess (3.6e-2, 7.27e4, 6.45e4, 1.63e4, 5.56e3, 11.3, 3, 2500, 274);
 
-  std::ofstream samples ("samples.txt");
-  
+  std::ofstream samples ("samples"
+                         +
+                         (argc > 1 ?
+                          std::string(".") + argv[1] :
+                          std::string(""))
+                         +
+                         ".txt");
+
   SampleFlow::Producers::MetropolisHastings<SampleType> mh_sampler;
+  
   SampleFlow::Consumers::StreamOutput<SampleType> stream_output (samples);
   stream_output.connect_to_producer (mh_sampler);
 
@@ -190,12 +198,21 @@ int main()
   histogram_k1.connect_to_producer (extract_k1);
   
   
-  // Sample from the given distribution
+  // Sample from the given distribution.
+  //
+  // If an argument was given on the command line,
+  // use that string to create a hash value and use that has value as
+  // seed for the sampler.
+  const std::uint_fast32_t random_seed
+    = (argc > 1 ?
+       std::hash<std::string>()(std::string(argv[1])) :
+       std::uint_fast32_t());
   const unsigned int n_samples = 10;
   mh_sampler.sample (starting_guess,
                      &log_probability,
                      &perturb,
-                     n_samples);
+                     n_samples,
+                     random_seed);
 
   // Output the statistics we have computed in the process of sampling
   // everything
