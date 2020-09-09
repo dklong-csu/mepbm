@@ -555,37 +555,50 @@ std::valarray<double> Models::ThreeStepAlternative::right_hand_side(const std::v
   f[three_step_alt_parameters.n_variable - 1) = dn_{maxsize}
   */
   std::valarray<double> f(three_step_alt_parameters.n_variables);
-  // precursor -- loss from dissociative step, gain from dissociative step
-  f[0] = -three_step_alt_parameters.k_forward * x[0] * three_step_alt_parameters.solvent * three_step_alt_parameters.solvent + three_step_alt_parameters.k_backward * x[1]*x[2];
-  // dissasociated precursor -- opposite effect from the dissociative step as the precursor
-  f[1] = -f[0];
-  // precursor -- loss from nucleation
-  f[0] -= three_step_alt_parameters.k1 * x[0] * x[1] * x[1];
-  // dissasociated precursor -- loss from nucleation
-  f[1] -= 2 * three_step_alt_parameters.k1 * x[0] * x[1] * x[1];
-  // skip ligand (p) for now since f[2] = - f[0] and we still need to update f[0]
 
-  // nucleated particle -- gain from nucleation
-  f[3] = three_step_alt_parameters.k1 * x[0] * x[1] * x[1];
-
+  // precursor
+    // loss from nucleation
+    // loss from particle growth
+    // loss from forward dissociative step
+    // gain from backward dissociative step
+  f[0] = -three_step_alt_parameters.k1 * x[0] * x[1] * x[1];
   for (unsigned int i = 4; i < three_step_alt_parameters.n_variables; i++)
+  {
+    f[0] -= rate_constant(three_step_alt_parameters.w + i - 4, three_step_alt_parameters) * x[0] * Models::available_atoms(three_step_alt_parameters.w + i - 4) * x[i - 1];
+  }
+  f[0] -= three_step_alt_parameters.k_forward * x[0] * three_step_alt_parameters.solvent * three_step_alt_parameters.solvent;
+  f[0] += three_step_alt_parameters.k_backward * x[1]*x[2];
+
+
+  // dissasociated precursor
+    // gain from forward dissociative step
+    // loss from backward dissociative step
+    // loss from nucleation
+  f[1] = three_step_alt_parameters.k_forward * x[0] * three_step_alt_parameters.solvent * three_step_alt_parameters.solvent;
+  f[1] -= three_step_alt_parameters.k_backward * x[1]*x[2];
+  f[1] -= 2 * three_step_alt_parameters.k1 * x[0] * x[1] * x[1];
+
+  // ligand has exact opposite growth/loss as the precursor
+  f[3] = -f[1];
+
+
+  // nucleated particle
+    // gain from nucleation
+    // loss from particle growth
+  f[3] = three_step_alt_parameters.k1 * x[0] * x[1] * x[1];
+  f[3] -= rate_constant(three_step_alt_parameters.w, three_step_alt_parameters) * x[0] * Models::available_atoms(three_step_alt_parameters.w) * x[3];
+
+
+  // particles
+    // gain from growth of one size smaller
+    // loss from same size growing
+  for (unsigned int i = 4; i < three_step_alt_parameters.n_variables+1; i++)
   {
     // particle gain from growth
     f[i] = rate_constant(three_step_alt_parameters.w + i - 4, three_step_alt_parameters) * x[0] * Models::available_atoms(three_step_alt_parameters.w + i - 4) * x[i - 1];
-    f[0] -= f[i];
+    f[i] -= rate_constant(three_step_alt_parameters.w + i - 3, three_step_alt_parameters) * x[0] * Models::available_atoms(three_step_alt_parameters.w + i - 3) * x[i];
   }
 
-  for (unsigned int i = 3; i < three_step_alt_parameters.n_variables - 1; i++)
-  {
-    // loss from growth
-    f[i] -= f[i + 1];
-  }
-
-  // loss from growth on largest particle -- I'm torn about including this
-  f[three_step_alt_parameters.n_variables - 1] -= Models::ThreeStepAlternative::rate_constant(three_step_alt_parameters.maxsize,three_step_alt_parameters) * x[0] * Models::available_atoms(three_step_alt_parameters.maxsize) * x[three_step_alt_parameters.n_variables - 1];
-  f[0] -= Models::ThreeStepAlternative::rate_constant(three_step_alt_parameters.maxsize, three_step_alt_parameters) * x[0] * Models::available_atoms(three_step_alt_parameters.maxsize) * x[three_step_alt_parameters.n_variables - 1];
-  // assign ligand rate now that precursor rate is final
-  f[2] = -f[0];
 
   return f;
 }
