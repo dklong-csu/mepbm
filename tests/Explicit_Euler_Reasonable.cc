@@ -16,7 +16,7 @@ int main()
   initialCondition[0] = 0.0012;
   double startTime = 0.0;
   std::vector<double> evalTimes(1);
-  evalTimes[0] = 1.170;
+  evalTimes[0] = 3.e-5;
 
   // set up solver parameters
   Models::explEulerParameters solverParameters(startTime, evalTimes, initialCondition);
