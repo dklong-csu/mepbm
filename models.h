@@ -4,6 +4,7 @@
 #include <cmath>
 #include <ostream>
 #include <valarray>
+#include <vector>
 
 
 
@@ -364,10 +365,18 @@ namespace Models
   };
 
 
-  // Explicit Euler
+  // Explicit Euler -- solution saved at final time only
   std::valarray<double> integrate_ode_explicit_euler(const Models::explEulerParameters solverParameters,
                        const Models::ModelsBase& model,
                        const Models::ParametersBase& parameters);
+
+
+  // Explicit Euler -- solution saved at intermediate times
+  // solution saved as a vector whose elements are the valarrays which contain the solution vector at a particular time.
+  std::vector<std::valarray<double>> integrate_ode_ee_many_times(const std::valarray<double>& init_condition,
+                                                                 const Models::ModelsBase& model,
+                                                                 const Models::ParametersBase& parameters,
+                                                                 const std::vector<double>& times);
 }
 
 

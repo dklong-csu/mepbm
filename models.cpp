@@ -2,6 +2,7 @@
 #include <valarray>
 #include <stdexcept>
 #include <cassert>
+#include <vector>
 #include "models.h"
 
 
@@ -634,3 +635,30 @@ std::valarray<double> Models::integrate_ode_explicit_euler(const Models::explEul
 
   return x;
 }
+
+// ODE solver for saving many times
+std::vector<std::valarray<double>> integrate_ode_ee_many_times(const std::valarray<double>& init_condition,
+                                                               const Models::ModelsBase& model,
+                                                               const Models::ParametersBase& parameters,
+                                                               const std::vector<double>& times)
+{
+  // initialize vector containing all of the solutions
+  // start time is included in "times" so the first solution is the initial condition
+  std::vector<std::valarray<double>> all_solutions(times.size());
+
+  // initial condition is the first entry in all_solutions
+  all_solutions[0] = init_condition;
+
+  // loop through all times to find the solution vector for each time
+  for (unsigned int i=1;i<times.size();++i)
+  {
+    // set up solver parameters
+      Models::explEulerParameters solverParameters(times[i-1], times[i], all_solutions[i-1]);
+    // solve the ODE for the current time step
+    all_solutions[i] = Models::integrate_ode_explicit_euler(solverParameters, model, parameters);
+  }
+
+  return all_solutions;
+
+}
+
