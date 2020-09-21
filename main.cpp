@@ -6,6 +6,7 @@
 #include "models.h"
 #include "histogram.h"
 #include "statistics.h"
+#include "data.h"
 
 #include <sampleflow/producers/metropolis_hastings.h>
 #include <sampleflow/filters/conversion.h>
@@ -30,22 +31,9 @@ using VectorType = std::valarray<double>;
 // parameters) computes the corresponding likelihood
 double log_likelihood (const SampleType &prm)
 {
-  // S3 data
-  const std::valarray<double> dataDiam = {2.98, 2.82, 1.84, 2.04, 1.56, 1.56,
-                                          1.2, 1.18, 2.06, 2.27, 2.54, 2.09,
-                                          1.63, 1.91, 1.96, 2.09, 2.39, 2.17,
-                                          1.98, 1.69, 2.47, 1.87, 2.03, 1.5,
-                                          2.73, 1.65, 2.05, 2.21, 2.38, 3.07,
-                                          2.93, 2.67, 3.83, 2.95, 3.3, 2.82,
-                                          2.49, 2.62, 2.09, 3.02, 2.94, 3.25,
-                                          2.43, 1.92, 3.22, 2.86, 2.74, 3.09,
-                                          3.19, 1.73, 1.94, 2.14, 2.91, 2.85,
-                                          2.8, 2.37, 2.42, 2.68, 2.01, 1.9,
-                                          2.14};
-
-
-  const std::valarray<double> dataAtoms = std::pow(dataDiam/0.3000805, 3);
-
+  // data used for likelihood
+  const Data::PomData raw_data;
+  const std::valarray<double> data_atoms = { std::pow(raw_data.tem_diam_time2/0.3000805, 3) };
 
   // create dummy model
   Models::ThreeStepAlternative model;
@@ -63,7 +51,7 @@ double log_likelihood (const SampleType &prm)
   const Histograms::Parameters histogramParameters(25, 3.0, 2500.0);
 
   // calculate log likelihood and return it
-  return Statistics::logLikelihood(dataAtoms, model, prm, solverParameters, histogramParameters);
+  return Statistics::logLikelihood(data_atoms, model, prm, solverParameters, histogramParameters);
 }
 
 
