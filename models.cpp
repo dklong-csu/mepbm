@@ -637,7 +637,7 @@ std::valarray<double> Models::integrate_ode_explicit_euler(const Models::explEul
 }
 
 // ODE solver for saving many times
-std::vector<std::valarray<double>> integrate_ode_ee_many_times(const std::valarray<double>& init_condition,
+std::vector<std::valarray<double>> Models::integrate_ode_ee_many_times(const std::valarray<double>& init_condition,
                                                                const Models::ModelsBase& model,
                                                                const Models::ParametersBase& parameters,
                                                                const std::vector<double>& times)
