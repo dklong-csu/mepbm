@@ -1,8 +1,8 @@
 #include <iostream>
 #include <string>
 #include <valarray>
-#include "models.h"
 #include <vector>
+#include "models.h"
 
 
 int main()
