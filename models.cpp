@@ -205,14 +205,14 @@ Models::ThreeStepAlternative::Parameters::operator = (const Parameters &prm)
 
 // helper functions
 
-double Models::available_atoms(const double& size)
+double Models::available_atoms(const double size)
 {
   return size * 2.677 * std::pow(size, -0.28);
 }
 
 
 
-double Models::ThreeStep::rate_constant(const unsigned int& size,
+double Models::ThreeStep::rate_constant(const unsigned int size,
                                         const Models::ParametersBase& parameters) const
 {
   const Models::ThreeStep::Parameters& three_step_parameters = dynamic_cast<const Models::ThreeStep::Parameters&>(parameters);
@@ -224,7 +224,7 @@ double Models::ThreeStep::rate_constant(const unsigned int& size,
 
 
 
-double Models::ThreeStepAlternative::rate_constant(const unsigned int& size,
+double Models::ThreeStepAlternative::rate_constant(const unsigned int size,
                                                    const Models::ParametersBase& parameters) const
 {
   const Models::ThreeStepAlternative::Parameters& three_step_alt_parameters = dynamic_cast<const Models::ThreeStepAlternative::Parameters&>(parameters);
@@ -238,7 +238,7 @@ double Models::ThreeStepAlternative::rate_constant(const unsigned int& size,
 
 // convert particle size to index of the solution/right hand side vector
 
-unsigned int Models::TwoStep::particleSizeToIndex(const unsigned int& particleSize,
+unsigned int Models::TwoStep::particleSizeToIndex(const unsigned int particleSize,
                                                   const ParametersBase& parameters) const
 {
   const Models::TwoStep::Parameters& twoStepParameters = dynamic_cast<const Models::TwoStep::Parameters&>(parameters);
@@ -253,7 +253,7 @@ unsigned int Models::TwoStep::particleSizeToIndex(const unsigned int& particleSi
 
 
 
-unsigned int Models::TwoStepAlternative::particleSizeToIndex(const unsigned int& particleSize,
+unsigned int Models::TwoStepAlternative::particleSizeToIndex(const unsigned int particleSize,
                                                              const ParametersBase& parameters) const
 {
   const Models::TwoStepAlternative::Parameters& twoStepAltParameters = dynamic_cast<const Models::TwoStepAlternative::Parameters&>(parameters);
@@ -268,7 +268,7 @@ unsigned int Models::TwoStepAlternative::particleSizeToIndex(const unsigned int&
 
 
 
-unsigned int Models::ThreeStep::particleSizeToIndex(const unsigned int& particleSize,
+unsigned int Models::ThreeStep::particleSizeToIndex(const unsigned int particleSize,
                                                     const ParametersBase& parameters) const
 {
   const Models::ThreeStep::Parameters& threeStepParameters = dynamic_cast<const Models::ThreeStep::Parameters&>(parameters);
@@ -283,7 +283,7 @@ unsigned int Models::ThreeStep::particleSizeToIndex(const unsigned int& particle
 
 
 
-unsigned int Models::ThreeStepAlternative::particleSizeToIndex(const unsigned int& particleSize,
+unsigned int Models::ThreeStepAlternative::particleSizeToIndex(const unsigned int particleSize,
                                                                const ParametersBase& parameters) const
 {
   const Models::ThreeStepAlternative::Parameters& threeStepAltParameters = dynamic_cast<const Models::ThreeStepAlternative::Parameters&>(parameters);
@@ -366,7 +366,7 @@ unsigned int Models::ThreeStepAlternative::getLargestParticleSize(const Paramete
 // Functions to return concentrations from a solution vector of a given model.
 
 double Models::TwoStep::returnConcentration(const std::valarray<double>& particleSizeDistribution,
-                                            const unsigned int& particleSize,
+                                            const unsigned int particleSize,
                                             const ParametersBase& parameters) const
 {
   const Models::TwoStep::Parameters& twoStepParameters = dynamic_cast<const Models::TwoStep::Parameters&>(parameters);
@@ -377,7 +377,7 @@ double Models::TwoStep::returnConcentration(const std::valarray<double>& particl
 
 
 double Models::TwoStepAlternative::returnConcentration(const std::valarray<double>& particleSizeDistribution,
-                                                       const unsigned int& particleSize,
+                                                       const unsigned int particleSize,
                                                        const ParametersBase& parameters) const
 {
   const Models::TwoStepAlternative::Parameters& twoStepAltParameters = dynamic_cast<const Models::TwoStepAlternative::Parameters&>(parameters);
@@ -388,7 +388,7 @@ double Models::TwoStepAlternative::returnConcentration(const std::valarray<doubl
 
 
 double Models::ThreeStep::returnConcentration(const std::valarray<double>& particleSizeDistribution,
-                                              const unsigned int& particleSize,
+                                              const unsigned int particleSize,
                                               const ParametersBase& parameters) const
 {
   const Models::ThreeStep::Parameters& threeStepParameters = dynamic_cast<const Models::ThreeStep::Parameters&>(parameters);
@@ -399,7 +399,7 @@ double Models::ThreeStep::returnConcentration(const std::valarray<double>& parti
 
 
 double Models::ThreeStepAlternative::returnConcentration(const std::valarray<double>& particleSizeDistribution,
-                                                       const unsigned int& particleSize,
+                                                       const unsigned int particleSize,
                                                        const ParametersBase& parameters) const
 {
   const Models::ThreeStepAlternative::Parameters& threeStepAltParameters = dynamic_cast<const Models::ThreeStepAlternative::Parameters&>(parameters);
