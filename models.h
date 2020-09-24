@@ -12,7 +12,7 @@ namespace Models
 {
   // This function is a conversion between the number of atoms in a particle
   // and the number of atoms available for binding -- based off Schmidt and Smirnov's work.
-  double available_atoms(const double& size);
+  double available_atoms(const double size);
 
 
 
@@ -35,11 +35,11 @@ namespace Models
 
 
     virtual double returnConcentration(const std::valarray<double>& particleSizeDistribution,
-                                       const unsigned int& particleSize,
+                                       const unsigned int particleSize,
                                        const ParametersBase& parameters) const = 0;
 
 
-    virtual unsigned int particleSizeToIndex(const unsigned int& particleSize,
+    virtual unsigned int particleSizeToIndex(const unsigned int particleSize,
                                                 const ParametersBase& parameters) const = 0;
 
 
@@ -95,13 +95,13 @@ namespace Models
 
 
     virtual double returnConcentration(const std::valarray<double>& particleSizeDistribution,
-                                       const unsigned int& particleSize,
+                                       const unsigned int particleSize,
                                        const ParametersBase& parameters) const;
 
 
 
     // subroutine describing how to interpret the right hand side entries
-    virtual unsigned int particleSizeToIndex(const unsigned int& particleSize,
+    virtual unsigned int particleSizeToIndex(const unsigned int particleSize,
                                                 const ParametersBase& parameters) const;
 
 
@@ -163,13 +163,13 @@ namespace Models
 
 
     virtual double returnConcentration(const std::valarray<double>& particleSizeDistribution,
-                                       const unsigned int& particleSize,
+                                       const unsigned int particleSize,
                                        const ParametersBase& parameters) const;
 
 
 
     // subroutine describing how to interpret the right hand side entries
-    virtual unsigned int particleSizeToIndex(const unsigned int& particleSize,
+    virtual unsigned int particleSizeToIndex(const unsigned int particleSize,
                                                 const ParametersBase& parameters) const;
 
 
@@ -232,7 +232,7 @@ namespace Models
 
 
     // The growth rate for particles depends on their size.
-    double rate_constant(const unsigned int& size,
+    double rate_constant(const unsigned int size,
                          const ParametersBase& parameters) const;
 
 
@@ -243,13 +243,13 @@ namespace Models
 
 
     virtual double returnConcentration(const std::valarray<double>& particleSizeDistribution,
-                                       const unsigned int& particleSize,
+                                       const unsigned int particleSize,
                                        const ParametersBase& parameters) const;
 
 
 
     // subroutine describing how to interpret the right hand side entries
-    virtual unsigned int particleSizeToIndex(const unsigned int& particleSize,
+    virtual unsigned int particleSizeToIndex(const unsigned int particleSize,
                                                 const ParametersBase& parameters) const;
 
 
@@ -320,7 +320,7 @@ namespace Models
     };
 
     // The growth rate for particles depends on their size.
-    double rate_constant(const unsigned int& size,
+    double rate_constant(const unsigned int size,
                          const ParametersBase& parameters) const;
 
     // subroutine defining how the right hand side of the ODE is formed
@@ -330,13 +330,13 @@ namespace Models
 
 
     virtual double returnConcentration(const std::valarray<double>& particleSizeDistribution,
-                                       const unsigned int& particleSize,
+                                       const unsigned int particleSize,
                                        const ParametersBase& parameters) const;
 
 
 
     // subroutine describing how to interpret the right hand side entries
-    virtual unsigned int particleSizeToIndex(const unsigned int& particleSize,
+    virtual unsigned int particleSizeToIndex(const unsigned int particleSize,
                                                 const ParametersBase& parameters) const;
 
 
