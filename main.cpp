@@ -3,6 +3,7 @@
 #include <limits>
 #include <random>
 #include <functional>
+#include <vector>
 #include "models.h"
 #include "histogram.h"
 #include "statistics.h"
@@ -33,25 +34,23 @@ double log_likelihood (const SampleType &prm)
 {
   // data used for likelihood
   const Data::PomData raw_data;
-  const std::valarray<double> data_atoms = { std::pow(raw_data.tem_diam_time2/0.3000805, 3) };
+  const std::vector<std::valarray<double>> data_atoms = { std::pow(raw_data.tem_diam_time2/0.3000805, 3) };
 
-  // create dummy model
+  // create model
   Models::ThreeStepAlternative model;
 
-  // set up dummy initial conditions, start time, and end time
-  std::valarray<double> initialCondition(0.0,2500);
+  // set up initial conditions and times for the ODE solution
+  std::valarray<double> initialCondition(0.0,prm.n_variables);
   initialCondition[0] = 0.0012;
-  const double startTime = 0.0;
-  const double endTime = 1.170;
+  const std::vector<double> times = {0, raw_data.tem_time2};
 
-  // set up solver parameters
-  Models::explEulerParameters solverParameters(startTime, endTime, initialCondition);
 
   // define parameters for the histogram
-  const Histograms::Parameters histogramParameters(25, 3.0, 2500.0);
+  const Histograms::Parameters histogramParameters(25, model.getSmallestParticleSize(prm), model.getLargestParticleSize(prm));
 
   // calculate log likelihood and return it
-  return Statistics::logLikelihood(data_atoms, model, prm, solverParameters, histogramParameters);
+  return Statistics::log_likelihood(data_atoms, times, model, prm, initialCondition, histogramParameters);
+
 }
 
 
