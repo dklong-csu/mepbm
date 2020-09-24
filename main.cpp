@@ -34,7 +34,10 @@ double log_likelihood (const SampleType &prm)
 {
   // data used for likelihood
   const Data::PomData raw_data;
-  const std::vector<std::valarray<double>> data_atoms = { std::pow(raw_data.tem_diam_time2/0.3000805, 3) };
+  const std::vector<std::valarray<double>> data_atoms = { std::pow(raw_data.tem_diam_time1/0.3000805, 3),
+                                                          std::pow(raw_data.tem_diam_time2/0.3000805, 3),
+                                                          std::pow(raw_data.tem_diam_time3/0.3000805, 3),
+                                                          std::pow(raw_data.tem_diam_time4/0.3000805, 3)};
 
   // create model
   Models::ThreeStepAlternative model;
@@ -42,7 +45,11 @@ double log_likelihood (const SampleType &prm)
   // set up initial conditions and times for the ODE solution
   std::valarray<double> initialCondition(0.0,prm.n_variables);
   initialCondition[0] = 0.0012;
-  const std::vector<double> times = {0, raw_data.tem_time2};
+  const std::vector<double> times = {0,
+                                     raw_data.tem_time1,
+                                     raw_data.tem_time2,
+                                     raw_data.tem_time3,
+                                     raw_data.tem_time4};
 
 
   // define parameters for the histogram
@@ -194,7 +201,7 @@ int main(int argc, char **argv)
     = (argc > 1 ?
        std::hash<std::string>()(std::string(argv[1])) :
        std::uint_fast32_t());
-  const unsigned int n_samples = 10;
+  const unsigned int n_samples = 2;
   mh_sampler.sample (starting_guess,
                      &log_probability,
                      &perturb,
