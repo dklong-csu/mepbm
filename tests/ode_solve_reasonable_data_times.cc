@@ -3,6 +3,8 @@
 #include <valarray>
 #include <vector>
 #include "models.h"
+#include "data.h"
+
 
 
 int main()
@@ -14,7 +16,9 @@ int main()
   // set up initial conditions, start time, and end time
   std::valarray<double> initialCondition(0.0, prm.n_variables);
   initialCondition[0] = 0.0012;
-  std::vector<double> sol_times = {0.0, 0.918, 1.170, 2.336, 4.838};
+
+  const Data::PomData pom_data;
+  const std::vector<double> sol_times = {0.0, pom_data.tem_time1, pom_data.tem_time2, pom_data.tem_time3, pom_data.tem_time4};
 
   // run the solver
   std::vector<std::valarray<double>> sols_all_times = Models::integrate_ode_ee_many_times(initialCondition, model, prm, sol_times);
