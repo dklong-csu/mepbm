@@ -19,7 +19,7 @@
 
 // The data type that describes the samples we want to draw from some
 // probability distribution.
-using SampleType = Models::ThreeStepAlternative::Parameters;
+using SampleType = Models::TwoStepAlternative::Parameters;
 
 // A data type we will use to convert samples to whenever we want to
 // do arithmetic with them, such as if we want to compute mean values,
@@ -40,7 +40,7 @@ double log_likelihood (const SampleType &prm)
                                                           std::pow(raw_data.tem_diam_time4/0.3000805, 3)};
 
   // create model
-  Models::ThreeStepAlternative model;
+  Models::TwoStepAlternative model;
 
   // set up initial conditions and times for the ODE solution
   std::valarray<double> initialCondition(0.0,prm.n_variables);
@@ -73,8 +73,6 @@ double log_prior (const SampleType &prm)
       prm.k_backward < 1000. || prm.k_backward > 2000000.
       || prm.k1 < 4800. || prm.k1 > 8e+07
       || prm.k2 < 10. || prm.k2 > 850000.
-      || prm.k3 < 10. || prm.k3 > 250000.
-      || prm.particle_size_cutoff < 10 || prm.particle_size_cutoff > 2000
   )
     return -std::numeric_limits<double>::max();
   else
@@ -135,18 +133,14 @@ std::pair<SampleType,double> perturb (const SampleType &prm)
   double new_k_backward = prm.k_backward + rand_btwn_double(-1.e4, 1.e4);
   double new_k1 = prm.k1 + rand_btwn_double(-5.e4, 5.e4);
   double new_k2 = prm.k2 + rand_btwn_double(-5.e3, 5.e3);
-  double new_k3 = prm.k3 + rand_btwn_double(-4.e3, 4.e3);
-  double new_part_sz_cutoff = prm.particle_size_cutoff + rand_btwn_int(-30, 30);
 
   SampleType new_prm(prm.k_forward,
                      new_k_backward,
                      new_k1,
                      new_k2,
-                     new_k3,
                      prm.solvent,
                      prm.w,
-                     prm.maxsize,
-                     new_part_sz_cutoff);
+                     prm.maxsize);
 
   return {new_prm, 1.};
 }
@@ -156,7 +150,7 @@ std::pair<SampleType,double> perturb (const SampleType &prm)
 int main(int argc, char **argv)
 {
   const SampleType
-    starting_guess (3.6e-2, 7.27e4, 6.45e4, 1.63e4, 5.56e3, 11.3, 3, 2500, 274);
+    starting_guess (3.6e-2, 7.27e4, 4.80e4, 3.99e4, 11.3, 3, 2500);
 
   std::ofstream samples ("samples"
                          +
