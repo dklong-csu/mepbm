@@ -141,6 +141,13 @@ k_forward (k_forward_value),
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // operators
+Models::TwoStep::Parameters::operator std::valarray<double> () const
+{
+    return { k1, k2 };
+}
+
+
+
 Models::TwoStep::Parameters
 Models::TwoStep::Parameters::operator = (const Parameters &prm)
 {
@@ -168,6 +175,13 @@ Models::TwoStepAlternative::Parameters::operator = (const Parameters &prm)
   k_backward = prm.k_backward;
 
   return *this;
+}
+
+
+
+Models::ThreeStep::Parameters::operator std::valarray<double> () const
+{
+    return { k1, k2, k3, particle_size_cutoff };
 }
 
 

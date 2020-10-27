@@ -76,6 +76,11 @@ namespace Models
              
       // Setting parameters equal, skipping the const members
       Parameters operator = (const Parameters &prm);
+
+        // Convert the current parameters object into a tuple of numbers
+        // that contains all of the free variables we want to optimize
+        // over.
+        operator std::valarray<double> () const;
       
       friend
       std::ostream &
@@ -219,6 +224,11 @@ namespace Models
 
       // Setting parameters equal, skipping the const members
       Parameters operator = (const Parameters &prm);
+
+        // Convert the current parameters object into a tuple of numbers
+        // that contains all of the free variables we want to optimize
+        // over.
+        operator std::valarray<double> () const;
       
       friend
       std::ostream &
