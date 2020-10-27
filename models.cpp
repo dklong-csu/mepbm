@@ -152,6 +152,13 @@ Models::TwoStep::Parameters::operator = (const Parameters &prm)
 
 
 
+Models::TwoStepAlternative::Parameters::operator std::valarray<double> () const
+{
+    return { k1, k2, k_forward, k_backward };
+}
+
+
+
 Models::TwoStepAlternative::Parameters
 Models::TwoStepAlternative::Parameters::operator = (const Parameters &prm)
 {
