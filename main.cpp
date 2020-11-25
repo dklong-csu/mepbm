@@ -16,7 +16,7 @@
 #include <sampleflow/consumers/histogram.h>
 #include <sampleflow/consumers/acceptance_ratio.h>
 
-
+/*
 // The data type that describes the samples we want to draw from some
 // probability distribution.
 using SampleType = Models::TwoStepAlternative::Parameters;
@@ -145,10 +145,11 @@ std::pair<SampleType,double> perturb (const SampleType &prm)
   return {new_prm, 1.};
 }
 
-
+*/
 
 int main(int argc, char **argv)
 {
+  /*
   const SampleType
     starting_guess (3.6e-2, 7.27e4, 4.80e4, 3.99e4, 11.3, 3, 2500);
 
@@ -214,4 +215,6 @@ int main(int argc, char **argv)
 
   // Now also output the histograms for all parameters:
   histogram_k1.write_gnuplot (std::ofstream("histogram_k1.txt"));
+   */
+  std::cout << "Yippee!" << std::endl;
 }
