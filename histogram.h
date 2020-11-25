@@ -2,7 +2,7 @@
 #define HISTOGRAM_H_
 
 
-#include <valarray>
+#include <vector>
 #include <stdexcept>
 
 
@@ -41,14 +41,14 @@ namespace Histograms
   public:
     double min_x, max_x;
     unsigned int num_bins;
-    std::valarray<double> interval_pts, count;
+    std::vector<double> interval_pts, count;
 
     // constructor -- require parameters be passed in upon creation of this object.
     Histogram(const Histograms::Parameters& parameters);
 
 
-    void AddToBins(const std::valarray<double>& y,
-             const std::valarray<double>& x);
+    void AddToBins(const std::vector<double>& y,
+             const std::vector<double>& x);
 
 
   private:
@@ -61,8 +61,8 @@ namespace Histograms
   // This function creates a histogram.
   // Given the x-values (labels) and y-values (counts) of the user's data, along with the appropriate parameters,
   // this function creates a histogram object and adds the data to populate the bins.
-  Histogram create_histogram(const std::valarray<double>& counts,
-    const std::valarray<double>& labels,
+  Histogram create_histogram(const std::vector<double>& counts,
+    const std::vector<double>& labels,
     const Parameters& parameters);
 }
 

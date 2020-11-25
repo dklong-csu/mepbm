@@ -1,9 +1,10 @@
 #include "histogram.h"
-#include <valarray>
+#include <vector>
 #include <stdexcept>
+#include <iostream>
 
 
-using HistVector = std::valarray<double>;
+using HistVector = std::vector<double>;
 
 
 
@@ -42,7 +43,7 @@ Histograms::Histogram::Histogram(const Histograms::Parameters& parameters)
   interval_pts = pts;
 
   // initialize count array -- set all counts to zero since no data is included yet
-  HistVector c(0., num_bins);
+  HistVector c(num_bins, 0.);
   count = c;
 }
 
@@ -86,7 +87,7 @@ unsigned int Histograms::Histogram::bisection_method(double x)
   unsigned int index_left = 0;
   unsigned int index_right = num_bins;
   unsigned int middle = (index_right + index_left) / 2;
-  
+
   // check middle index
   bool found = false;
   while (!found)
@@ -118,8 +119,8 @@ unsigned int Histograms::Histogram::bisection_method(double x)
 // This function creates a histogram.
 // Given the x-values (labels) and y-values (counts) of the user's data, along with the appropriate parameters,
 // this function creates a histogram object and adds the data to populate the bins.
-Histograms::Histogram Histograms::create_histogram(const std::valarray<double>& counts,
-                                                   const std::valarray<double>& labels,
+Histograms::Histogram Histograms::create_histogram(const std::vector<double>& counts,
+                                                   const std::vector<double>& labels,
                                                    const Parameters& parameters)
 {
   // create Histogram object using supplied Parameters

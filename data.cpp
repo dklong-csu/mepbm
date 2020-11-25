@@ -1,5 +1,5 @@
 #include "data.h"
-#include <valarray>
+#include <vector>
 
 
 Data::PomData::PomData()

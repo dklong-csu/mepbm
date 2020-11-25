@@ -1,12 +1,12 @@
 #include <iostream>
 #include <string>
-#include <valarray>
+#include <boost/numeric/odeint.hpp>
 #include <typeinfo>
 #include "data.h"
 
 
 
-void print_array(std::valarray<double> array)
+void print_array(std::vector<double> array)
 {
   for (unsigned int i = 0; i < array.size(); i++)
     {
