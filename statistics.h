@@ -2,7 +2,7 @@
 #define STATISTICS_H_
 
 
-#include <valarray>
+#include <vector>
 #include "models.h"
 #include "histogram.h"
 
@@ -28,9 +28,9 @@ namespace Statistics
   // Step 1: Turn the data into a histogram to form b_i's
   // Step 2: Turn the distribution into a histogram to form p_i's
   // Step 3: Compute the log likelihood.
-  double log_likelihood(const std::valarray<double>& data,
-                        const std::valarray<double>& distribution,
-                        const std::valarray<double>& sizes,
+  double log_likelihood(const std::vector<double>& data,
+                        const std::vector<double>& distribution,
+                        const std::vector<double>& sizes,
                         const Histograms::Parameters& hist_prm);
 
 
@@ -43,11 +43,10 @@ namespace Statistics
   // As a result, this function's workflow is:
   // Step 1: Solve ODE, saving the solution at each relevant time
   // Step 2: For each time point, calculate the log likelihood, and add to the cumulative log likelihood
-  double log_likelihood(const std::vector<std::valarray<double>>& data,
+  double log_likelihood(const std::vector<std::vector<double>>& data,
                         const std::vector<double>& times,
-                        const Models::ModelsBase& ode_model,
-                        const Models::ParametersBase& ode_prm,
-                        const std::valarray<double>& ic,
+                        const Model::Model& ode_model,
+                        std::vector<double>& ic,
                         const Histograms::Parameters& hist_prm);
 }
 

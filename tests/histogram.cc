@@ -1,9 +1,9 @@
-#include <valarray>
+#include <boost/numeric/odeint.hpp>
 #include <iostream>
 #include <string>
 #include "histogram.h"
 
-using HistVector = std::valarray<double>;
+using HistVector = std::vector<double>;
 
 int main()
 {
