@@ -29,19 +29,17 @@ int main()
   const double k2 = 40.;
 
   // Nucleation
-  Model::TermolecularNucleation::Parameters prm_nuc(A_index, As_index, POM_index,nucleation_index,
-                                                    kf, kb, k1, solvent);
-  Model::TermolecularNucleation nucleation;
+  Model::TermolecularNucleation nucleation(A_index, As_index, POM_index,nucleation_index,
+                                           kf, kb, k1, solvent);
 
   // Growth
-  Model::Growth::Parameters prm_growth(A_index, nucleation_order, max_size, max_size,
-                                       POM_index, conserved_size, k2);
-  Model::Growth growth;
+  Model::Growth growth(A_index, nucleation_order, max_size, max_size,
+                       POM_index, conserved_size, k2);
 
   // Create Model
   Model::Model two_step_alt(nucleation_order, max_size);
-  two_step_alt.add_rhs_contribution(nucleation, &prm_nuc);
-  two_step_alt.add_rhs_contribution(growth, &prm_growth);
+  two_step_alt.add_rhs_contribution(nucleation);
+  two_step_alt.add_rhs_contribution(growth);
 
   // Output right hand side
   StateVector state = { 1., .8, .6, .4, .2, .1};

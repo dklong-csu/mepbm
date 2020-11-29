@@ -48,25 +48,22 @@ int main()
 
 
   // Nucleation
-  Model::TermolecularNucleation::Parameters prm_nuc(A_index, As_index, POM_index,nucleation_index,
-                                                    kf, kb, k1, solvent);
-  Model::TermolecularNucleation nucleation;
+  Model::TermolecularNucleation nucleation(A_index, As_index, POM_index,nucleation_index,
+                                           kf, kb, k1, solvent);
 
   // Small Growth
-  Model::Growth::Parameters prm_small_growth(A_index, nucleation_order, cutoff, max_size,
-                                             POM_index, conserved_size, k2);
-  Model::Growth small_growth;
+  Model::Growth small_growth(A_index, nucleation_order, cutoff, max_size,
+                             POM_index, conserved_size, k2);
 
   // Large Growth
-  Model::Growth::Parameters prm_large_growth(A_index, cutoff+1, max_size, max_size,
-                                             POM_index, conserved_size, k3);
-  Model::Growth large_growth;
+  Model::Growth large_growth(A_index, cutoff+1, max_size, max_size,
+                             POM_index, conserved_size, k3);
 
   // Create Model
   Model::Model three_step_alt(nucleation_order, max_size);
-  three_step_alt.add_rhs_contribution(nucleation, &prm_nuc);
-  three_step_alt.add_rhs_contribution(small_growth, &prm_small_growth);
-  three_step_alt.add_rhs_contribution(large_growth, &prm_large_growth);
+  three_step_alt.add_rhs_contribution(nucleation);
+  three_step_alt.add_rhs_contribution(small_growth);
+  three_step_alt.add_rhs_contribution(large_growth);
 
   // set up initial condition
   std::vector<double> ic(max_size+1, 0.);

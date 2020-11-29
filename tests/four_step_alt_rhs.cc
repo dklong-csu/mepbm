@@ -33,31 +33,27 @@ int main()
 
 
   // Nucleation
-  Model::TermolecularNucleation::Parameters prm_nuc(A_index, As_index, POM_index,nucleation_index,
-                                                    kf, kb, k1, solvent);
-  Model::TermolecularNucleation nucleation;
+  Model::TermolecularNucleation nucleation(A_index, As_index, POM_index,nucleation_index,
+                                           kf, kb, k1, solvent);
 
   // Small Growth
-  Model::Growth::Parameters prm_small_growth(A_index, nucleation_order, cutoff, max_size,
-                                             POM_index, conserved_size, k2);
-  Model::Growth small_growth;
+  Model::Growth small_growth(A_index, nucleation_order, cutoff, max_size,
+                             POM_index, conserved_size, k2);
 
   // Large Growth
-  Model::Growth::Parameters prm_large_growth(A_index, cutoff+1, max_size, max_size,
-                                             POM_index, conserved_size, k3);
-  Model::Growth large_growth;
+  Model::Growth large_growth(A_index, cutoff+1, max_size, max_size,
+                             POM_index, conserved_size, k3);;
 
   // Agglomeration
-  Model::Agglomeration::Parameters prm_agglom(nucleation_index, cutoff,
-                                              nucleation_index, cutoff,
-                                              max_size, conserved_size, k4);
-  Model::Agglomeration agglomeration;
+  Model::Agglomeration agglomeration(nucleation_index, cutoff,
+                                     nucleation_index, cutoff,
+                                     max_size, conserved_size, k4);
   // Create Model
   Model::Model four_step_alt(nucleation_order, max_size);
-  four_step_alt.add_rhs_contribution(nucleation, &prm_nuc);
-  four_step_alt.add_rhs_contribution(small_growth, &prm_small_growth);
-  four_step_alt.add_rhs_contribution(large_growth, &prm_large_growth);
-  four_step_alt.add_rhs_contribution(agglomeration, &prm_agglom);
+  four_step_alt.add_rhs_contribution(nucleation);
+  four_step_alt.add_rhs_contribution(small_growth);
+  four_step_alt.add_rhs_contribution(large_growth);
+  four_step_alt.add_rhs_contribution(agglomeration);
 
   // Output right hand side
   StateVector state = { 1., .9, .8, .7, .6, .5, .4, .3, .2, .1, .05, .025};
