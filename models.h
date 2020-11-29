@@ -101,6 +101,8 @@ namespace Model
     const double rate_forward, rate_backward, rate_nucleation;
     const double solvent;
 
+    // default constructor creates an invalid object
+    TermolecularNucleation();
 
     TermolecularNucleation(unsigned int A_index, unsigned int As_index, unsigned int ligand_index,
                            unsigned int particle_index,
@@ -139,6 +141,9 @@ namespace Model
     const unsigned int A_index, smallest_size, largest_size, max_size, ligand_index, conserved_size;
     const double rate;
 
+    // default constructor creates an invalid object
+    Growth();
+
     Growth(unsigned int A_index, unsigned int smallest_size, unsigned int largest_size,
            unsigned int max_size, unsigned int ligand_index, unsigned int conserved_size,
            double rate);
@@ -176,6 +181,9 @@ namespace Model
     const unsigned int max_size;
     const unsigned int conserved_size;
     const double rate;
+
+    // default constructor creates an invalid object
+    Agglomeration();
 
     Agglomeration(unsigned int B_smallest_size, unsigned int B_largest_size,
                   unsigned int C_smallest_size, unsigned int C_largest_size,

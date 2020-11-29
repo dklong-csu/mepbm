@@ -2,6 +2,7 @@
 #include <cmath>
 #include <vector>
 #include <cassert>
+#include <limits>
 
 
 using StateVector = std::vector<double>;
@@ -14,6 +15,19 @@ double Model::atoms(unsigned int &size,
   const auto new_size = static_cast<double>(size);
   return 2.677 * new_size * std::pow(conserved_size*new_size, -0.28);
 }
+
+
+
+Model::TermolecularNucleation::TermolecularNucleation()
+: TermolecularNucleation(std::numeric_limits<unsigned int>::signaling_NaN(),
+                         std::numeric_limits<unsigned int>::signaling_NaN(),
+                         std::numeric_limits<unsigned int>::signaling_NaN(),
+                         std::numeric_limits<unsigned int>::signaling_NaN(),
+                         std::numeric_limits<double>::signaling_NaN(),
+                         std::numeric_limits<double>::signaling_NaN(),
+                         std::numeric_limits<double>::signaling_NaN(),
+                         std::numeric_limits<double>::signaling_NaN())
+{}
 
 
 
@@ -43,6 +57,18 @@ void Model::TermolecularNucleation::add_contribution_to_rhs(const StateVector &x
   rhs[ligand_index] += diss_forward - diss_backward + nucleation;
   rhs[particle_index] += nucleation;
 }
+
+
+
+Model::Growth::Growth()
+: Growth(std::numeric_limits<unsigned int>::signaling_NaN(),
+         std::numeric_limits<unsigned int>::signaling_NaN(),
+         std::numeric_limits<unsigned int>::signaling_NaN(),
+         std::numeric_limits<unsigned int>::signaling_NaN(),
+         std::numeric_limits<unsigned int>::signaling_NaN(),
+         std::numeric_limits<unsigned int>::signaling_NaN(),
+         std::numeric_limits<double>::signaling_NaN())
+{}
 
 
 
@@ -85,6 +111,18 @@ void Model::Growth::add_contribution_to_rhs(const StateVector &x,
     }
   }
 }
+
+
+
+Model::Agglomeration::Agglomeration()
+: Agglomeration(std::numeric_limits<unsigned int>::signaling_NaN(),
+                std::numeric_limits<unsigned int>::signaling_NaN(),
+                std::numeric_limits<unsigned int>::signaling_NaN(),
+                std::numeric_limits<unsigned int>::signaling_NaN(),
+                std::numeric_limits<unsigned int>::signaling_NaN(),
+                std::numeric_limits<unsigned int>::signaling_NaN(),
+                std::numeric_limits<double>::signaling_NaN())
+{}
 
 
 
