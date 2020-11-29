@@ -56,19 +56,6 @@ namespace Model
 
 
   /*
- * A base class which describes the necessary parameters to accurately describe the contribution
- * to the right hand side of the ODE system that a certain phase of the nucleation-growth-agglomeration
- * process has.
- */
-  class ParametersBase
-  {
-  public:
-    virtual ~ParametersBase() = default;
-  };
-
-
-
-  /*
  * A base class for describing the effects nucleation, growth, and agglomeration have on the
  * system of ODEs.
  */
@@ -76,8 +63,7 @@ namespace Model
   {
   public:
     virtual void add_contribution_to_rhs(const std::vector<double> &x,
-                                         std::vector<double> &rhs,
-                                         ParametersBase *parameters) = 0;
+                                         std::vector<double> &rhs) = 0;
   };
 
 
@@ -111,24 +97,18 @@ namespace Model
   class TermolecularNucleation : public Model::RightHandSideContribution
   {
   public:
-    class Parameters : public Model::ParametersBase
-    {
-    public:
-      const unsigned int A_index, As_index, ligand_index, particle_index;
-      const double rate_forward, rate_backward, rate_nucleation;
-      const double solvent;
+    const unsigned int A_index, As_index, ligand_index, particle_index;
+    const double rate_forward, rate_backward, rate_nucleation;
+    const double solvent;
 
 
-      Parameters(unsigned int A_index, unsigned int As_index, unsigned int ligand_index,
-                 unsigned int particle_index,
-                 double rate_forward, double rate_backward, double rate_nucleation,
-                 double solvent);
-    };
-
+    TermolecularNucleation(unsigned int A_index, unsigned int As_index, unsigned int ligand_index,
+                           unsigned int particle_index,
+                           double rate_forward, double rate_backward, double rate_nucleation,
+                           double solvent);
 
     void add_contribution_to_rhs(const std::vector<double> &x,
-                                 std::vector<double> &rhs,
-                                 Model::ParametersBase *parameters) override;
+                                 std::vector<double> &rhs) override;
   };
 
 
@@ -156,21 +136,15 @@ namespace Model
   class Growth : public RightHandSideContribution
   {
   public:
-    class Parameters : public ParametersBase
-    {
-    public:
-      const unsigned int A_index, smallest_size, largest_size, max_size, ligand_index, conserved_size;
-      const double rate;
+    const unsigned int A_index, smallest_size, largest_size, max_size, ligand_index, conserved_size;
+    const double rate;
 
-      Parameters(unsigned int A_index, unsigned int smallest_size, unsigned int largest_size,
-                 unsigned int max_size, unsigned int ligand_index, unsigned int conserved_size,
-                 double rate);
-    };
-
+    Growth(unsigned int A_index, unsigned int smallest_size, unsigned int largest_size,
+           unsigned int max_size, unsigned int ligand_index, unsigned int conserved_size,
+           double rate);
 
     void add_contribution_to_rhs(const std::vector<double> &x,
-                                 std::vector<double> &rhs,
-                                 ParametersBase *parameters) override;
+                                 std::vector<double> &rhs) override;
   };
 
 
@@ -197,25 +171,18 @@ namespace Model
   class Agglomeration : public RightHandSideContribution
   {
   public:
-    class Parameters : public ParametersBase
-    {
-    public:
-      const unsigned int B_smallest_size, B_largest_size;
-      const unsigned int C_smallest_size, C_largest_size;
-      const unsigned int max_size;
-      const unsigned int conserved_size;
-      const double rate;
+    const unsigned int B_smallest_size, B_largest_size;
+    const unsigned int C_smallest_size, C_largest_size;
+    const unsigned int max_size;
+    const unsigned int conserved_size;
+    const double rate;
 
-
-      Parameters(unsigned int B_smallest_size, unsigned int B_largest_size,
-                 unsigned int C_smallest_size, unsigned int C_largest_size,
-                 unsigned int max_size, unsigned int conserved_size, double rate);
-    };
-
+    Agglomeration(unsigned int B_smallest_size, unsigned int B_largest_size,
+                  unsigned int C_smallest_size, unsigned int C_largest_size,
+                  unsigned int max_size, unsigned int conserved_size, double rate);
 
     void add_contribution_to_rhs(const std::vector<double> &x,
-                                 std::vector<double> &rhs,
-                                 ParametersBase *parameters) override;
+                                 std::vector<double> &rhs) override;
   };
 
 
@@ -230,8 +197,7 @@ namespace Model
   public:
     Model(unsigned int nucleation_order, unsigned int max_size);
 
-    void add_rhs_contribution(RightHandSideContribution &rhs,
-                              ParametersBase * &&prm);
+    void add_rhs_contribution(RightHandSideContribution &rhs);
 
     void operator()(const std::vector<double> &x,
                     std::vector<double> &rhs,
@@ -242,7 +208,6 @@ namespace Model
   private:
     // FIXME: Wolfgang said there is a better way to deal with the pointers here
     std::vector<RightHandSideContribution*> rhs_contributions;
-    std::vector<ParametersBase*> contribution_parameters;
   };
 
 }
