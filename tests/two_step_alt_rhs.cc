@@ -29,12 +29,14 @@ int main()
   const double k2 = 40.;
 
   // Nucleation
-  Model::TermolecularNucleation nucleation(A_index, As_index, POM_index,nucleation_index,
-                                           kf, kb, k1, solvent);
+  std::shared_ptr<Model::RightHandSideContribution> nucleation
+    = std::make_shared<Model::TermolecularNucleation>(A_index, As_index, POM_index,nucleation_index,
+                                                      kf, kb, k1, solvent);
 
   // Growth
-  Model::Growth growth(A_index, nucleation_order, max_size, max_size,
-                       POM_index, conserved_size, k2);
+  std::shared_ptr<Model::RightHandSideContribution> growth
+    = std::make_shared<Model::Growth>(A_index, nucleation_order, max_size, max_size,
+                                      POM_index, conserved_size, k2);
 
   // Create Model
   Model::Model two_step_alt(nucleation_order, max_size);
