@@ -2,6 +2,7 @@
 #include <fstream>
 #include <limits>
 #include <vector>
+#include <memory>
 #include "models.h"
 #include "histogram.h"
 #include "statistics.h"
@@ -187,19 +188,26 @@ std::vector<double> Sample::return_times() const
 // Here we implement a Four-Step Model
 Model::Model Sample::return_model() const
 {
-  Model::TermolecularNucleation nucleation(const_parameters.A_index, const_parameters.As_index,
-                                           const_parameters.ligand_index, const_parameters.min_size,
-                                           const_parameters.kf, kb, k1, const_parameters.solvent);
-  Model::Growth small_growth(const_parameters.A_index, const_parameters.min_size, cutoff,
-                             const_parameters.max_size, const_parameters.ligand_index,
-                             const_parameters.conserved_size, k2);
-  Model::Growth large_growth(const_parameters.A_index, cutoff+1, const_parameters.max_size,
-                             const_parameters.max_size, const_parameters.ligand_index,
-                             const_parameters.conserved_size, k3);
-  Model::Agglomeration agglomeration(const_parameters.min_size, cutoff,
-                                     const_parameters.min_size, cutoff,
-                                     const_parameters.max_size, const_parameters.conserved_size,
-                                     k4);
+  std::shared_ptr<Model::RightHandSideContribution> nucleation =
+    std::make_shared<Model::TermolecularNucleation>(const_parameters.A_index, const_parameters.As_index,
+                                                    const_parameters.ligand_index, const_parameters.min_size,
+                                                    const_parameters.kf, kb, k1, const_parameters.solvent);
+
+  std::shared_ptr<Model::RightHandSideContribution> small_growth =
+    std::make_shared<Model::Growth>(const_parameters.A_index, const_parameters.min_size, cutoff,
+                                    const_parameters.max_size, const_parameters.ligand_index,
+                                    const_parameters.conserved_size, k2);
+
+  std::shared_ptr<Model::RightHandSideContribution> large_growth =
+    std::make_shared<Model::Growth>(const_parameters.A_index, cutoff+1, const_parameters.max_size,
+                                    const_parameters.max_size, const_parameters.ligand_index,
+                                    const_parameters.conserved_size, k3);
+
+  std::shared_ptr<Model::RightHandSideContribution> agglomeration =
+  std::make_shared<Model::Agglomeration>(const_parameters.min_size, cutoff,
+                                         const_parameters.min_size, cutoff,
+                                         const_parameters.max_size, const_parameters.conserved_size,
+                                         k4);
 
   Model::Model model(const_parameters.min_size, const_parameters.max_size);
   model.add_rhs_contribution(nucleation);

@@ -219,9 +219,9 @@ void Model::Model::operator()(const StateVector &x, StateVector &rhs, double  /*
     rh = 0.;
   }
 
-  for (unsigned int i = 0; i < rhs_contributions.size(); ++i)
+  for (auto & rhs_contribution : rhs_contributions)
   {
-    rhs_contributions[i]->add_contribution_to_rhs(x, rhs);
+    rhs_contribution->add_contribution_to_rhs(x, rhs);
   }
 }
 
