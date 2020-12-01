@@ -6,6 +6,13 @@
 #include "models.h"
 #include "histogram.h"
 
+#include <sampleflow/producers/metropolis_hastings.h>
+#include <sampleflow/filters/conversion.h>
+#include <sampleflow/consumers/stream_output.h>
+#include <sampleflow/consumers/mean_value.h>
+#include <sampleflow/consumers/histogram.h>
+#include <sampleflow/consumers/acceptance_ratio.h>
+
 
 
 namespace Statistics
@@ -48,6 +55,97 @@ namespace Statistics
                         const Model::Model& ode_model,
                         std::vector<double>& ic,
                         const Histograms::Parameters& hist_prm);
+
+
+
+  // log_likelihood -- interface with SampleFlow
+  // A function that given an object will compute the corresponding log likelihood by solving the system of ODEs
+  // and using the data specified within the object.
+  //
+  // The object used must have member functions
+  // std::vector< std::vector<double> > return_data() -- a collection of vectors corresponding to collected data
+  //                                                     which gives particle size for each data.
+  // std::vector<double> return_times() -- the first element is intended to be time=0 and the remaining times
+  //                                       should correspond to when the return_data() entries were collected.
+  // Model::Model return_model() -- an object describing the right hand side of the system of differential equations
+  // std::vector<double> return_initial_condition() -- a vector giving the concentrations of the tracked chemical
+  //                                                   species at time = 0.
+  // Histograms::Parameters return_histogram_parameters() -- an object describing the way you want to bin together
+  //                                                         particle sizes for comparing between data and simulation.
+  template<class InputClass>
+  double log_likelihood(const InputClass &my_object)
+  {
+    std::vector<double> ic = my_object.return_initial_condition();
+    return Statistics::log_likelihood(my_object.return_data(), my_object.return_times(), my_object.return_model(),
+                                      ic, my_object.return_histogram_parameters());
+  }
+
+
+
+  // A function that given an object will compute the corresponding prior under the assumption that
+  // the prior is a uniform distribution on some domain specified within the input object.
+  //
+  // The object used must have member function
+  // bool within_bounds() -- The intent of this function is to compare the current state of the parameters
+  //                         being sampled and compare to a pre-determined domain for those parameters.
+  //                         If any parameter lies outside of its allowed interval, return false. Else, return true.
+  template<class InputClass>
+  double log_prior (const InputClass &my_object)
+  {
+    if (my_object.within_bounds())
+      return 0.;
+    else
+      return -std::numeric_limits<double>::max();
+  }
+
+
+
+  // A function that given an object will compute: log_probability = log_prior + log_likelihood
+  // log_likelihood is an expensive calculation, so first check to see if log_prior = -infinity
+  // and only calculate log_likelihood if log_prior is finite.
+  //
+  // The object used must meet the member function requirements of log_prior<InputClass> and log_likelihood<InputClass>
+  template<class InputClass>
+  double log_probability (const InputClass &my_object)
+  {
+    const double log_prior = Statistics::log_prior<InputClass>(my_object);
+
+    if (log_prior == -std::numeric_limits<double>::max())
+      return log_prior;
+
+    else
+      return Statistics::log_likelihood<InputClass>(my_object) + log_prior;
+  }
+
+
+
+  // A function given two real numbers returns a random number
+  // between those numbers based on a uniform distribution
+  double rand_btwn_double (double small_num, double big_num);
+
+
+
+  // A function given two integers returns a random number
+  // between those numbers based on a uniform distribution
+  int rand_btwn_int (int small_num, int big_num);
+
+
+
+  // A function given an object returns an object of the same type whose
+  // member variables have been randomly perturbed along with the ratio of
+  // the probabilities of prm->new_prm / new_prm->prm.
+  // This is a template function which requires the input object, InputClass,
+  // to have member functions:
+  //      InputClass perturb();
+  //      double perturb_ratio();
+  template<class InputClass>
+  std::pair<InputClass,double> perturb (const InputClass &my_object)
+  {
+    InputClass new_object = my_object.perturb();
+    double ratio = my_object.perturb_ratio();
+
+    return {new_object, ratio};
+  }
 }
 
 

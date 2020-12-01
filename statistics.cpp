@@ -1,11 +1,12 @@
 #include <valarray>
 #include <cmath>
 #include <vector>
+#include <random>
 #include "models.h"
 #include "histogram.h"
 #include "statistics.h"
 #include <boost/numeric/odeint.hpp>
-#include <iostream>
+
 
 
 using VectorType = std::vector<double>;
@@ -26,9 +27,9 @@ double Statistics::log_likelihood(const VectorType& data,
   // Step 2 -- Turn distribution into a histogram
     // Step 2a -- Normalize distribution to create probability mass function (pmf)
     double norm = 0.;
-    for (unsigned int i=0; i<distribution.size(); ++i)
+    for (double concentration : distribution)
     {
-      norm += distribution[i];
+      norm += concentration;
     }
 
     VectorType pmf(distribution.size());
@@ -110,4 +111,24 @@ double Statistics::log_likelihood(const std::vector<VectorType>& data,
     }
 
   return likelihood;
+}
+
+
+
+double Statistics::rand_btwn_double (const double small_num, const double big_num)
+{
+  static std::mt19937 gen;
+  std::uniform_real_distribution<> unif(small_num,big_num);
+
+  return unif(gen);
+}
+
+
+
+int Statistics::rand_btwn_int (const int small_num, const int big_num)
+{
+  static std::mt19937 gen;
+  std::uniform_int_distribution<> unif(small_num,big_num);
+
+  return unif(gen);
 }
