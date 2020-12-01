@@ -33,21 +33,26 @@ int main()
 
 
   // Nucleation
-  Model::TermolecularNucleation nucleation(A_index, As_index, POM_index,nucleation_index,
-                                           kf, kb, k1, solvent);
+  std::shared_ptr<Model::RightHandSideContribution> nucleation
+    = std::make_shared<Model::TermolecularNucleation>(A_index, As_index, POM_index,nucleation_index,
+                                                      kf, kb, k1, solvent);
 
   // Small Growth
-  Model::Growth small_growth(A_index, nucleation_order, cutoff, max_size,
-                             POM_index, conserved_size, k2);
+  std::shared_ptr<Model::RightHandSideContribution> small_growth
+    = std::make_shared<Model::Growth>(A_index, nucleation_order, cutoff, max_size,
+                                      POM_index, conserved_size, k2);
 
   // Large Growth
-  Model::Growth large_growth(A_index, cutoff+1, max_size, max_size,
-                             POM_index, conserved_size, k3);;
+  std::shared_ptr<Model::RightHandSideContribution> large_growth
+    = std::make_shared<Model::Growth>(A_index, cutoff+1, max_size, max_size,
+                                      POM_index, conserved_size, k3);;
 
   // Agglomeration
-  Model::Agglomeration agglomeration(nucleation_index, cutoff,
-                                     nucleation_index, cutoff,
-                                     max_size, conserved_size, k4);
+  std::shared_ptr<Model::RightHandSideContribution> agglomeration
+    = std::make_shared<Model::Agglomeration>(nucleation_index, cutoff,
+                                             nucleation_index, cutoff,
+                                             max_size, conserved_size, k4);
+
   // Create Model
   Model::Model four_step_alt(nucleation_order, max_size);
   four_step_alt.add_rhs_contribution(nucleation);
