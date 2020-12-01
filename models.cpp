@@ -205,9 +205,9 @@ Model::Model::Model(unsigned int nucleation_order, unsigned int max_size)
 
 
 
-void Model::Model::add_rhs_contribution(RightHandSideContribution &rhs)
+void Model::Model::add_rhs_contribution(std::shared_ptr<RightHandSideContribution> &rhs)
 {
-  rhs_contributions.push_back(&rhs);
+  rhs_contributions.push_back(rhs);
 }
 
 

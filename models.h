@@ -31,6 +31,7 @@
 
 #include <vector>
 #include <cmath>
+#include <memory>
 
 namespace Model
 {
@@ -205,7 +206,7 @@ namespace Model
   public:
     Model(unsigned int nucleation_order, unsigned int max_size);
 
-    void add_rhs_contribution(RightHandSideContribution &rhs);
+    void add_rhs_contribution(std::shared_ptr<RightHandSideContribution> &rhs);
 
     void operator()(const std::vector<double> &x,
                     std::vector<double> &rhs,
@@ -214,8 +215,7 @@ namespace Model
     const unsigned int nucleation_order;
     const unsigned int max_size;
   private:
-    // FIXME: Wolfgang said there is a better way to deal with the pointers here
-    std::vector<RightHandSideContribution*> rhs_contributions;
+    std::vector<std::shared_ptr<RightHandSideContribution>> rhs_contributions;
   };
 
 }
