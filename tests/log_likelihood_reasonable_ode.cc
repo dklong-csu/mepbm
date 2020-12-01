@@ -48,16 +48,19 @@ int main()
 
 
   // Nucleation
-  Model::TermolecularNucleation nucleation(A_index, As_index, POM_index,nucleation_index,
-                                           kf, kb, k1, solvent);
+  std::shared_ptr<Model::RightHandSideContribution> nucleation
+    = std::make_shared<Model::TermolecularNucleation>(A_index, As_index, POM_index,nucleation_index,
+                                                      kf, kb, k1, solvent);
 
   // Small Growth
-  Model::Growth small_growth(A_index, nucleation_order, cutoff, max_size,
-                             POM_index, conserved_size, k2);
+  std::shared_ptr<Model::RightHandSideContribution> small_growth
+    = std::make_shared<Model::Growth>(A_index, nucleation_order, cutoff, max_size,
+                                      POM_index, conserved_size, k2);
 
   // Large Growth
-  Model::Growth large_growth(A_index, cutoff+1, max_size, max_size,
-                             POM_index, conserved_size, k3);
+  std::shared_ptr<Model::RightHandSideContribution> large_growth
+    = std::make_shared<Model::Growth>(A_index, cutoff+1, max_size, max_size,
+                                      POM_index, conserved_size, k3);
 
   // Create Model
   Model::Model three_step_alt(nucleation_order, max_size);
