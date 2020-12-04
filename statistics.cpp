@@ -84,7 +84,7 @@ double Statistics::log_likelihood(const std::vector<VectorType>& data,
   solutions.push_back(ic);
   for (unsigned int i = 1; i < times.size(); ++i)
   {
-    size_t n_steps = integrate_const(stepper, ode_model, ic, times[i-1], times[i], 1e-4);
+    size_t n_steps = integrate_const(stepper, ode_model.system, ic, times[i-1], times[i], 1e-4);
     solutions.push_back(ic);
   }
 

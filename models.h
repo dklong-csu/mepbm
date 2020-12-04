@@ -202,6 +202,26 @@ namespace Model
   // the RightHandSideContribution class. The class is able to combine all of these contributions
   // to form a complete right-hand side via the ( ) operator, which is created in a way that
   // interfaces with the ODE solvers in the Boost library.
+  class OdeSystem
+  {
+  public:
+    OdeSystem() = default;
+
+    void add_rhs_contribution(std::shared_ptr<RightHandSideContribution> &rhs);
+
+    void operator()(const boost::numeric::ublas::vector<double> &x,
+                    boost::numeric::ublas::vector<double> &rhs,
+                    double /* t */);
+  private:
+    std::vector<std::shared_ptr<RightHandSideContribution>> rhs_contributions;
+  };
+
+
+
+
+
+  // An interface class which holds the rules for computing the right hand side and the Jacobian
+  // for the ODE model.
   class Model
   {
   public:
@@ -209,14 +229,9 @@ namespace Model
 
     void add_rhs_contribution(std::shared_ptr<RightHandSideContribution> &rhs);
 
-    void operator()(const boost::numeric::ublas::vector<double> &x,
-                    boost::numeric::ublas::vector<double> &rhs,
-                    double  /* t */);
-
     const unsigned int nucleation_order;
     const unsigned int max_size;
-  private:
-    std::vector<std::shared_ptr<RightHandSideContribution>> rhs_contributions;
+    OdeSystem system;
   };
 
 }
