@@ -149,10 +149,10 @@ public:
   Histograms::Parameters return_histogram_parameters() const;
   bool within_bounds() const;
   Sample perturb() const;
-  double perturb_ratio() const;
+  static double perturb_ratio() ;
 
-  Sample operator = (const Sample &sample);
-  operator std::valarray<double> () const;
+  Sample& operator = (const Sample &sample);
+  explicit operator std::valarray<double> () const;
 
   friend std::ostream & operator<< (std::ostream &out, const Sample &sample);
 
@@ -275,21 +275,29 @@ Sample Sample::perturb() const
                                                                const_parameters.perturbation_magnitude_cutoff);
 
   Sample new_sample(new_kb, new_k1, new_k2, new_k3, new_k4, new_cutoff);
+  std::cout << "New sample: " << new_sample << std::endl;
   return new_sample;
 }
 
 
 
-double Sample::perturb_ratio() const
+double Sample::perturb_ratio()
 {
   return 1.;
 }
 
 
 
-Sample Sample::operator=(const Sample &sample)
+Sample& Sample::operator=(const Sample &sample)
 {
-  return Sample(sample.kb, sample.k1, sample.k2, sample.k3, sample.k4, sample.cutoff);
+  kb = sample.kb;
+  k1 = sample.k1;
+  k2 = sample.k2;
+  k3 = sample.k3;
+  k4 = sample.k4;
+  cutoff = sample.cutoff;
+
+  return *this;
 }
 
 
@@ -316,6 +324,7 @@ int main(int argc, char **argv)
 
   // Create sample with initial values for parameters
   Sample starting_guess(7.27e4, 6.4e4, 1.61e4, 5.45e4, 1.2e1, 265);
+
 
   std::ofstream samples ("samples"
                          +
@@ -348,7 +357,7 @@ int main(int argc, char **argv)
     = (argc > 1 ?
        std::hash<std::string>()(std::string(argv[1])) :
        std::uint_fast32_t());
-  const unsigned int n_samples = 2;
+  const unsigned int n_samples = 10;
   mh_sampler.sample (starting_guess,
                      &Statistics::log_probability<Sample>,
                      &Statistics::perturb<Sample>,
