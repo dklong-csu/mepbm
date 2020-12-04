@@ -6,7 +6,7 @@
 #include "statistics.h"
 #include "data.h"
 
-
+using StateVector = boost::numeric::ublas::vector<double>;
 
 int main()
 {
@@ -69,7 +69,7 @@ int main()
   three_step_alt.add_rhs_contribution(large_growth);
 
   // set up initial condition
-  std::vector<double> ic(max_size+1, 0.);
+  StateVector ic(max_size+1, 0.);
   ic[0] = 0.0012;
 
   // set up histogram parameters

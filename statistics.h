@@ -5,13 +5,7 @@
 #include <vector>
 #include "models.h"
 #include "histogram.h"
-
-#include <sampleflow/producers/metropolis_hastings.h>
-#include <sampleflow/filters/conversion.h>
-#include <sampleflow/consumers/stream_output.h>
-#include <sampleflow/consumers/mean_value.h>
-#include <sampleflow/consumers/histogram.h>
-#include <sampleflow/consumers/acceptance_ratio.h>
+#include <boost/numeric/odeint.hpp>
 
 
 
@@ -53,7 +47,7 @@ namespace Statistics
   double log_likelihood(const std::vector<std::vector<double>>& data,
                         const std::vector<double>& times,
                         const Model::Model& ode_model,
-                        std::vector<double>& ic,
+                        boost::numeric::ublas::vector<double>& ic,
                         const Histograms::Parameters& hist_prm);
 
 
@@ -75,7 +69,7 @@ namespace Statistics
   template<class InputClass>
   double log_likelihood(const InputClass &my_object)
   {
-    std::vector<double> ic = my_object.return_initial_condition();
+    boost::numeric::ublas::vector<double> ic = my_object.return_initial_condition();
     return Statistics::log_likelihood(my_object.return_data(), my_object.return_times(), my_object.return_model(),
                                       ic, my_object.return_histogram_parameters());
   }

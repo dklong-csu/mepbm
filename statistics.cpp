@@ -10,6 +10,7 @@
 
 
 using VectorType = std::vector<double>;
+using StateType = boost::numeric::ublas::vector<double>;
 using namespace boost::numeric::odeint;
 
 
@@ -74,12 +75,12 @@ double Statistics::log_likelihood(const VectorType& data,
 double Statistics::log_likelihood(const std::vector<VectorType>& data,
                                   const std::vector<double>& times,
                                   const Model::Model& ode_model,
-                                  VectorType& ic,
+                                  StateType& ic,
                                   const Histograms::Parameters& hist_prm)
 {
   // Step 1 -- Solve the ODE at each time
-  adams_bashforth_moulton<2, VectorType> stepper;
-  std::vector<VectorType> solutions;
+  adams_bashforth_moulton<2, StateType> stepper;
+  std::vector<StateType> solutions;
   solutions.push_back(ic);
   for (unsigned int i = 1; i < times.size(); ++i)
   {
