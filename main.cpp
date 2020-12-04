@@ -13,6 +13,7 @@
 #include <sampleflow/consumers/stream_output.h>
 #include <sampleflow/consumers/mean_value.h>
 #include <sampleflow/consumers/acceptance_ratio.h>
+#include <boost/numeric/odeint.hpp>
 
 
 
@@ -20,6 +21,13 @@
 // do arithmetic with them, such as if we want to compute mean values,
 // covariances, etc.
 using VectorType = std::valarray<double>;
+
+
+// A data type describing the linear algebra object vector that is used
+// in the ODE solver.
+using StateVector = boost::numeric::ublas::vector<double>;
+
+
 
 /*
  * Create an object which holds all of the constant information for the mechanism
@@ -56,7 +64,7 @@ public:
   std::vector<double> perturbation_magnitude = { 1.e4, 5.e4, 5.e4, 4.e3, 5.e2 };
   int perturbation_magnitude_cutoff = 30;
 
-  std::vector<double> initial_condition;
+  StateVector initial_condition;
 
   unsigned int hist_bins = 25;
 
@@ -78,7 +86,7 @@ ConstantData::ConstantData()
 
   times = {0., data_diameter.tem_time1, data_diameter.tem_time2, data_diameter.tem_time3, data_diameter.tem_time4};
 
-  std::vector<double> zeros(max_size+1, 0.);
+  StateVector zeros(max_size+1, 0.);
   initial_condition = zeros;
   initial_condition[0] = 0.0012;
 }
@@ -137,7 +145,7 @@ public:
   std::vector< std::vector<double> > return_data() const;
   std::vector<double> return_times() const;
   Model::Model return_model() const;
-  std::vector<double> return_initial_condition() const;
+  StateVector return_initial_condition() const;
   Histograms::Parameters return_histogram_parameters() const;
   bool within_bounds() const;
   Sample perturb() const;
@@ -220,7 +228,7 @@ Model::Model Sample::return_model() const
 
 
 
-std::vector<double> Sample::return_initial_condition() const
+StateVector Sample::return_initial_condition() const
 {
   return const_parameters.initial_condition;
 }
