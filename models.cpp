@@ -3,9 +3,10 @@
 #include <vector>
 #include <cassert>
 #include <limits>
+#include <boost/numeric/odeint.hpp>
 
 
-using StateVector = std::vector<double>;
+using StateVector = boost::numeric::ublas::vector<double>;
 
 
 

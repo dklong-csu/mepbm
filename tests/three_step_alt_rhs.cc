@@ -3,7 +3,7 @@
 #include <boost/numeric/odeint.hpp>
 #include "models.h"
 
-using StateVector = std::vector<double>;
+using StateVector = boost::numeric::ublas::vector<double>;
 
 /*
  * This is part of a series of tests to confirm the modular RightHandSide derived classes work as intended.
@@ -50,8 +50,10 @@ int main()
   three_step_alt.add_rhs_contribution(large_growth);
 
   // Output right hand side
-  StateVector state = { 1., .9, .8, .7, .6, .5, .4};
-  StateVector rhs(7, 0.);
+  StateVector state(max_size+1);
+  state[0] = 1.; state[1] = .9; state[2] = .8; state[3] = .7;
+  state[4] = .6; state[5] = .5; state[6] = .4;
+  StateVector rhs(max_size+1, 0.);
   three_step_alt(state, rhs, 0.);
 
   for (auto val : rhs)

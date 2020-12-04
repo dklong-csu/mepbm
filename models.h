@@ -31,6 +31,7 @@
 
 #include <vector>
 #include <cmath>
+#include <boost/numeric/odeint.hpp>
 
 namespace Model
 {
@@ -62,8 +63,8 @@ namespace Model
   class RightHandSideContribution
   {
   public:
-    virtual void add_contribution_to_rhs(const std::vector<double> &x,
-                                         std::vector<double> &rhs) = 0;
+    virtual void add_contribution_to_rhs(const boost::numeric::ublas::vector<double> &x,
+                                         boost::numeric::ublas::vector<double> &rhs) = 0;
   };
 
 
@@ -109,8 +110,8 @@ namespace Model
                            double rate_forward, double rate_backward, double rate_nucleation,
                            double solvent);
 
-    void add_contribution_to_rhs(const std::vector<double> &x,
-                                 std::vector<double> &rhs) override;
+    void add_contribution_to_rhs(const boost::numeric::ublas::vector<double> &x,
+                                 boost::numeric::ublas::vector<double> &rhs) override;
   };
 
 
@@ -148,8 +149,8 @@ namespace Model
            unsigned int max_size, unsigned int ligand_index, unsigned int conserved_size,
            double rate);
 
-    void add_contribution_to_rhs(const std::vector<double> &x,
-                                 std::vector<double> &rhs) override;
+    void add_contribution_to_rhs(const boost::numeric::ublas::vector<double> &x,
+                                 boost::numeric::ublas::vector<double> &rhs) override;
   };
 
 
@@ -189,8 +190,8 @@ namespace Model
                   unsigned int C_smallest_size, unsigned int C_largest_size,
                   unsigned int max_size, unsigned int conserved_size, double rate);
 
-    void add_contribution_to_rhs(const std::vector<double> &x,
-                                 std::vector<double> &rhs) override;
+    void add_contribution_to_rhs(const boost::numeric::ublas::vector<double> &x,
+                                 boost::numeric::ublas::vector<double> &rhs) override;
   };
 
 
@@ -207,8 +208,8 @@ namespace Model
 
     void add_rhs_contribution(RightHandSideContribution &rhs);
 
-    void operator()(const std::vector<double> &x,
-                    std::vector<double> &rhs,
+    void operator()(const boost::numeric::ublas::vector<double> &x,
+                    boost::numeric::ublas::vector<double> &rhs,
                     double  /* t */);
 
     const unsigned int nucleation_order;
