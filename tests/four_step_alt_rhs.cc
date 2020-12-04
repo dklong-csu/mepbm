@@ -75,7 +75,7 @@ int main()
   state[10] = .05;
   state[11] = .025;
   StateVector rhs(max_size+1, 0.);
-  four_step_alt(state, rhs, 0.);
+  four_step_alt.system(state, rhs, 0.);
 
   for (auto val : rhs)
   {

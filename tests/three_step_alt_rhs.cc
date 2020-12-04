@@ -62,7 +62,7 @@ int main()
   state[5] = .5;
   state[6] = .4;
   StateVector rhs(max_size+1, 0.);
-  three_step_alt(state, rhs, 0.);
+  three_step_alt.system(state, rhs, 0.);
 
   for (auto val : rhs)
   {

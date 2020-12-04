@@ -200,20 +200,14 @@ void Model::Agglomeration::add_contribution_to_rhs(const StateVector &x, StateVe
 
 
 
-Model::Model::Model(unsigned int nucleation_order, unsigned int max_size)
-    : nucleation_order(nucleation_order), max_size(max_size)
-{}
-
-
-
-void Model::Model::add_rhs_contribution(std::shared_ptr<RightHandSideContribution> &rhs)
+void Model::OdeSystem::add_rhs_contribution(std::shared_ptr<RightHandSideContribution> &rhs)
 {
   rhs_contributions.push_back(rhs);
 }
 
 
 
-void Model::Model::operator()(const StateVector &x, StateVector &rhs, double  /* t */)
+void Model::OdeSystem::operator()(const StateVector &x, StateVector &rhs, double  /* t */)
 {
   for (double & rh : rhs)
   {
@@ -226,3 +220,15 @@ void Model::Model::operator()(const StateVector &x, StateVector &rhs, double  /*
   }
 }
 
+
+
+Model::Model::Model(unsigned int nucleation_order, unsigned int max_size)
+    : nucleation_order(nucleation_order), max_size(max_size)
+{}
+
+
+
+void Model::Model::add_rhs_contribution(std::shared_ptr<RightHandSideContribution> &rhs)
+{
+  system.add_rhs_contribution(rhs);
+}

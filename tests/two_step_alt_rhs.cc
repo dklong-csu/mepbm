@@ -52,7 +52,7 @@ int main()
   state[4] = .2;
   state[5] = .1;
   StateVector rhs(max_size+1, 0.);
-  two_step_alt(state, rhs, 0.);
+  two_step_alt.system(state, rhs, 0.);
 
   for (auto val : rhs)
   {
