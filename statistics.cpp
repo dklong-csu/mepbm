@@ -111,6 +111,8 @@ double Statistics::log_likelihood(const std::vector<VectorType>& data,
                                                hist_prm);
     }
 
+  // FIXME: Remove eventually
+  //std::cout << "likelihood: " << likelihood << std::endl;
   return likelihood;
 }
 
