@@ -33,6 +33,10 @@ ENDIF()
 
 
 #########################################
+### Find the Eigen library
+include_directories(/home/danny/p/eigen/eigen-3.3.9)
+
+#########################################
 # Describe what files should go into the library that contains all of
 # the functionality that is used by the main executable, as well as by
 # the tests.
@@ -41,7 +45,7 @@ ADD_LIBRARY(libmepbm
             histogram.cpp
             models.cpp
             statistics.cpp
-            data.cpp)
+            data.cpp ode_solver.cpp ode_solver.h)
 
 #########################################
 ### Describe the main executable and from which files
