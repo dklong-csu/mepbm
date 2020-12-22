@@ -40,7 +40,7 @@ namespace ODE
       x0 = x1;
     }
 
-    return x1
+    return x1;
   }
 }
 
