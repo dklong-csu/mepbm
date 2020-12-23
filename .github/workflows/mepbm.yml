@@ -19,6 +19,12 @@ jobs:
         sudo apt-get install doxygen graphviz libboost-all-dev numdiff -y
         doxygen --version
         git clone https://github.com/bangerth/SampleFlow.git
+        git clone https://gitlab.com/libeigen/eigen.git
+        mkdir ./eigen/build
+        cd ./eigen/build
+        cmake ../
+        sudo make install
+        cd ../../
     - name: cmake
       run: cmake -DSAMPLEFLOW_DIR="$PWD/SampleFlow" .
     - name: build
