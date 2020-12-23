@@ -1,7 +1,7 @@
 #ifndef MEPBM_ODE_SOLVER_H
 #define MEPBM_ODE_SOLVER_H
 
-#include <Eigen/Dense>
+#include <eigen3/Eigen/Dense>
 #include <cmath>
 
 

@@ -12,6 +12,9 @@ SET (CMAKE_CXX_EXTENSIONS OFF)
 # Also make sure we link with the threads library in question
 FIND_PACKAGE (Threads)
 
+# Link with Eigen library
+FIND_PACKAGE (Eigen3 3.3 REQUIRED NO_MODULE)
+
 # Find include files in the current directory
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -32,9 +35,6 @@ ELSE()
 ENDIF()
 
 
-#########################################
-### Find the Eigen library
-include_directories(/home/danny/p/eigen/eigen-3.3.9)
 
 #########################################
 # Describe what files should go into the library that contains all of
@@ -45,16 +45,18 @@ ADD_LIBRARY(libmepbm
             histogram.cpp
             models.cpp
             statistics.cpp
-            data.cpp ode_solver.cpp ode_solver.h)
+            data.cpp
+            ode_solver.cpp)
 
 #########################################
 ### Describe the main executable and from which files
 ### it needs to be compiled.
 ADD_EXECUTABLE(mepbm
-	       main.cpp
+               main.cpp
                $<TARGET_OBJECTS:libmepbm>)
 TARGET_LINK_LIBRARIES (mepbm
-                       Threads::Threads)
+                       Threads::Threads
+                       Eigen3::Eigen)
 
 
 #########################################
