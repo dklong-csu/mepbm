@@ -21,7 +21,11 @@ jobs:
         git clone https://github.com/bangerth/SampleFlow.git
         git clone https://gitlab.com/libeigen/eigen.git
         mkdir ./eigen/build
-        cmake -H$PWD/eigen/ -B$PWD/eigen/build
+        mkdir ./eigen/install
+        cd ./eigen/build
+        cmake -DCMAKE_INSTALL_PREFIX=../install ../
+        make install
+        cd ../../
     - name: cmake
       run: cmake -DSAMPLEFLOW_DIR="$PWD/SampleFlow" .
     - name: build
