@@ -8,8 +8,24 @@
 namespace ODE
 {
   /*
-   * A function which solves an ODE in an abstract way. The details of how to proceed from one time step to the next
-   * is left up to the input ODE system using its step_forward member function.
+   * A function which solves an ODE. This is intended to just lay out the basic framework for an ODE solve.
+   * OdeSystemType is intended to do most of the work while solve_ode simply facilitates the repeated use of
+   * OdeSystemType in order to progress forward in time.
+   *
+   * The requirement for the template classes are:
+   *  OdeSystemType:
+   *    -- step_forward(x0, t, dt): a member function which takes in the current state, VectorType x0, the current time,
+   *       double t, and the current time step, double dt, and computes the approximate solution at the next time step
+   *          VectorType x1 = x0 + f(x0, x1, t, dt)
+   *       where `f` represents the ODE solver scheme, e.g. a Runge-Kutta method.
+   *       Any requirements for storing previous solutions for a multi-step method are expected to be handled by
+   *       the OdeSystemType object.
+   *
+   *  VectorType:
+   *    -- This is intended as a representation of the linear algebra vector object. For this class specifically,
+   *       it simply needs the assignment operator `=` to function in a mathematical manner. More requirements for
+   *       what VectorType needs to do depend on exactly how OdeSystemType calculates the next time step solution.
+   *
    */
   template<class OdeSystemType, class VectorType>
   VectorType solve_ode(const OdeSystemType &ode_system, const VectorType &ic,
@@ -53,6 +69,27 @@ namespace ODE
    * Technically, this is a modification where the Jacobian is taken as a constant for the
    * entire process. This is to save time as computing a decomposition of a Jacobian is more
    * expensive than solving with a precomputed decomposition (e.g. LU decomposition).
+   *
+   * The requirements for the template classes are:
+   *  FunctionType:
+   *    -- value(VectorType x): a member function which takes in a vector corresponding to the independent
+   *       variable of the function and returns a vector whose dimension is appropriate for the nonlinear
+   *       equation you are trying to solve.
+   *    -- jacobian: a member variable which is a representation of the linear algebra matrix object for the Jacobian
+   *       of the function. In other words, if you have a function f = [f1, f2]^T and independent variable x = [x1, x2]^T
+   *       the the Jacobian would be the matrix
+   *          | df1/dx1   df1/dx2 |
+   *          | df2/dx1   df2/dx2 |
+   *       The Jacobian object also requires a member function solve(VectorType b) where the syntax
+   *          jacobian.solve(b)
+   *       returns VectorType x such that
+   *          jacobian * x = b
+   *
+   *  VectorType:
+   *    -- This is intended as a representation of the linear algebra vector object and thus needs appropriate
+   *       operators for `+, -, =` for VectorType computations and `*, /` for scalar computations.
+   *    -- norm(): a member function which computes the desired norm of VectorType to get a measure of the size
+   *       of the vector. e.g. the l2-norm, l1-norm, l infinity-norm.
    */
   template<class FunctionType, class VectorType>
   VectorType perform_newtons_method(const FunctionType &function, const VectorType &guess,
