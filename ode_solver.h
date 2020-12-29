@@ -110,9 +110,9 @@ namespace ODE
    * a single time step and for every future time step -- and therefore J_F is constant because of the SDIRK restriction
    * that the diagonal coefficients are equal -- until some criteria for updating J_f is met.
    */
-/*
+
   template<int order>
-  class StepperSDIRK : StepperBase
+  class StepperSDIRK : public StepperBase
   {
   public:
     explicit StepperSDIRK(OdeSystem &ode_system);
@@ -125,7 +125,7 @@ namespace ODE
     OdeSystem ode_system;
   };
 
-*/
+
 
   /********************************** SDIRK Specializations **********************************/
 
@@ -141,19 +141,14 @@ namespace ODE
    *    k - f(t + h, x0 + h*k) = 0 --> solve for k using newton's method
    *    FIXME: add more details
    */
-  /*
+
   template<>
-  class StepperSDIRK<1>
+  class StepperSDIRK<1> : public StepperBase
   {
   public:
     explicit StepperSDIRK(OdeSystem &ode_system);
 
     Eigen::VectorXd step_forward(Eigen::VectorXd &x0, double t, double dt);
-
-  private:
-    bool update_jacobian;
-    unsigned int num_iter_new_jac;
-    OdeSystem ode_system;
 
     class NewtonFunction : public FunctionBase
     {
@@ -167,60 +162,14 @@ namespace ODE
       const double t, dt;
       const Eigen::VectorXd x0;
     };
+
+  private:
+    bool update_jacobian;
+    unsigned int num_iter_new_jac;
+    OdeSystem ode_system;
+
   };
 
-
-  // FIXME: add comments
-  StepperSDIRK<1>::NewtonFunction::NewtonFunction(const OdeSystem &ode_system, const double t, const double dt,
-                                                  const Eigen::VectorXd &x0)
-    : ode_system(ode_system), t(t), dt(dt), x0(x0)
-  {}
-
-
-  // FIXME: add comments
-  Eigen::VectorXd StepperSDIRK<1>::NewtonFunction::value(const Eigen::VectorXd &x) const
-  {
-    return x - ode_system.compute_rhs(t, x0 + dt * x);
-  }
-
-
-
-  StepperSDIRK<1>::StepperSDIRK(OdeSystem &ode_system)
-      : update_jacobian(true), num_iter_new_jac(0), ode_system(ode_system)
-  {}
-
-
-
-  // FIXME: add comments
-  Eigen::VectorXd StepperSDIRK<1>::step_forward(Eigen::VectorXd &x0, double t, double dt)
-  {
-    if (update_jacobian)
-    {
-      Eigen::MatrixXd jac = ode_system.compute_jacobian(t, x0);
-
-      Eigen::MatrixXd newton_jacobian = Eigen::MatrixXd::Identity(jac.rows(), jac.cols()) - dt * jac;
-
-      ode_system.jacobian_solver = newton_jacobian.partialPivLu();
-    }
-
-    StepperSDIRK<1>::NewtonFunction fcn(ode_system, t, dt, x0);
-    const auto guess = Eigen::VectorXd::Zero(x0.rows());
-    auto newton_result = newton_method(fcn, ode_system.jacobian_solver, guess);
-
-    auto num_newton_steps = newton_result.second;
-    if (update_jacobian)
-    {
-      update_jacobian = false;
-      num_iter_new_jac = num_newton_steps;
-    }
-    else if (num_newton_steps > 5 * num_iter_new_jac)
-    {
-      update_jacobian = true;
-    }
-
-    return newton_result.first;
-  }
-*/
 
 
   /*
@@ -235,9 +184,9 @@ namespace ODE
    *
    *    FIXME: details of solution method
    */
-  /*
+
   template<>
-  class StepperSDIRK<2>
+  class StepperSDIRK<2> : public StepperBase
   {
   public:
     explicit StepperSDIRK(OdeSystem &ode_system);
@@ -262,76 +211,6 @@ namespace ODE
       const Eigen::VectorXd x0;
     };
   };
-
-
-
-  // FIXME: add comments
-  StepperSDIRK<2>::NewtonFunction::NewtonFunction(const OdeSystem &ode_system, const double t, const double dt,
-                                                  const Eigen::VectorXd &x0)
-      : ode_system(ode_system), t(t), dt(dt), x0(x0)
-  {}
-
-
-  // FIXME: add comments
-  Eigen::VectorXd StepperSDIRK<2>::NewtonFunction::value(const Eigen::VectorXd &x) const
-  {
-    return x - ode_system.compute_rhs(t, x0 + dt * 1/4 * x);
-  }
-
-
-
-  StepperSDIRK<2>::StepperSDIRK(OdeSystem &ode_system)
-      : update_jacobian(true), num_iter_new_jac(0), ode_system(ode_system)
-  {}
-
-
-
-  // FIXME: add comments
-  Eigen::VectorXd StepperSDIRK<2>::step_forward(Eigen::VectorXd &x0, double t, double dt)
-  {
-    if (update_jacobian)
-    {
-      Eigen::MatrixXd jac = ode_system.compute_jacobian(t, x0);
-
-      Eigen::MatrixXd newton_jacobian = Eigen::MatrixXd::Identity(jac.rows(), jac.cols()) - dt * 1/4 * jac;
-
-      ode_system.jacobian_solver = newton_jacobian.partialPivLu();
-    }
-
-    StepperSDIRK<2>::NewtonFunction fcn_k1(ode_system, t, dt, x0);
-    const auto guess = Eigen::VectorXd::Zero(x0.rows());
-    auto newton_result_k1 = newton_method(fcn_k1, ode_system.jacobian_solver, guess);
-    auto k1 = newton_result_k1.first;
-
-    StepperSDIRK<2>::NewtonFunction fcn_k2(ode_system, t, dt, x0 + dt * 1/2 * k1);
-    auto newton_result_k2 = newton_method(fcn_k2, ode_system.jacobian_solver, guess);
-    auto k2 = newton_result_k2.first;
-
-    auto num_iter = std::max(newton_result_k1.second, newton_result_k2.second);
-    if (update_jacobian)
-    {
-      update_jacobian = false;
-      num_iter_new_jac = num_iter;
-    }
-    else if (num_iter > 5 * num_iter_new_jac)
-    {
-      update_jacobian = true;
-    }
-
-    return x0 + dt * 1/2 * k1 + dt * 1/2 * k2;
-  }
-
-*/
-
-
-
-
-
-
-
-
-
-
 
 
 
