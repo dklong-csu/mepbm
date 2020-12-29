@@ -2,42 +2,43 @@
 #include "ode_solver.h"
 #include <eigen3/Eigen/Dense>
 
-using namespace Eigen;
 
-class Function
+
+class Fcn : public ODE::FunctionBase
 {
 public:
-  Function(const Vector2d x)
-    : first_guess(x)
-  {
-    Matrix2d J;
-    J(0,0) = 2*x(0);
-    J(0,1) = 0.;
-    J(1,0) = 0.;
-    J(1,1) = 2*x(1);
-
-    jacobian = J.partialPivLu();
-  }
-
-  Vector2d value(Vector2d &x) const
-  {
-    Vector2d sol;
-    sol << x(0)*x(0), x(1)*x(1);
-    return sol;
-  }
-
-  const Vector2d first_guess;
-  PartialPivLU<Matrix2d> jacobian;
+  Eigen::VectorXd value(const Eigen::VectorXd &x) const override;
 };
+
+
+Eigen::VectorXd Fcn::value(const Eigen::VectorXd &x) const
+{
+  Eigen::VectorXd sol(2);
+  sol(0) = x(0) * x(0);
+  sol(1) = x(1) * x(1);
+  return sol;
+}
+
 
 
 int main()
 {
-  Vector2d guess;
-  guess << 2, 1;
-  Function my_function(guess);
+  Eigen::VectorXd guess(2);
+  guess(0) = 2;
+  guess(1) = 1;
 
-  auto sol = ODE::perform_newtons_method<Function, Vector2d>(my_function, guess, 1e-10, 100);
+  Eigen::MatrixXd J(2,2);
+  J(0, 0) = 4;
+  J(0, 1) = 0;
+  J(1, 0) = 0;
+  J(1, 1) = 2;
 
-  std::cout << sol;
+  auto J_inverse = J.partialPivLu();
+
+  Fcn fcn;
+
+  auto newton_result = ODE::newton_method(fcn, J_inverse, guess);
+
+  // The answer should be close to [0, 0].
+  std::cout << newton_result.first;
 }

@@ -7,62 +7,52 @@
 
 namespace ODE
 {
+  /***************** Classes -- Implementations in .cpp *****************/
+
+  // FIXME: This is a placeholder for the moment. Eventually I will integrate this class
+  // FIXME: with the objects in models.h but that first requires a bunch of things to be
+  // FIXME: converted from Boost data types to Eigen data types.
+  class OdeSystem
+  {
+  public:
+    Eigen::VectorXd compute_rhs(double t, const Eigen::VectorXd &x) const;
+
+    Eigen::MatrixXd compute_jacobian(double t, const Eigen::VectorXd &x) const;
+
+    Eigen::PartialPivLU<Eigen::MatrixXd> jacobian_solver;
+  };
+
+
+
+  /*
+   * Base class for ODE time stepper
+   */
+  class StepperBase
+  {
+  public:
+    virtual Eigen::VectorXd step_forward(Eigen::VectorXd &x0, double t, double dt) const = 0;
+  };
+
+
+
   /*
    * A function which solves an ODE. This is intended to just lay out the basic framework for an ODE solve.
-   * OdeSystemType is intended to do most of the work while solve_ode simply facilitates the repeated use of
-   * OdeSystemType in order to progress forward in time.
-   *
-   * The requirement for the template classes are:
-   *  OdeSystemType:
-   *    -- step_forward(x0, t, dt): a member function which takes in the current state, VectorType x0, the current time,
-   *       double t, and the current time step, double dt, and computes the approximate solution at the next time step
-   *          VectorType x1 = x0 + f(x0, x1, t, dt)
-   *       where `f` represents the ODE solver scheme, e.g. a Runge-Kutta method.
-   *       Any requirements for storing previous solutions for a multi-step method are expected to be handled by
-   *       the OdeSystemType object.
-   *
-   *  VectorType:
-   *    -- This is intended as a representation of the linear algebra vector object. For this class specifically,
-   *       it simply needs the assignment operator `=` to function in a mathematical manner. More requirements for
-   *       what VectorType needs to do depend on exactly how OdeSystemType calculates the next time step solution.
-   *
+   * The stepper -- some derived class of StepperBase -- is intended to do most of the work of the ODE solve
+   * within its `step_forward` method. This function simply facilitates repeatedly using `step_forward` to
+   * go from the initial time to the final time.
    */
-  template<class OdeSystemType, class VectorType>
-  VectorType solve_ode(const OdeSystemType &ode_system, const VectorType &ic,
-                       const double start_time, const double end_time, double dt)
+  Eigen::VectorXd solve_ode(StepperBase &stepper, Eigen::VectorXd &ic, double t_start, double t_end, double dt);
+
+
+
+  /*
+   * A base class to represent a function. This simply has a rule for returning the value of the function.
+   */
+  class FunctionBase
   {
-    // Check for the pathological case where only 1 time step is used and make sure the time step is appropriate.
-    if (start_time + dt > end_time)
-      dt = end_time - start_time;
-
-    // x0 is going to represent the current solution
-    // x1 is going to represent the next solution
-    // Here, these two are instantiated for use later and the first ``current solution" needs to be
-    // the initial condition
-    auto x0 = ic;
-    VectorType x1;
-
-    // t is used to track the current time and it needs to start at the specified start time.
-    double t = start_time;
-    while (t < end_time)
-    {
-      // OdeSystemType needs to have a step_forward method which describes how the next time step is
-      // solved for -- e.g. implicit Euler method.
-      x1 = ode_system.step_forward(x0, t, dt);
-
-      // If the next time step would go past the ending time, adjust the time step to end exactly on the end time.
-      if (t + dt > end_time)
-        dt = end_time - t;
-
-      // Update the time and the current solution.
-      t += dt;
-      x0 = x1;
-    }
-
-    return x1;
-  }
-
-
+  public:
+    virtual Eigen::VectorXd value(const Eigen::VectorXd &x) const = 0;
+  };
 
   /*
    * A function which performs Newton's method to find the root of a nonlinear equation.
@@ -70,58 +60,276 @@ namespace ODE
    * entire process. This is to save time as computing a decomposition of a Jacobian is more
    * expensive than solving with a precomputed decomposition (e.g. LU decomposition).
    *
-   * The requirements for the template classes are:
-   *  FunctionType:
-   *    -- value(VectorType x): a member function which takes in a vector corresponding to the independent
-   *       variable of the function and returns a vector whose dimension is appropriate for the nonlinear
-   *       equation you are trying to solve.
-   *    -- jacobian: a member variable which is a representation of the linear algebra matrix object for the Jacobian
-   *       of the function. In other words, if you have a function f = [f1, f2]^T and independent variable x = [x1, x2]^T
-   *       the the Jacobian would be the matrix
-   *          | df1/dx1   df1/dx2 |
-   *          | df2/dx1   df2/dx2 |
-   *       The Jacobian object also requires a member function solve(VectorType b) where the syntax
-   *          jacobian.solve(b)
-   *       returns VectorType x such that
-   *          jacobian * x = b
+   * This is a modified Newton's method where the Jacobian is held constant for the nonlinear solve.
+  */
+  std::pair<Eigen::VectorXd, unsigned int> newton_method(const FunctionBase &fcn, const Eigen::PartialPivLU<Eigen::MatrixXd> &jac,
+                                                         const Eigen::VectorXd &guess, const double tol = 1e-6,
+                                                         const unsigned int max_iter = 100);
+
+
+  /********************************** Templates -- Implementation in this file **********************************/
+
+  /********************************** SDIRK Methods **********************************/
+
+  /*
+   * Singly diagonally implicit Runge-Kutta -- or SDIRK -- methods are methods designed to be used
+   * with a modified Newton's method that uses the same Jacobian multiple times before updating it.
+   * Consider a Runge-Kutta method's Butcher tableau and write the coefficients as a matrix.
+   * In this matrix, anything on the upper triangular (including diagonal) part means the method is
+   * implicit. "Diagonally" in SDIRK means the diagonal is non-zero but everything else in the upper
+   * triangle is zero. "Singly" in SDIRK means all of the diagonal coefficients are the same. Each row
+   * of this matrix corresponds to one nonlinear solve. Using the modified Newton's method, SDIRK methods
+   * have the advantage of having the same Jacobian matrix for each of these nonlinear solves.
    *
-   *  VectorType:
-   *    -- This is intended as a representation of the linear algebra vector object and thus needs appropriate
-   *       operators for `+, -, =` for VectorType computations and `*, /` for scalar computations.
-   *    -- norm(): a member function which computes the desired norm of VectorType to get a measure of the size
-   *       of the vector. e.g. the l2-norm, l1-norm, l infinity-norm.
+   * This is easiest to see with an example:
+   * Consider this second order SDIRK method
+   *    1/4 | 1/4   0
+   *    3/4 | 1/2   1/4
+   *    ------------------
+   *        | 1/2   1/2
+   *
+   * This can be solved by translating the Butcher tableau to
+   *    k1 = f(t + h*1/4, x0 +h*1/4*k1)
+   *    k2 = f(t + h*3/4, x0 + h*1/2*k1 + h*1/4*k2)
+   *    x1 = x0 + h*1/2*k1 + h*1/2*k2
+   * where f(...) represents the right-hand side of the ODE.
+   *
+   * Solving for k1 using the Newton method means
+   *    J_F^{(n)}*(k1^{(n+1)} - k1^{(n)}) = -F^{(n)}
+   * where the function F is defined
+   *    F^{(n)} = k1^{(n)} - f(t + h*1/4, x0 +h*1/4*k1^{(n)})
+   * and the chain rule means the Jacobian of F with respect to k1, J_F, is
+   *    J_F^{(n)} = I - h*1/4*J_f(t + h*1/4, x0 +h*1/4*k1^{(n)})
+   * where J_f is the Jacobian of the right-hand side of the ODE.
+   * The advantage of SDIRK is that when solving for k2 we have
+   *    J_F^{(n)} = I - h*1/4*J_f(t + h*3/4, x0 + h*1/2*k1 + h*1/4*k2).
+   *
+   * Computing a representation of J_F^-1 is the computationally expensive part of this process. Thus instead
+   * of using Newton's method and having to compute the Jacobian many times, a modified Newton's method can be
+   * used such that the Jacobian is computed infrequently. In this case, J_f remains constant for k1 and k2 within
+   * a single time step and for every future time step -- and therefore J_F is constant because of the SDIRK restriction
+   * that the diagonal coefficients are equal -- until some criteria for updating J_f is met.
    */
-  template<class FunctionType, class VectorType>
-  VectorType perform_newtons_method(const FunctionType &function, const VectorType &guess,
-                                    const double tol = 1e-6, const unsigned int max_iter = 100)
+/*
+  template<int order>
+  class StepperSDIRK : StepperBase
   {
-    bool solution_not_found = true;
-    unsigned int iter = 0;
+  public:
+    explicit StepperSDIRK(OdeSystem &ode_system);
 
-    auto x0 = guess;
-    auto x1 = guess;
-    while (solution_not_found && iter < max_iter)
+    Eigen::VectorXd step_forward(Eigen::VectorXd &x0, double t, double dt);
+
+  private:
+    bool update_jacobian;
+    unsigned int num_iter_new_jac;
+    OdeSystem ode_system;
+  };
+
+*/
+
+  /********************************** SDIRK Specializations **********************************/
+
+  /*
+   * The first order SDIRK method used is Implict Euler. This has Butcher tableau
+   *    1 | 1
+   *    -------
+   *      | 1
+   * which translates to
+   *    k = f(t + h, x0 + h*k)
+   *    x1 = x0 + h*k
+   * To solve for x1 all that really needs to be done is
+   *    k - f(t + h, x0 + h*k) = 0 --> solve for k using newton's method
+   *    FIXME: add more details
+   */
+  /*
+  template<>
+  class StepperSDIRK<1>
+  {
+  public:
+    explicit StepperSDIRK(OdeSystem &ode_system);
+
+    Eigen::VectorXd step_forward(Eigen::VectorXd &x0, double t, double dt);
+
+  private:
+    bool update_jacobian;
+    unsigned int num_iter_new_jac;
+    OdeSystem ode_system;
+
+    class NewtonFunction : public FunctionBase
     {
-      auto f = function.value(x0);
-      // J(x_{n+1} - x_n) = -f
-      auto d = function.jacobian.solve(-f);
-      x1 = x0 + d;
+    public:
+      NewtonFunction(const OdeSystem &ode_system, const double t, const double dt, const Eigen::VectorXd &x0);
 
-      // Check how close to zero the Newton function is after this iteration.
-      // Divide the l2 norm of the Newton function by the minimum l2 norm of x0 and x1
-      // in order to solve to an accuracy appropriate to the units of x.
-      f = function.value(x1);
-      auto diff = f / std::min(x0.norm(), x1.norm());
-      if (diff.norm() < tol)
-        solution_not_found = true;
+      Eigen::VectorXd value(const Eigen::VectorXd &x) const override;
 
-      // increment the iteration counter
-      ++iter;
-      // x1 we just solved for becomes the new guess
-      x0 = x1;
-    }
-    return x1;
+    private:
+      const OdeSystem ode_system;
+      const double t, dt;
+      const Eigen::VectorXd x0;
+    };
+  };
+
+
+  // FIXME: add comments
+  StepperSDIRK<1>::NewtonFunction::NewtonFunction(const OdeSystem &ode_system, const double t, const double dt,
+                                                  const Eigen::VectorXd &x0)
+    : ode_system(ode_system), t(t), dt(dt), x0(x0)
+  {}
+
+
+  // FIXME: add comments
+  Eigen::VectorXd StepperSDIRK<1>::NewtonFunction::value(const Eigen::VectorXd &x) const
+  {
+    return x - ode_system.compute_rhs(t, x0 + dt * x);
   }
+
+
+
+  StepperSDIRK<1>::StepperSDIRK(OdeSystem &ode_system)
+      : update_jacobian(true), num_iter_new_jac(0), ode_system(ode_system)
+  {}
+
+
+
+  // FIXME: add comments
+  Eigen::VectorXd StepperSDIRK<1>::step_forward(Eigen::VectorXd &x0, double t, double dt)
+  {
+    if (update_jacobian)
+    {
+      Eigen::MatrixXd jac = ode_system.compute_jacobian(t, x0);
+
+      Eigen::MatrixXd newton_jacobian = Eigen::MatrixXd::Identity(jac.rows(), jac.cols()) - dt * jac;
+
+      ode_system.jacobian_solver = newton_jacobian.partialPivLu();
+    }
+
+    StepperSDIRK<1>::NewtonFunction fcn(ode_system, t, dt, x0);
+    const auto guess = Eigen::VectorXd::Zero(x0.rows());
+    auto newton_result = newton_method(fcn, ode_system.jacobian_solver, guess);
+
+    auto num_newton_steps = newton_result.second;
+    if (update_jacobian)
+    {
+      update_jacobian = false;
+      num_iter_new_jac = num_newton_steps;
+    }
+    else if (num_newton_steps > 5 * num_iter_new_jac)
+    {
+      update_jacobian = true;
+    }
+
+    return newton_result.first;
+  }
+*/
+
+
+  /*
+   * The second order SDIRK method used has Butcher tableau
+   *    1/4 | 1/4   0
+   *    3/4 | 1/2   1/4
+   *    -----------------
+   *        | 1/2   1/2
+   * which translates to
+   *    k1 = f(t + h*1/4, x0 + h*1/4*k1)
+   *    k2 = f(t + h*3/4, x0 + h*1/2*k1 + h*1/4*k2)
+   *
+   *    FIXME: details of solution method
+   */
+  /*
+  template<>
+  class StepperSDIRK<2>
+  {
+  public:
+    explicit StepperSDIRK(OdeSystem &ode_system);
+
+    Eigen::VectorXd step_forward(Eigen::VectorXd &x0, double t, double dt);
+
+  private:
+    bool update_jacobian;
+    unsigned int num_iter_new_jac;
+    OdeSystem ode_system;
+
+    class NewtonFunction : public FunctionBase
+    {
+    public:
+      NewtonFunction(const OdeSystem &ode_system, const double t, const double dt, const Eigen::VectorXd &x0);
+
+      Eigen::VectorXd value(const Eigen::VectorXd &x) const override;
+
+    private:
+      const OdeSystem ode_system;
+      const double t, dt;
+      const Eigen::VectorXd x0;
+    };
+  };
+
+
+
+  // FIXME: add comments
+  StepperSDIRK<2>::NewtonFunction::NewtonFunction(const OdeSystem &ode_system, const double t, const double dt,
+                                                  const Eigen::VectorXd &x0)
+      : ode_system(ode_system), t(t), dt(dt), x0(x0)
+  {}
+
+
+  // FIXME: add comments
+  Eigen::VectorXd StepperSDIRK<2>::NewtonFunction::value(const Eigen::VectorXd &x) const
+  {
+    return x - ode_system.compute_rhs(t, x0 + dt * 1/4 * x);
+  }
+
+
+
+  StepperSDIRK<2>::StepperSDIRK(OdeSystem &ode_system)
+      : update_jacobian(true), num_iter_new_jac(0), ode_system(ode_system)
+  {}
+
+
+
+  // FIXME: add comments
+  Eigen::VectorXd StepperSDIRK<2>::step_forward(Eigen::VectorXd &x0, double t, double dt)
+  {
+    if (update_jacobian)
+    {
+      Eigen::MatrixXd jac = ode_system.compute_jacobian(t, x0);
+
+      Eigen::MatrixXd newton_jacobian = Eigen::MatrixXd::Identity(jac.rows(), jac.cols()) - dt * 1/4 * jac;
+
+      ode_system.jacobian_solver = newton_jacobian.partialPivLu();
+    }
+
+    StepperSDIRK<2>::NewtonFunction fcn_k1(ode_system, t, dt, x0);
+    const auto guess = Eigen::VectorXd::Zero(x0.rows());
+    auto newton_result_k1 = newton_method(fcn_k1, ode_system.jacobian_solver, guess);
+    auto k1 = newton_result_k1.first;
+
+    StepperSDIRK<2>::NewtonFunction fcn_k2(ode_system, t, dt, x0 + dt * 1/2 * k1);
+    auto newton_result_k2 = newton_method(fcn_k2, ode_system.jacobian_solver, guess);
+    auto k2 = newton_result_k2.first;
+
+    auto num_iter = std::max(newton_result_k1.second, newton_result_k2.second);
+    if (update_jacobian)
+    {
+      update_jacobian = false;
+      num_iter_new_jac = num_iter;
+    }
+    else if (num_iter > 5 * num_iter_new_jac)
+    {
+      update_jacobian = true;
+    }
+
+    return x0 + dt * 1/2 * k1 + dt * 1/2 * k2;
+  }
+
+*/
+
+
+
+
+
+
+
+
 
 
 
