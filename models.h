@@ -32,7 +32,7 @@
 #include <vector>
 #include <cmath>
 #include <memory>
-#include <boost/numeric/odeint.hpp>
+#include <eigen3/Eigen/Dense>
 
 namespace Model
 {
@@ -64,8 +64,11 @@ namespace Model
   class RightHandSideContribution
   {
   public:
-    virtual void add_contribution_to_rhs(const boost::numeric::ublas::vector<double> &x,
-                                         boost::numeric::ublas::vector<double> &rhs) = 0;
+    virtual void add_contribution_to_rhs(const Eigen::VectorXd &x,
+                                         Eigen::VectorXd &rhs) = 0;
+
+    virtual void add_contribution_to_jacobian(const Eigen::VectorXd &x,
+                                              Eigen::MatrixXd &J) = 0;
   };
 
 
@@ -111,8 +114,11 @@ namespace Model
                            double rate_forward, double rate_backward, double rate_nucleation,
                            double solvent);
 
-    void add_contribution_to_rhs(const boost::numeric::ublas::vector<double> &x,
-                                 boost::numeric::ublas::vector<double> &rhs) override;
+    void add_contribution_to_rhs(const Eigen::VectorXd &x,
+                                 Eigen::VectorXd &rhs) override;
+
+    void add_contribution_to_jacobian(const Eigen::VectorXd &x,
+                                      Eigen::MatrixXd &J) override;
   };
 
 
@@ -150,8 +156,11 @@ namespace Model
            unsigned int max_size, unsigned int ligand_index, unsigned int conserved_size,
            double rate);
 
-    void add_contribution_to_rhs(const boost::numeric::ublas::vector<double> &x,
-                                 boost::numeric::ublas::vector<double> &rhs) override;
+    void add_contribution_to_rhs(const Eigen::VectorXd &x,
+                                 Eigen::VectorXd &rhs) override;
+
+    void add_contribution_to_jacobian(const Eigen::VectorXd &x,
+                                      Eigen::MatrixXd &jacobi) override;
   };
 
 
@@ -191,47 +200,32 @@ namespace Model
                   unsigned int C_smallest_size, unsigned int C_largest_size,
                   unsigned int max_size, unsigned int conserved_size, double rate);
 
-    void add_contribution_to_rhs(const boost::numeric::ublas::vector<double> &x,
-                                 boost::numeric::ublas::vector<double> &rhs) override;
+    void add_contribution_to_rhs(const Eigen::VectorXd &x,
+                                 Eigen::VectorXd &rhs) override;
+
+    void add_contribution_to_jacobian(const Eigen::VectorXd &x,
+                                      Eigen::MatrixXd &jacobi) override;
   };
 
 
 
-  // An interface class which creates a rule for forming the right-hand side of a system of ODEs.
-  // A series of right-hand side contributions are added to this object via objects derived from
-  // the RightHandSideContribution class. The class is able to combine all of these contributions
-  // to form a complete right-hand side via the ( ) operator, which is created in a way that
-  // interfaces with the ODE solvers in the Boost library.
-  class OdeSystem
-  {
-  public:
-    OdeSystem() = default;
-
-    void add_rhs_contribution(std::shared_ptr<RightHandSideContribution> &rhs);
-
-    void operator()(const boost::numeric::ublas::vector<double> &x,
-                    boost::numeric::ublas::vector<double> &rhs,
-                    double /* t */);
-  private:
-    std::vector<std::shared_ptr<RightHandSideContribution>> rhs_contributions;
-  };
-
-
-
-
-
-  // An interface class which holds the rules for computing the right hand side and the Jacobian
-  // for the ODE model.
+  // A model is a representation of the system of ODEs that's being solved. It needs to know
+  // the smallest and largest particle size (nucleation_order, max_size). The model also needs
+  // a way to evaluate the right-hand side and the Jacobian of the system of ODEs.
   class Model
   {
   public:
     Model(unsigned int nucleation_order, unsigned int max_size);
 
     void add_rhs_contribution(std::shared_ptr<RightHandSideContribution> &rhs);
+    Eigen::VectorXd rhs(Eigen::VectorXd &x);
+    Eigen::MatrixXd jacobian(Eigen::VectorXd &x);
 
     const unsigned int nucleation_order;
     const unsigned int max_size;
-    OdeSystem system;
+
+  private:
+    std::vector<std::shared_ptr<RightHandSideContribution>> rhs_contributions;
   };
 
 }
