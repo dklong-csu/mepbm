@@ -30,7 +30,7 @@ namespace ODE
   class StepperBase
   {
   public:
-    virtual Eigen::VectorXd step_forward(Eigen::VectorXd &x0, double t, double dt) const = 0;
+    virtual Eigen::VectorXd step_forward(Eigen::VectorXd &x0, double t, double dt) = 0;
   };
 
 
@@ -41,7 +41,8 @@ namespace ODE
    * within its `step_forward` method. This function simply facilitates repeatedly using `step_forward` to
    * go from the initial time to the final time.
    */
-  Eigen::VectorXd solve_ode(StepperBase &stepper, Eigen::VectorXd &ic, double t_start, double t_end, double dt);
+  Eigen::VectorXd solve_ode(StepperBase &stepper, const Eigen::VectorXd &ic, const double t_start,
+                            const double t_end, double dt);
 
 
 
@@ -117,7 +118,7 @@ namespace ODE
   public:
     explicit StepperSDIRK(OdeSystem &ode_system);
 
-    Eigen::VectorXd step_forward(Eigen::VectorXd &x0, double t, double dt);
+    Eigen::VectorXd step_forward(Eigen::VectorXd &x0, double t, double dt) override;
 
   private:
     bool update_jacobian;
@@ -130,7 +131,7 @@ namespace ODE
   /********************************** SDIRK Specializations **********************************/
 
   /*
-   * The first order SDIRK method used is Implict Euler. This has Butcher tableau
+   * The first order SDIRK method used is Implicit Euler. This has Butcher tableau
    *    1 | 1
    *    -------
    *      | 1
@@ -148,7 +149,7 @@ namespace ODE
   public:
     explicit StepperSDIRK(OdeSystem &ode_system);
 
-    Eigen::VectorXd step_forward(Eigen::VectorXd &x0, double t, double dt);
+    Eigen::VectorXd step_forward(Eigen::VectorXd &x0, double t, double dt) override;
 
     class NewtonFunction : public FunctionBase
     {
@@ -158,7 +159,7 @@ namespace ODE
       Eigen::VectorXd value(const Eigen::VectorXd &x) const override;
 
     private:
-      const OdeSystem ode_system;
+      OdeSystem ode_system;
       const double t, dt;
       const Eigen::VectorXd x0;
     };
@@ -191,7 +192,7 @@ namespace ODE
   public:
     explicit StepperSDIRK(OdeSystem &ode_system);
 
-    Eigen::VectorXd step_forward(Eigen::VectorXd &x0, double t, double dt);
+    Eigen::VectorXd step_forward(Eigen::VectorXd &x0, double t, double dt) override;
 
   private:
     bool update_jacobian;
@@ -206,7 +207,7 @@ namespace ODE
       Eigen::VectorXd value(const Eigen::VectorXd &x) const override;
 
     private:
-      const OdeSystem ode_system;
+      OdeSystem ode_system;
       const double t, dt;
       const Eigen::VectorXd x0;
     };

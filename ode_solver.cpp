@@ -1,12 +1,13 @@
 #include "ode_solver.h"
 #include <eigen3/Eigen/Dense>
+#include <iostream>
 
 
 
 // FIXME: this is a temporary implementation until this is linked to Model::Model
 Eigen::VectorXd ODE::OdeSystem::compute_rhs(double t, const Eigen::VectorXd &x) const
 {
-  return 10 * x;
+  return -10 * x;
 }
 
 
@@ -14,12 +15,13 @@ Eigen::VectorXd ODE::OdeSystem::compute_rhs(double t, const Eigen::VectorXd &x) 
 // FIXME: this is a temporary implementation until this is linked to Model::Model
 Eigen::MatrixXd ODE::OdeSystem::compute_jacobian(double t, const Eigen::VectorXd &x) const
 {
-  return 10 * Eigen::MatrixXd::Identity(x.rows(), x.rows());
+  return -10 * Eigen::MatrixXd::Identity(x.rows(), x.rows());
 }
 
 
 
-Eigen::VectorXd ODE::solve_ode(StepperBase &stepper, Eigen::VectorXd &ic, double t_start, double t_end, double dt)
+Eigen::VectorXd ODE::solve_ode(StepperBase &stepper, const Eigen::VectorXd &ic, const double t_start,
+                               const double t_end, double dt)
 {
   // Check for the pathological case where only 1 time step is used and make sure the time step is appropriate.
   if (t_start + dt > t_end)
@@ -73,12 +75,21 @@ std::pair<Eigen::VectorXd, unsigned int> ODE::newton_method(const FunctionBase &
      * --> x1 = x0 + d
      */
     auto f = fcn.value(x0);
-    auto d = jac.solve(-f);
+    Eigen::VectorXd d = jac.solve(-f);
     x1 = x0 + d;
 
     // Check the residual of the function to see if x1 is close to the root.
     f = fcn.value(x1);
-    auto diff = f / std::min(x0.norm(), x1.norm());
+    double divisor;
+    if (std::min(x0.norm(), x1.norm()) < tol)
+    {
+      divisor = 1.;
+    }
+    else
+    {
+      divisor = std::min(x0.norm(), x1.norm());
+    }
+    Eigen::VectorXd diff = f / divisor;
     if (diff.norm() < tol)
       solution_not_found = false;
 
@@ -141,7 +152,7 @@ Eigen::VectorXd ODE::StepperSDIRK<1>::step_forward(Eigen::VectorXd &x0, double t
     update_jacobian = true;
   }
 
-  return newton_result.first;
+  return x0 + dt * newton_result.first;
 }
 
 
