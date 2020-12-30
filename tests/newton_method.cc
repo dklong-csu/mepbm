@@ -24,20 +24,20 @@ Eigen::VectorXd Fcn::value(const Eigen::VectorXd &x) const
 int main()
 {
   Eigen::VectorXd guess(2);
-  guess(0) = 2;
-  guess(1) = 1;
+  guess(0) = 3/4;
+  guess(1) = 1/2;
 
   Eigen::MatrixXd J(2,2);
-  J(0, 0) = 4;
+  J(0, 0) = 3/2;
   J(0, 1) = 0;
   J(1, 0) = 0;
-  J(1, 1) = 2;
+  J(1, 1) = 1;
 
   auto J_inverse = J.partialPivLu();
 
   Fcn fcn;
 
-  auto newton_result = ODE::newton_method(fcn, J_inverse, guess);
+  auto newton_result = ODE::newton_method(fcn, J_inverse, guess, 1e-10, 1000);
 
   // The answer should be close to [0, 0].
   std::cout << newton_result.first;
