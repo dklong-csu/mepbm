@@ -1,9 +1,8 @@
 #include <iostream>
-#include <vector>
-#include <boost/numeric/odeint.hpp>
+#include <eigen3/Eigen/Dense>
 #include "models.h"
 
-using StateVector = boost::numeric::ublas::vector<double>;
+using StateVector = Eigen::VectorXd;
 
 /*
  * This is part of a series of tests to confirm the modular RightHandSide derived classes work as intended.
@@ -62,24 +61,20 @@ int main()
 
   // Output right hand side
   StateVector state(max_size+1);
-  state[0] = 1.;
-  state[1] = .9;
-  state[2] = .8;
-  state[3] = .7;
-  state[4] = .6;
-  state[5] = .5;
-  state[6] = .4;
-  state[7] = .3;
-  state[8] = .2;
-  state[9] = .1;
-  state[10] = .05;
-  state[11] = .025;
-  StateVector rhs(max_size+1, 0.);
-  four_step_alt.system(state, rhs, 0.);
+  state(0) = 1.;
+  state(1) = .9;
+  state(2) = .8;
+  state(3) = .7;
+  state(4) = .6;
+  state(5) = .5;
+  state(6) = .4;
+  state(7) = .3;
+  state(8) = .2;
+  state(9) = .1;
+  state(10) = .05;
+  state(11) = .025;
 
-  for (auto val : rhs)
-  {
-    std::cout << val << std::endl;
-  }
+  StateVector rhs = four_step_alt.rhs(state);
 
+  std::cout << rhs << std::endl;
 }
