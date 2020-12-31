@@ -5,13 +5,15 @@
 #include "models.h"
 #include "histogram.h"
 #include "statistics.h"
-#include <boost/numeric/odeint.hpp>
+#include "ode_solver.h"
+#include <eigen3/Eigen/Dense>
+
+#include <iostream>
 
 
 
 using VectorType = std::vector<double>;
-using StateType = boost::numeric::ublas::vector<double>;
-using namespace boost::numeric::odeint;
+using StateType = Eigen::VectorXd;
 
 
 // log likelihood detailed calculation
@@ -47,14 +49,15 @@ double Statistics::log_likelihood(const VectorType& data,
   double likelihood = 0.0;
   for (unsigned int bin=0; bin < hist_prm.n_bins; ++bin)
     {
+      // FIXME:  I think I can change the first if to just check if there are no data points
       // If the probability is zero and there are no data points, do not contribute anything
       // If the probability is zero and there are data points, then return most negative number possible
       // If the probability is non-zero, then calculate normally
-      if (hist_ode.count[bin] == 0 && hist_data.count[bin] == 0)
+      if (hist_ode.count[bin] <= 0 && hist_data.count[bin] == 0)
         {
           // do nothing
         }
-      else if (hist_ode.count[bin] == 0)
+      else if (hist_ode.count[bin] <= 0)
         {
           // minimum possible value
           return -std::numeric_limits<double>::max();
@@ -79,13 +82,14 @@ double Statistics::log_likelihood(const std::vector<VectorType>& data,
                                   const Histograms::Parameters& hist_prm)
 {
   // Step 1 -- Solve the ODE at each time
-  adams_bashforth_moulton<2, StateType> stepper;
+  ODE::StepperSDIRK<2> stepper(ode_model); // FIXME: make the template variable
   std::vector<StateType> solutions;
   solutions.push_back(ic);
   for (unsigned int i = 1; i < times.size(); ++i)
   {
-    size_t n_steps = integrate_const(stepper, ode_model.system, ic, times[i-1], times[i], 1e-4);
-    solutions.push_back(ic);
+    // FIXME: add parameters for what dt should be and for accuracy of newton method
+    auto solution = ODE::solve_ode(stepper, solutions[i-1], times[i-1], times[i], 1e-2);
+    solutions.push_back(solution);
   }
 
   // Step 2 -- Accumulate log likelihood
@@ -102,7 +106,7 @@ double Statistics::log_likelihood(const std::vector<VectorType>& data,
       for (unsigned int size = smallest; size < largest+1; ++size)
         {
           sizes[size - smallest] = size;
-          concentration[size - smallest] = solutions[set_num+1][size]; // FIXME: particle size to index function needed
+          concentration[size - smallest] = solutions[set_num+1](size); // FIXME: particle size to index function needed
         }
       // Step 2b -- Calculate log likelihood of current data set and add to total
       likelihood += Statistics::log_likelihood(data[set_num],
@@ -111,8 +115,6 @@ double Statistics::log_likelihood(const std::vector<VectorType>& data,
                                                hist_prm);
     }
 
-  // FIXME: Remove eventually
-  //std::cout << "likelihood: " << likelihood << std::endl;
   return likelihood;
 }
 

@@ -1,12 +1,12 @@
 #include <iostream>
 #include <string>
-#include <boost/numeric/odeint.hpp>
+#include <eigen3/Eigen/Dense>
 #include "models.h"
 #include "histogram.h"
 #include "statistics.h"
 #include "data.h"
 
-using StateVector = boost::numeric::ublas::vector<double>;
+using StateVector = Eigen::VectorXd;
 
 int main()
 {
@@ -69,8 +69,8 @@ int main()
   three_step_alt.add_rhs_contribution(large_growth);
 
   // set up initial condition
-  StateVector ic(max_size+1, 0.);
-  ic[0] = 0.0012;
+  StateVector ic = StateVector::Zero(max_size+1);
+  ic(0) = 0.0012;
 
   // set up histogram parameters
   const Histograms::Parameters hist_prm(25, 1.*nucleation_order, 1.*max_size);

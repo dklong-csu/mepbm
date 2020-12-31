@@ -7,13 +7,13 @@
 #include "histogram.h"
 #include "statistics.h"
 #include "data.h"
+#include <eigen3/Eigen/Dense>
 
 #include <sampleflow/producers/metropolis_hastings.h>
 #include <sampleflow/filters/conversion.h>
 #include <sampleflow/consumers/stream_output.h>
 #include <sampleflow/consumers/mean_value.h>
 #include <sampleflow/consumers/acceptance_ratio.h>
-#include <boost/numeric/odeint.hpp>
 
 
 
@@ -25,7 +25,7 @@ using VectorType = std::valarray<double>;
 
 // A data type describing the linear algebra object vector that is used
 // in the ODE solver.
-using StateVector = boost::numeric::ublas::vector<double>;
+using StateVector = Eigen::VectorXd;
 
 
 
@@ -86,9 +86,8 @@ ConstantData::ConstantData()
 
   times = {0., data_diameter.tem_time1, data_diameter.tem_time2, data_diameter.tem_time3, data_diameter.tem_time4};
 
-  StateVector zeros(max_size+1, 0.);
-  initial_condition = zeros;
-  initial_condition[0] = 0.0012;
+  initial_condition = StateVector::Zero(max_size + 1);
+  initial_condition(0) = 0.0012;
 }
 
 

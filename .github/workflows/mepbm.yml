@@ -26,7 +26,7 @@ jobs:
         sudo make install
         cd ../../
     - name: cmake
-      run: cmake -DSAMPLEFLOW_DIR="$PWD/SampleFlow" .
+      run: cmake -DSAMPLEFLOW_DIR="$PWD/SampleFlow" -DCMAKE_BUILD_TYPE=release .
     - name: build
       run: make
     - name: ctest

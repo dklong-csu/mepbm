@@ -3,10 +3,11 @@
 #include <vector>
 #include <cassert>
 #include <limits>
-#include <boost/numeric/odeint.hpp>
+#include <eigen3/Eigen/Dense>
 
 
-using StateVector = boost::numeric::ublas::vector<double>;
+using StateVector = Eigen::VectorXd;
+using StateMatrix = Eigen::MatrixXd;
 
 
 
@@ -49,14 +50,43 @@ Model::TermolecularNucleation::TermolecularNucleation(const unsigned int A_index
 
 void Model::TermolecularNucleation::add_contribution_to_rhs(const StateVector &x, StateVector &rhs)
 {
-  const double diss_forward = rate_forward * x[A_index] * solvent*solvent;
-  const double diss_backward = rate_backward * x[As_index] * x[ligand_index];
-  const double nucleation = rate_nucleation * x[A_index] * x[As_index] * x[As_index];
+  const double diss_forward = rate_forward * x(A_index) * solvent*solvent;
+  const double diss_backward = rate_backward * x(As_index) * x(ligand_index);
+  const double nucleation = rate_nucleation * x(A_index) * x(As_index) * x(As_index);
 
-  rhs[A_index] += -diss_forward + diss_backward - nucleation;
-  rhs[As_index] += diss_forward - diss_backward - 2 * nucleation;
-  rhs[ligand_index] += diss_forward - diss_backward + nucleation;
-  rhs[particle_index] += nucleation;
+  rhs(A_index) += -diss_forward + diss_backward - nucleation;
+  rhs(As_index) += diss_forward - diss_backward - 2 * nucleation;
+  rhs(ligand_index) += diss_forward - diss_backward + nucleation;
+  rhs(particle_index) += nucleation;
+}
+
+
+
+void Model::TermolecularNucleation::add_contribution_to_jacobian(const StateVector &x,
+                                                                 StateMatrix &jacobi)
+{
+  const double diss_forward_dA = rate_forward * solvent * solvent;
+
+  const double diss_backward_dAs = rate_backward * x(ligand_index);
+  const double diss_backward_dL = rate_backward * x(As_index);
+
+  const double nucleation_dA = rate_nucleation * x(As_index) * x(As_index);
+  const double nucleation_dAs = 2 * rate_nucleation * x(A_index) * x(As_index);
+
+  jacobi(A_index, A_index) += -diss_forward_dA - nucleation_dA;
+  jacobi(A_index, As_index) += diss_backward_dAs - nucleation_dAs;
+  jacobi(A_index, ligand_index) += diss_backward_dL;
+
+  jacobi(As_index, A_index) += diss_forward_dA - 2 * nucleation_dA;
+  jacobi(As_index, As_index) += -diss_backward_dAs - 2 * nucleation_dAs;
+  jacobi(As_index, ligand_index) += -diss_backward_dL;
+
+  jacobi(ligand_index, A_index) += diss_forward_dA + nucleation_dA;
+  jacobi(ligand_index, As_index) += -diss_backward_dAs + nucleation_dAs;
+  jacobi(ligand_index, ligand_index) += -diss_backward_dL;
+
+  jacobi(particle_index, A_index) += nucleation_dA;
+  jacobi(particle_index, As_index) += nucleation_dAs;
 }
 
 
@@ -101,14 +131,44 @@ void Model::Growth::add_contribution_to_rhs(const StateVector &x,
   // FIXME: the nucleation order is 3 at the moment
   for (unsigned int size = smallest_size; size <= largest_size; ++size)
   {
-    const double rxn_factor = rate *  x[A_index] * atoms(size, conserved_size) * x[size];
-    rhs[size] -= rxn_factor;
-    rhs[ligand_index] += rxn_factor;
-    rhs[A_index] -= rxn_factor;
+    const double rxn_factor = rate *  x(A_index) * atoms(size, conserved_size) * x(size);
+    rhs(size) -= rxn_factor;
+    rhs(ligand_index) += rxn_factor;
+    rhs(A_index) -= rxn_factor;
 
     if (size < max_size)
     {
-      rhs[size + 1] += rxn_factor;
+      rhs(size + 1) += rxn_factor;
+    }
+  }
+}
+
+
+
+void Model::Growth::add_contribution_to_jacobian(const StateVector &x,
+                                                 StateMatrix &jacobi)
+{
+  assert(smallest_size < largest_size);
+  assert(largest_size <= max_size);
+
+  for (unsigned int size = smallest_size; size <= largest_size; ++size)
+  {
+    const double rxn_factor_dA = rate * atoms(size, conserved_size) * x(size);
+    const double rxn_factor_dn = rate * x(A_index) * atoms(size, conserved_size);
+
+    jacobi(size, A_index) -= rxn_factor_dA;
+    jacobi(size, size) -= rxn_factor_dn;
+
+    jacobi(ligand_index, A_index) += rxn_factor_dA;
+    jacobi(ligand_index, size) += rxn_factor_dn;
+
+    jacobi(A_index, A_index) -= rxn_factor_dA;
+    jacobi(A_index, size) -= rxn_factor_dn;
+
+    if (size < max_size)
+    {
+      jacobi(size + 1, A_index) += rxn_factor_dA;
+      jacobi(size + 1, size) += rxn_factor_dn;
     }
   }
 }
@@ -159,7 +219,7 @@ void Model::Agglomeration::add_contribution_to_rhs(const StateVector &x, StateVe
   std::vector<double> rxn_factors(x.size(), 0.);
   for (unsigned int i=B_smallest_size; i<=B_largest_size; ++i)
   {
-    rxn_factors[i] = atoms(i, conserved_size) * x[i];
+    rxn_factors[i] = atoms(i, conserved_size) * x(i);
   }
 
   // FIXME: is this even necessary to do? It might be simpler to just calculate from
@@ -168,7 +228,7 @@ void Model::Agglomeration::add_contribution_to_rhs(const StateVector &x, StateVe
   {
     for (unsigned int i=C_smallest_size; i<=C_largest_size; ++i)
     {
-      rxn_factors[i] = atoms(i, conserved_size) * x[i];
+      rxn_factors[i] = atoms(i, conserved_size) * x(i);
     }
   }
 
@@ -190,33 +250,59 @@ void Model::Agglomeration::add_contribution_to_rhs(const StateVector &x, StateVe
     for (unsigned int j = std::max(C_smallest_size, i); j <= C_largest_size; ++j)
     {
       const auto rxn_deriv = rate * rxn_factors[i] * rxn_factors[j];
-      rhs[i] -= rxn_deriv;
-      rhs[j] -= rxn_deriv;
+      rhs(i) -= rxn_deriv;
+      rhs(j) -= rxn_deriv;
       if (i+j <= max_size)
-        rhs[i+j] += rxn_deriv;
+        rhs(i+j) += rxn_deriv;
     }
   }
 }
 
 
 
-void Model::OdeSystem::add_rhs_contribution(std::shared_ptr<RightHandSideContribution> &rhs)
+void Model::Agglomeration::add_contribution_to_jacobian(const StateVector &x,
+                                                        StateMatrix &jacobi)
 {
-  rhs_contributions.push_back(rhs);
-}
-
-
-
-void Model::OdeSystem::operator()(const StateVector &x, StateVector &rhs, double  /* t */)
-{
-  for (double & rh : rhs)
+  std::vector<double> rxn_factors(x.size(), 0.);
+  std::vector<double> rxn_factors_dn(x.size(), 0.);
+  for (unsigned int i=B_smallest_size; i<=B_largest_size; ++i)
   {
-    rh = 0.;
+    rxn_factors[i] = atoms(i, conserved_size) * x(i);
+    rxn_factors_dn[i] = atoms(i, conserved_size);
   }
 
-  for (auto & rhs_contribution : rhs_contributions)
+  // FIXME: is this even necessary to do? It might be simpler to just calculate from
+  // FIXME: min(B_smallest_size, C_smallest_size) to max(B_largest_size, C_largest_size)
+  if (B_smallest_size != C_smallest_size || B_largest_size != C_smallest_size)
   {
-    rhs_contribution->add_contribution_to_rhs(x, rhs);
+    for (unsigned int i=C_smallest_size; i<=C_largest_size; ++i)
+    {
+      rxn_factors[i] = atoms(i, conserved_size) * x(i);
+      rxn_factors_dn[i] = atoms(i, conserved_size);
+    }
+  }
+
+  for (unsigned int i = B_smallest_size; i <= B_largest_size; ++i)
+  {
+    // If the B and C size ranges overlap, then we end up double counting some contributions.
+    // Taking the max between the B-size and the smallest C-size ensures this double counting does not occur.
+    for (unsigned int j = std::max(C_smallest_size, i); j <= C_largest_size; ++j)
+    {
+      const auto rxn_deriv_i = rate * rxn_factors_dn[i] * rxn_factors[j];
+      const auto rxn_deriv_j = rate * rxn_factors[i] * rxn_factors_dn[j];
+
+      jacobi(i, i) -= rxn_deriv_i;
+      jacobi(i, j) -= rxn_deriv_j;
+
+      jacobi(j, i) -= rxn_deriv_i;
+      jacobi(j, j) -= rxn_deriv_j;
+
+      if (i+j <= max_size)
+      {
+        jacobi(i+j, i) += rxn_deriv_i;
+        jacobi(i+j, j) += rxn_deriv_j;
+      }
+    }
   }
 }
 
@@ -230,5 +316,37 @@ Model::Model::Model(unsigned int nucleation_order, unsigned int max_size)
 
 void Model::Model::add_rhs_contribution(std::shared_ptr<RightHandSideContribution> &rhs)
 {
-  system.add_rhs_contribution(rhs);
+  rhs_contributions.push_back(rhs);
+}
+
+
+
+StateVector Model::Model::rhs(StateVector &x) const
+{
+  // Initialize the right hand side as a zero vector.
+  StateVector rhs = StateVector::Zero(x.rows());
+
+  // Loop through every right hand side contribution added to the model and keep adding to the right hand side.
+  for (auto & rhs_contribution : rhs_contributions)
+  {
+    rhs_contribution->add_contribution_to_rhs(x, rhs);
+  }
+
+  return rhs;
+}
+
+
+
+StateMatrix Model::Model::jacobian(StateVector &x) const
+{
+  // initialize the Jacobian as a zero matrix.
+  StateMatrix J = StateMatrix::Zero(x.rows(), x.rows());
+
+  // Loop through every right hand side contribution added to the model and keep adding to the Jacobian.
+  for (auto & rhs_contribution : rhs_contributions)
+  {
+    rhs_contribution->add_contribution_to_jacobian(x, J);
+  }
+
+  return J;
 }
