@@ -177,6 +177,7 @@ namespace ODE
 
 
   /*
+   * FIXME: this is not L-stable, but there is a L-stable, two-stage, 2nd order SDIRK method -- use that instead?
    * The second order SDIRK method used has Butcher tableau
    *    1/4 | 1/4   0
    *    3/4 | 1/2   1/4
@@ -229,15 +230,13 @@ namespace ODE
    */
 
   template<>
-  class StepperSDIRK<3> : public StepperBase
-  {
+  class StepperSDIRK<3> : public StepperBase {
   public:
     explicit StepperSDIRK(const Model::Model &ode_system);
 
     Eigen::VectorXd step_forward(Eigen::VectorXd &x0, double t, double dt) override;
 
-    class NewtonFunction : public FunctionBase
-    {
+    class NewtonFunction : public FunctionBase {
     public:
       NewtonFunction(const Model::Model &ode_system, const double t, const double dt, const Eigen::VectorXd &x0);
 
@@ -256,7 +255,52 @@ namespace ODE
     unsigned int num_iter_new_jac;
     Model::Model ode_system;
     const double butcher_diag = 0.4358665215;
+  };
 
+    /*
+   * The fourth order SDIRK method used has Butcher Tableau
+   *        x | x                 0                             0
+   *      1/2 | 1/2 - x           x                             0
+   *    1 - x | 2x                1 - 4x                        x
+   *    -----------------------------------------------------------------------------
+   *          | 1/[6*(1-2x)^2]    [3*(1-2x)^2-1]/[2*(1-2x)^2]   1/[6*(1-2x)^2]
+   * with x a solution to the cubic equation
+   *    x^3 - 3x^2/2 + x/2 - 1/24 = 0
+   * The three roots are
+   *    x1 ~= 0.128886400515720
+   *    x2 ~= 0.302534578182651
+   *    x3 ~= 1.06857902130163
+   * x3 gives the best stability properties, so that one is used.
+   */
+
+  template<>
+  class StepperSDIRK<4> : public StepperBase
+  {
+  public:
+    explicit StepperSDIRK(const Model::Model &ode_system);
+
+    Eigen::VectorXd step_forward(Eigen::VectorXd &x0, double t, double dt) override;
+
+    class NewtonFunction : public FunctionBase
+    {
+    public:
+      NewtonFunction(const Model::Model &ode_system, const double t, const double dt, const Eigen::VectorXd &x0);
+
+      Eigen::VectorXd value(const Eigen::VectorXd &x) const override;
+
+    private:
+      const Model::Model ode_system;
+      const double t, dt;
+      const Eigen::VectorXd x0;
+      const double butcher_diag = 1.06857902130163;
+    };
+
+  private:
+    bool update_jacobian;
+    Eigen::PartialPivLU<Eigen::MatrixXd> jacobian_solver;
+    unsigned int num_iter_new_jac;
+    Model::Model ode_system;
+    const double butcher_diag = 1.06857902130163;
   };
 
 
