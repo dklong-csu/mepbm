@@ -46,7 +46,7 @@ namespace Statistics
   // Step 2: For each time point, calculate the log likelihood, and add to the cumulative log likelihood
   double log_likelihood(const std::vector<std::vector<double>>& data,
                         const std::vector<double>& times,
-                        Model::Model& ode_model,
+                        const Model::Model& ode_model,
                         Eigen::VectorXd& ic,
                         const Histograms::Parameters& hist_prm);
 

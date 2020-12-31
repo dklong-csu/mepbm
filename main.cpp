@@ -86,9 +86,8 @@ ConstantData::ConstantData()
 
   times = {0., data_diameter.tem_time1, data_diameter.tem_time2, data_diameter.tem_time3, data_diameter.tem_time4};
 
-  StateVector zeros(max_size+1, 0.);
-  initial_condition = zeros;
-  initial_condition[0] = 0.0012;
+  initial_condition = StateVector::Zero(max_size + 1);
+  initial_condition(0) = 0.0012;
 }
 
 

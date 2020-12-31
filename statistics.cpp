@@ -77,7 +77,7 @@ double Statistics::log_likelihood(const VectorType& data,
 // log likelihood ODE solve integration
 double Statistics::log_likelihood(const std::vector<VectorType>& data,
                                   const std::vector<double>& times,
-                                  Model::Model& ode_model,
+                                  const Model::Model& ode_model,
                                   StateType& ic,
                                   const Histograms::Parameters& hist_prm)
 {
