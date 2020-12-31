@@ -321,7 +321,7 @@ void Model::Model::add_rhs_contribution(std::shared_ptr<RightHandSideContributio
 
 
 
-StateVector Model::Model::rhs(StateVector &x)
+StateVector Model::Model::rhs(StateVector &x) const
 {
   // Initialize the right hand side as a zero vector.
   StateVector rhs = StateVector::Zero(x.rows());
@@ -337,10 +337,10 @@ StateVector Model::Model::rhs(StateVector &x)
 
 
 
-StateMatrix Model::Model::jacobian(StateVector &x)
+StateMatrix Model::Model::jacobian(StateVector &x) const
 {
   // initialize the Jacobian as a zero matrix.
-  StateMatrix J = StateMatrix::Zero(x.rows(), x.cols());
+  StateMatrix J = StateMatrix::Zero(x.rows(), x.rows());
 
   // Loop through every right hand side contribution added to the model and keep adding to the Jacobian.
   for (auto & rhs_contribution : rhs_contributions)

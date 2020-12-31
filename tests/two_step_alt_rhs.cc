@@ -51,7 +51,7 @@ int main()
   state(4) = .2;
   state(5) = .1;
 
-  StateVector rhs = three_step_alt.rhs(state);
+  StateVector rhs = two_step_alt.rhs(state);
 
   std::cout << rhs << std::endl;
 

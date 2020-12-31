@@ -3,6 +3,7 @@
 
 #include <eigen3/Eigen/Dense>
 #include <cmath>
+#include "models.h"
 
 
 namespace ODE
@@ -12,6 +13,7 @@ namespace ODE
   // FIXME: This is a placeholder for the moment. Eventually I will integrate this class
   // FIXME: with the objects in models.h but that first requires a bunch of things to be
   // FIXME: converted from Boost data types to Eigen data types.
+  /*
   class OdeSystem
   {
   public:
@@ -22,7 +24,7 @@ namespace ODE
     Eigen::PartialPivLU<Eigen::MatrixXd> jacobian_solver;
   };
 
-
+*/
 
   /*
    * Base class for ODE time stepper
@@ -116,14 +118,14 @@ namespace ODE
   class StepperSDIRK : public StepperBase
   {
   public:
-    explicit StepperSDIRK(OdeSystem &ode_system);
+    explicit StepperSDIRK(Model::Model &ode_system);
 
     Eigen::VectorXd step_forward(Eigen::VectorXd &x0, double t, double dt) override;
 
   private:
     bool update_jacobian;
     unsigned int num_iter_new_jac;
-    OdeSystem ode_system;
+    Model::Model ode_system;
   };
 
 
@@ -147,19 +149,19 @@ namespace ODE
   class StepperSDIRK<1> : public StepperBase
   {
   public:
-    explicit StepperSDIRK(OdeSystem &ode_system);
+    explicit StepperSDIRK(Model::Model &ode_system);
 
     Eigen::VectorXd step_forward(Eigen::VectorXd &x0, double t, double dt) override;
 
     class NewtonFunction : public FunctionBase
     {
     public:
-      NewtonFunction(const OdeSystem &ode_system, const double t, const double dt, const Eigen::VectorXd &x0);
+      NewtonFunction(const Model::Model &ode_system, const double t, const double dt, const Eigen::VectorXd &x0);
 
       Eigen::VectorXd value(const Eigen::VectorXd &x) const override;
 
     private:
-      OdeSystem ode_system;
+      const Model::Model ode_system;
       const double t, dt;
       const Eigen::VectorXd x0;
     };
@@ -167,7 +169,7 @@ namespace ODE
   private:
     bool update_jacobian;
     unsigned int num_iter_new_jac;
-    OdeSystem ode_system;
+    Model::Model ode_system;
 
   };
 
@@ -190,24 +192,24 @@ namespace ODE
   class StepperSDIRK<2> : public StepperBase
   {
   public:
-    explicit StepperSDIRK(OdeSystem &ode_system);
+    explicit StepperSDIRK(Model::Model &ode_system);
 
     Eigen::VectorXd step_forward(Eigen::VectorXd &x0, double t, double dt) override;
 
   private:
     bool update_jacobian;
     unsigned int num_iter_new_jac;
-    OdeSystem ode_system;
+    Model::Model ode_system;
 
     class NewtonFunction : public FunctionBase
     {
     public:
-      NewtonFunction(const OdeSystem &ode_system, const double t, const double dt, const Eigen::VectorXd &x0);
+      NewtonFunction(const Model::Model &ode_system, const double t, const double dt, const Eigen::VectorXd &x0);
 
       Eigen::VectorXd value(const Eigen::VectorXd &x) const override;
 
     private:
-      OdeSystem ode_system;
+      Model::Model ode_system;
       const double t, dt;
       const Eigen::VectorXd x0;
     };

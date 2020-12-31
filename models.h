@@ -218,11 +218,12 @@ namespace Model
     Model(unsigned int nucleation_order, unsigned int max_size);
 
     void add_rhs_contribution(std::shared_ptr<RightHandSideContribution> &rhs);
-    Eigen::VectorXd rhs(Eigen::VectorXd &x);
-    Eigen::MatrixXd jacobian(Eigen::VectorXd &x);
+    Eigen::VectorXd rhs(Eigen::VectorXd &x) const;
+    Eigen::MatrixXd jacobian(Eigen::VectorXd &x) const;
 
     const unsigned int nucleation_order;
     const unsigned int max_size;
+    Eigen::PartialPivLU<Eigen::MatrixXd> jacobian_solver;
 
   private:
     std::vector<std::shared_ptr<RightHandSideContribution>> rhs_contributions;

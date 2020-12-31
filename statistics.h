@@ -5,7 +5,7 @@
 #include <vector>
 #include "models.h"
 #include "histogram.h"
-#include <boost/numeric/odeint.hpp>
+#include <eigen3/Eigen/Dense>
 
 
 
@@ -46,8 +46,8 @@ namespace Statistics
   // Step 2: For each time point, calculate the log likelihood, and add to the cumulative log likelihood
   double log_likelihood(const std::vector<std::vector<double>>& data,
                         const std::vector<double>& times,
-                        const Model::Model& ode_model,
-                        boost::numeric::ublas::vector<double>& ic,
+                        Model::Model& ode_model,
+                        Eigen::VectorXd& ic,
                         const Histograms::Parameters& hist_prm);
 
 
@@ -69,7 +69,7 @@ namespace Statistics
   template<class InputClass>
   double log_likelihood(const InputClass &my_object)
   {
-    boost::numeric::ublas::vector<double> ic = my_object.return_initial_condition();
+    Eigen::VectorXd ic = my_object.return_initial_condition();
     return Statistics::log_likelihood(my_object.return_data(), my_object.return_times(), my_object.return_model(),
                                       ic, my_object.return_histogram_parameters());
   }
