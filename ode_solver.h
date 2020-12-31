@@ -218,6 +218,48 @@ namespace ODE
   };
 
 
+  /*
+   * The third order SDIRK method used has Butcher Tableau
+   *          x | x                     0                     0
+   *    (1+x)/2 | (1-x)/2               x                     0
+   *          1 | -3x^2/2 + 4x - 1/4    3x^2/2 - 5x + 5/4     x
+   *    ---------------------------------------------------------
+   *            | -3x^2/2 + 4x - 1/4    3x^2/2 - 5x + 5/4     x
+   * with x = 0.4358665215
+   */
+
+  template<>
+  class StepperSDIRK<3> : public StepperBase
+  {
+  public:
+    explicit StepperSDIRK(const Model::Model &ode_system);
+
+    Eigen::VectorXd step_forward(Eigen::VectorXd &x0, double t, double dt) override;
+
+    class NewtonFunction : public FunctionBase
+    {
+    public:
+      NewtonFunction(const Model::Model &ode_system, const double t, const double dt, const Eigen::VectorXd &x0);
+
+      Eigen::VectorXd value(const Eigen::VectorXd &x) const override;
+
+    private:
+      const Model::Model ode_system;
+      const double t, dt;
+      const Eigen::VectorXd x0;
+      const double butcher_diag = 0.4358665215;
+    };
+
+  private:
+    bool update_jacobian;
+    Eigen::PartialPivLU<Eigen::MatrixXd> jacobian_solver;
+    unsigned int num_iter_new_jac;
+    Model::Model ode_system;
+    const double butcher_diag = 0.4358665215;
+
+  };
+
+
 
 }
 

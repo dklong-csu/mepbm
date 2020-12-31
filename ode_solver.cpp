@@ -217,3 +217,75 @@ Eigen::VectorXd ODE::StepperSDIRK<2>::step_forward(Eigen::VectorXd &x0, double t
 
   return x0 + dt * 1/2 * k1 + dt * 1/2 * k2;
 }
+
+
+
+/********************************** Third order SDIRK **********************************/
+
+ODE::StepperSDIRK<3>::NewtonFunction::NewtonFunction(const Model::Model &ode_system, const double t, const double dt,
+                                                     const Eigen::VectorXd &x0)
+    : ode_system(ode_system), t(t), dt(dt), x0(x0)
+{}
+
+
+// FIXME: add comments
+Eigen::VectorXd ODE::StepperSDIRK<3>::NewtonFunction::value(const Eigen::VectorXd &x) const
+{
+  Eigen::VectorXd y = x0 + dt * butcher_diag * x;
+  return x - ode_system.rhs(y);
+}
+
+
+
+ODE::StepperSDIRK<3>::StepperSDIRK(const Model::Model &ode_system)
+    : update_jacobian(true), num_iter_new_jac(0), ode_system(ode_system)
+{}
+
+
+
+// FIXME: add comments
+Eigen::VectorXd ODE::StepperSDIRK<3>::step_forward(Eigen::VectorXd &x0, double t, double dt)
+{
+  if (update_jacobian)
+  {
+    Eigen::MatrixXd jac = ode_system.jacobian(x0);
+
+    Eigen::MatrixXd newton_jacobian = Eigen::MatrixXd::Identity(jac.rows(), jac.cols()) - dt * butcher_diag * jac;
+
+    jacobian_solver = newton_jacobian.partialPivLu();
+  }
+
+  StepperSDIRK<3>::NewtonFunction fcn_k1(ode_system, t, dt, x0);
+  const auto guess = Eigen::VectorXd::Zero(x0.rows());
+  auto newton_result_k1 = newton_method(fcn_k1, jacobian_solver, guess);
+  auto k1 = newton_result_k1.first;
+
+  const double k2_coeff_k1 = (1 - butcher_diag) / 2;
+  StepperSDIRK<2>::NewtonFunction fcn_k2(ode_system, t, dt, x0 + dt * k2_coeff_k1 * k1);
+  auto newton_result_k2 = newton_method(fcn_k2, jacobian_solver, guess);
+  auto k2 = newton_result_k2.first;
+
+  const double k3_coeff_k1 = -3 * butcher_diag * butcher_diag / 2 + 4 * butcher_diag - 1/4;
+  const double k3_coeff_k2 =  3 * butcher_diag * butcher_diag / 2 - 5 * butcher_diag + 5/4;
+  StepperSDIRK<3>::NewtonFunction fcn_k3(ode_system, t, dt, x0 + dt * k3_coeff_k1 * k1 + dt * k3_coeff_k2 * k2);
+  auto newton_result_k3 = newton_method(fcn_k3, jacobian_solver, guess);
+  auto k3 = newton_result_k3.first;
+
+  auto num_iter = std::max(newton_result_k1.second, newton_result_k2.second);
+  num_iter = std::max(num_iter, newton_result_k3.second);
+  if (update_jacobian)
+  {
+    update_jacobian = false;
+    num_iter_new_jac = num_iter;
+  }
+  else if (num_iter > 5 * num_iter_new_jac)
+  {
+    update_jacobian = true;
+  }
+
+  const double k1_weight = -3 * butcher_diag * butcher_diag / 2 + 4 * butcher_diag - 1/4;
+  const double k2_weight =  3 * butcher_diag * butcher_diag / 2 - 5 * butcher_diag + 5/4;
+  const double k3_weight =  butcher_diag;
+
+  return x0 + dt * k1_weight * k1 + dt * k2_weight * k2 + dt * k3_weight * k3;
+}
