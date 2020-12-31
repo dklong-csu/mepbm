@@ -149,7 +149,7 @@ namespace ODE
   class StepperSDIRK<1> : public StepperBase
   {
   public:
-    explicit StepperSDIRK(Model::Model &ode_system);
+    explicit StepperSDIRK(const Model::Model &ode_system);
 
     Eigen::VectorXd step_forward(Eigen::VectorXd &x0, double t, double dt) override;
 
@@ -168,8 +168,9 @@ namespace ODE
 
   private:
     bool update_jacobian;
+    Eigen::PartialPivLU<Eigen::MatrixXd> jacobian_solver;
     unsigned int num_iter_new_jac;
-    Model::Model ode_system;
+    const Model::Model ode_system;
 
   };
 
@@ -192,14 +193,9 @@ namespace ODE
   class StepperSDIRK<2> : public StepperBase
   {
   public:
-    explicit StepperSDIRK(Model::Model &ode_system);
+    explicit StepperSDIRK(const Model::Model &ode_system);
 
     Eigen::VectorXd step_forward(Eigen::VectorXd &x0, double t, double dt) override;
-
-  private:
-    bool update_jacobian;
-    unsigned int num_iter_new_jac;
-    Model::Model ode_system;
 
     class NewtonFunction : public FunctionBase
     {
@@ -209,10 +205,16 @@ namespace ODE
       Eigen::VectorXd value(const Eigen::VectorXd &x) const override;
 
     private:
-      Model::Model ode_system;
+      const Model::Model ode_system;
       const double t, dt;
       const Eigen::VectorXd x0;
     };
+
+  private:
+    bool update_jacobian;
+    Eigen::PartialPivLU<Eigen::MatrixXd> jacobian_solver;
+    unsigned int num_iter_new_jac;
+    Model::Model ode_system;
   };
 
 

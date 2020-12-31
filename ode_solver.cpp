@@ -123,7 +123,7 @@ Eigen::VectorXd ODE::StepperSDIRK<1>::NewtonFunction::value(const Eigen::VectorX
 
 
 
-ODE::StepperSDIRK<1>::StepperSDIRK(Model::Model &ode_system)
+ODE::StepperSDIRK<1>::StepperSDIRK(const Model::Model &ode_system)
     : update_jacobian(true), num_iter_new_jac(0), ode_system(ode_system)
 {}
 
@@ -137,12 +137,12 @@ Eigen::VectorXd ODE::StepperSDIRK<1>::step_forward(Eigen::VectorXd &x0, double t
 
     Eigen::MatrixXd newton_jacobian = Eigen::MatrixXd::Identity(jac.rows(), jac.cols()) - dt * jac;
 
-    ode_system.jacobian_solver = newton_jacobian.partialPivLu();
+    jacobian_solver = newton_jacobian.partialPivLu();
   }
 
   StepperSDIRK<1>::NewtonFunction fcn(ode_system, t, dt, x0);
   const auto guess = Eigen::VectorXd::Zero(x0.rows());
-  auto newton_result = newton_method(fcn, ode_system.jacobian_solver, guess);
+  auto newton_result = newton_method(fcn, jacobian_solver, guess);
 
   auto num_newton_steps = newton_result.second;
   if (update_jacobian)
@@ -177,7 +177,7 @@ Eigen::VectorXd ODE::StepperSDIRK<2>::NewtonFunction::value(const Eigen::VectorX
 
 
 
-ODE::StepperSDIRK<2>::StepperSDIRK(Model::Model &ode_system)
+ODE::StepperSDIRK<2>::StepperSDIRK(const Model::Model &ode_system)
     : update_jacobian(true), num_iter_new_jac(0), ode_system(ode_system)
 {}
 
@@ -192,16 +192,16 @@ Eigen::VectorXd ODE::StepperSDIRK<2>::step_forward(Eigen::VectorXd &x0, double t
 
     Eigen::MatrixXd newton_jacobian = Eigen::MatrixXd::Identity(jac.rows(), jac.cols()) - dt * 1/4 * jac;
 
-    ode_system.jacobian_solver = newton_jacobian.partialPivLu();
+    jacobian_solver = newton_jacobian.partialPivLu();
   }
 
   StepperSDIRK<2>::NewtonFunction fcn_k1(ode_system, t, dt, x0);
   const auto guess = Eigen::VectorXd::Zero(x0.rows());
-  auto newton_result_k1 = newton_method(fcn_k1, ode_system.jacobian_solver, guess);
+  auto newton_result_k1 = newton_method(fcn_k1, jacobian_solver, guess);
   auto k1 = newton_result_k1.first;
 
   StepperSDIRK<2>::NewtonFunction fcn_k2(ode_system, t, dt, x0 + dt * 1/2 * k1);
-  auto newton_result_k2 = newton_method(fcn_k2, ode_system.jacobian_solver, guess);
+  auto newton_result_k2 = newton_method(fcn_k2, jacobian_solver, guess);
   auto k2 = newton_result_k2.first;
 
   auto num_iter = std::max(newton_result_k1.second, newton_result_k2.second);
