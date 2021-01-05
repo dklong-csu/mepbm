@@ -51,7 +51,6 @@ Eigen::VectorXd ODE::solve_ode(StepperBase &stepper, const Eigen::VectorXd &ic, 
     // Move forward one time step.
     t += dt;
     x0 = x1;
-    std::cout << x1 << std::endl;
   }
 
   // The last x1 calculated is the desired output of the ODE solver.
@@ -394,7 +393,7 @@ ODE::StepperBDF<2>::NewtonFunction::NewtonFunction(const Model::Model &ode_syste
 Eigen::VectorXd ODE::StepperBDF<2>::NewtonFunction::value(const Eigen::VectorXd &x) const
 {
   assert(prev_sols.size() == 2);
-  return x - 4/3 * prev_sols[1] + 1/3 * prev_sols[0] - 2./3 * dt * ode_system.rhs(const_cast<Eigen::VectorXd &>(x));
+  return x - 4./3 * prev_sols[1] + 1./3 * prev_sols[0] - 2./3 * dt * ode_system.rhs(const_cast<Eigen::VectorXd &>(x));
 }
 
 
@@ -471,7 +470,7 @@ ODE::StepperBDF<3>::NewtonFunction::NewtonFunction(const Model::Model &ode_syste
 Eigen::VectorXd ODE::StepperBDF<3>::NewtonFunction::value(const Eigen::VectorXd &x) const
 {
   assert(prev_sols.size() == 3);
-  return x - 18/11 * prev_sols[2] + 9/11 * prev_sols[1] - 2/11 * prev_sols[0]
+  return x - 18./11 * prev_sols[2] + 9./11 * prev_sols[1] - 2./11 * prev_sols[0]
     - 6./11 * dt * ode_system.rhs(const_cast<Eigen::VectorXd &>(x));
 }
 
@@ -548,7 +547,7 @@ ODE::StepperBDF<4>::NewtonFunction::NewtonFunction(const Model::Model &ode_syste
 Eigen::VectorXd ODE::StepperBDF<4>::NewtonFunction::value(const Eigen::VectorXd &x) const
 {
   assert(prev_sols.size() == 4);
-  return x - 48/25 * prev_sols[3] + 36/25 * prev_sols[2] - 16/25 * prev_sols[1] + 3/25 * prev_sols[0]
+  return x - 48./25 * prev_sols[3] + 36./25 * prev_sols[2] - 16./25 * prev_sols[1] + 3./25 * prev_sols[0]
          - 12./25 * dt * ode_system.rhs(const_cast<Eigen::VectorXd &>(x));
 }
 
@@ -598,7 +597,6 @@ Eigen::VectorXd ODE::StepperBDF<4>::step_forward(Eigen::VectorXd &x0, double t, 
     auto newton_result = newton_method(fcn, jacobian_solver, guess);
 
     auto num_newton_steps = newton_result.second;
-    std::cout << num_newton_steps << std::endl;
     if (update_jacobian)
     {
       update_jacobian = false;
