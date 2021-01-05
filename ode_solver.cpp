@@ -262,7 +262,7 @@ Eigen::VectorXd ODE::StepperSDIRK<3>::step_forward(Eigen::VectorXd &x0, double t
   auto k1 = newton_result_k1.first;
 
   const double k2_coeff_k1 = (1 - butcher_diag) / 2;
-  StepperSDIRK<2>::NewtonFunction fcn_k2(ode_system, t, dt, x0 + dt * k2_coeff_k1 * k1);
+  StepperSDIRK<3>::NewtonFunction fcn_k2(ode_system, t, dt, x0 + dt * k2_coeff_k1 * k1);
   auto newton_result_k2 = newton_method(fcn_k2, jacobian_solver, guess);
   auto k2 = newton_result_k2.first;
 
