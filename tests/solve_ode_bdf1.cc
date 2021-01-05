@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <ode_solver.h>
 #include "models.h"
 #include <eigen3/Eigen/Dense>
@@ -23,7 +24,7 @@ int main()
   const Eigen::VectorXd ic = Eigen::VectorXd::Ones(1);
   const double start_time = 0.;
   const double end_time = 1.;
-  const double dt = 1e-4;
+  const double dt = 1e-5;
 
   std::shared_ptr<Model::RightHandSideContribution> my_ode
       = std::make_shared<SimpleOde>();
@@ -33,5 +34,5 @@ int main()
   auto sol = ODE::solve_ode(stepper, ic, start_time, end_time, dt);
 
   // The answer should be exactly the same as in the solve_ode_sdirk1 test.
-  std::cout << sol;
+  std::cout << std::setprecision(20) << std::fixed << sol;
 }
