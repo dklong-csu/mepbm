@@ -23,11 +23,22 @@ class SimpleOde : public Model::RightHandSideContribution
 
 int main()
 {
-  std::vector<double> dt_vals = { 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7};
-  const int digits = 100;
-  
+  std::vector<double> dt_vals = { 1./2, 1./4, 1./8, 1./16, 1./32, 1./64, 1./128, 1./256, 1./512, 1./1024};
 
-  std::cout << "------------- BDF1 test -------------" << std::endl;
+
+  std::cout << "dt = [";
+  std::cout << dt_vals[0];
+  for (unsigned int i=1; i < dt_vals.size(); ++i)
+  {
+    std::cout << "; " << dt_vals[i];
+  }
+  std::cout << "];" << std::endl << std::endl;
+
+
+  const int digits = 100;
+
+
+  std::cout << "bdf1 = [";
   for (auto val : dt_vals)
   {
     const Eigen::VectorXd ic = Eigen::VectorXd::Ones(1);
@@ -48,11 +59,11 @@ int main()
     auto abs_diff = std::abs(sol_double - exact_sol);
     std::cout << std::setprecision(digits) << std::fixed << abs_diff << std::endl;
   }
-  std::cout << std::endl;
+  std::cout << "];" << std::endl << std::endl;
 
 
 
-  std::cout << "------------- BDF2 test -------------" << std::endl;
+  std::cout << "bdf2 = [";
   for (auto val : dt_vals)
   {
     const Eigen::VectorXd ic = Eigen::VectorXd::Ones(1);
@@ -73,11 +84,11 @@ int main()
     auto abs_diff = std::abs(sol_double - exact_sol);
     std::cout << std::setprecision(digits) << std::fixed << abs_diff << std::endl;
   }
-  std::cout << std::endl;
+  std::cout << "];" << std::endl << std::endl;
 
 
 
-  std::cout << "------------- BDF3 test -------------" << std::endl;
+  std::cout << "bdf3 = [";
   for (auto val : dt_vals)
   {
     const Eigen::VectorXd ic = Eigen::VectorXd::Ones(1);
@@ -98,11 +109,11 @@ int main()
     auto abs_diff = std::abs(sol_double - exact_sol);
     std::cout << std::setprecision(digits) << std::fixed << abs_diff << std::endl;
   }
-  std::cout << std::endl;
+  std::cout << "];" << std::endl << std::endl;
 
 
 
-  std::cout << "------------- BDF4 test -------------" << std::endl;
+  std::cout << "bdf4 = [";
   for (auto val : dt_vals)
   {
     const Eigen::VectorXd ic = Eigen::VectorXd::Ones(1);
@@ -123,11 +134,11 @@ int main()
     auto abs_diff = std::abs(sol_double - exact_sol);
     std::cout << std::setprecision(digits) << std::fixed << abs_diff << std::endl;
   }
-  std::cout << std::endl;
+  std::cout << "];" << std::endl << std::endl;
 
 
 
-  std::cout << "------------- SDIRK1 test -------------" << std::endl;
+  std::cout << "sdirk1 = [";
   for (auto val : dt_vals)
   {
     const Eigen::VectorXd ic = Eigen::VectorXd::Ones(1);
@@ -148,11 +159,11 @@ int main()
     auto abs_diff = std::abs(sol_double - exact_sol);
     std::cout << std::setprecision(digits) << std::fixed << abs_diff << std::endl;
   }
-  std::cout << std::endl;
+  std::cout << "];" << std::endl << std::endl;
 
 
 
-  std::cout << "------------- SDIRK2 test -------------" << std::endl;
+  std::cout << "sdirk2 = [";
   for (auto val : dt_vals)
   {
     const Eigen::VectorXd ic = Eigen::VectorXd::Ones(1);
@@ -173,11 +184,11 @@ int main()
     auto abs_diff = std::abs(sol_double - exact_sol);
     std::cout << std::setprecision(digits) << std::fixed << abs_diff << std::endl;
   }
-  std::cout << std::endl;
+  std::cout << "];" << std::endl << std::endl;
 
 
 
-  std::cout << "------------- SDIRK3 test -------------" << std::endl;
+  std::cout << "sdirk3 = [";
   for (auto val : dt_vals)
   {
     const Eigen::VectorXd ic = Eigen::VectorXd::Ones(1);
@@ -198,11 +209,11 @@ int main()
     auto abs_diff = std::abs(sol_double - exact_sol);
     std::cout << std::setprecision(digits) << std::fixed << abs_diff << std::endl;
   }
-  std::cout << std::endl;
+  std::cout << "];" << std::endl << std::endl;
 
 
 
-  std::cout << "------------- SDIRK4 test -------------" << std::endl;
+  std::cout << "sdirk4 = [";
   for (auto val : dt_vals)
   {
     const Eigen::VectorXd ic = Eigen::VectorXd::Ones(1);
@@ -223,4 +234,5 @@ int main()
     auto abs_diff = std::abs(sol_double - exact_sol);
     std::cout << std::setprecision(digits) << std::fixed << abs_diff << std::endl;
   }
+  std::cout << "];";
 }
