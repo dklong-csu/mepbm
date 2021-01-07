@@ -23,7 +23,7 @@ class SimpleOde : public Model::RightHandSideContribution
 
 int main()
 {
-  std::vector<double> dt_vals = { 1./2 };
+  std::vector<double> dt_vals = { 1./2 , 1./4};
 
 
   std::cout << "dt = [";
