@@ -23,19 +23,17 @@ class SimpleOde : public Model::RightHandSideContribution
 
 int main()
 {
-  std::vector<double> dt_vals = { 1./2 , 1./4, 1./8, 1./16, 1./32, 1./64, 1./128, 1./256};
+  std::vector<double> dt_vals = { 1./2 , 1./4, 1./8, 1./16, 1./32, 1./64, 1./128, 1./256, 1./512, 1./1024};
 
+  const int digits = 100;
 
   std::cout << "dt = [";
-  std::cout << dt_vals[0];
-  for (unsigned int i=1; i < dt_vals.size(); ++i)
+  for (auto val : dt_vals)
   {
-    std::cout << "; " << dt_vals[i];
+    std::cout << std::setprecision(digits) << std::fixed << val << std::endl;
   }
   std::cout << "];" << std::endl << std::endl;
 
-
-  const int digits = 100;
 
   std::cout << "bdf1 = [";
   for (auto val : dt_vals)
