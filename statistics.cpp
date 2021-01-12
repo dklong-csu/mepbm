@@ -74,52 +74,6 @@ double Statistics::log_likelihood(const VectorType& data,
 
 
 
-// log likelihood ODE solve integration
-double Statistics::log_likelihood(const std::vector<VectorType>& data,
-                                  const std::vector<double>& times,
-                                  const Model::Model& ode_model,
-                                  StateType& ic,
-                                  const Histograms::Parameters& hist_prm)
-{
-  // Step 1 -- Solve the ODE at each time
-  ODE::StepperSDIRK<2> stepper(ode_model); // FIXME: make the template variable
-  std::vector<StateType> solutions;
-  solutions.push_back(ic);
-  for (unsigned int i = 1; i < times.size(); ++i)
-  {
-    // FIXME: add parameters for what dt should be and for accuracy of newton method
-    auto solution = ODE::solve_ode(stepper, solutions[i-1], times[i-1], times[i], 1e-2);
-    solutions.push_back(solution);
-  }
-
-  // Step 2 -- Accumulate log likelihood
-  double likelihood = 0.0;
-  for (unsigned int set_num=0; set_num < data.size(); ++set_num)
-    {
-      // Step 2a -- Extract the particle sizes from the ODE solution
-      const unsigned int smallest = ode_model.nucleation_order;
-      const unsigned int largest = ode_model.max_size;
-
-      VectorType sizes(largest - smallest + 1);
-      VectorType concentration(sizes.size());
-
-      for (unsigned int size = smallest; size < largest+1; ++size)
-        {
-          sizes[size - smallest] = size;
-          concentration[size - smallest] = solutions[set_num+1](size); // FIXME: particle size to index function needed
-        }
-      // Step 2b -- Calculate log likelihood of current data set and add to total
-      likelihood += Statistics::log_likelihood(data[set_num],
-                                               concentration,
-                                               sizes,
-                                               hist_prm);
-    }
-
-  return likelihood;
-}
-
-
-
 double Statistics::rand_btwn_double (const double small_num, const double big_num)
 {
   static std::mt19937 gen;

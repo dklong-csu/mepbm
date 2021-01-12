@@ -41,10 +41,11 @@ int main()
 
   const double kf = 3.6e-2;
   const double kb = 7.27e4;
-  const double k1 = 6.45e4;
-  const double k2 = 1.63e4;
-  const double k3 = 5.56e3;
-  const double cutoff = 274;
+  const double k1 = 6.40e4;
+  const double k2 = 1.61e4;
+  const double k3 = 5.45e3;
+  const double k4 = 1.20e1;
+  const double cutoff = 265;
 
 
   // Nucleation
@@ -62,6 +63,12 @@ int main()
     = std::make_shared<Model::Growth>(A_index, cutoff+1, max_size, max_size,
                                       POM_index, conserved_size, k3);
 
+  // Agglomeration
+  std::shared_ptr<Model::RightHandSideContribution> agglomeration
+    = std::make_shared<Model::Agglomeration>(nucleation_order, cutoff,
+                                             nucleation_order, cutoff,
+                                             max_size, conserved_size, k4);
+
   // Create Model
   Model::Model three_step_alt(nucleation_order, max_size);
   three_step_alt.add_rhs_contribution(nucleation);
@@ -76,7 +83,7 @@ int main()
   const Histograms::Parameters hist_prm(25, 1.*nucleation_order, 1.*max_size);
 
   // calculate log likelihood
-  const double likelihood = Statistics::log_likelihood(data, times, three_step_alt, ic, hist_prm);
+  const double likelihood = Statistics::log_likelihood<4>(data, times, three_step_alt, ic, hist_prm);
 
   // print result
   std::cout << "log likelihood: " << likelihood;
