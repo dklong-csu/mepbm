@@ -13,7 +13,12 @@ SET (CMAKE_CXX_EXTENSIONS OFF)
 FIND_PACKAGE (Threads)
 
 # Link with Eigen library
-FIND_PACKAGE (Eigen3 3.3 REQUIRED NO_MODULE)
+FIND_PACKAGE (Eigen3 3.3 REQUIRED NO_MODULE
+			  HINTS ${EIGEN_DIR} $ENV{EIGEN_DIR})
+
+IF(${Eigen3_FOUND})
+	MESSAGE(STATUS "Found Eigen at '${Eigen3_DIR}'")
+ENDIF()
 
 # Find include files in the current directory
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
