@@ -61,7 +61,7 @@ public:
   unsigned int upper_bound_cutoff = 2000;
 
   // { kb, k1, k2, k3, k4 }
-  std::vector<double> perturbation_magnitude = { 1.e4, 5.e4, 5.e4, 4.e3, 5.e2 };
+  std::vector<double> perturbation_magnitude = { 1.e4, 1.e4, 5.e3, 4.e3, 2.5e1 };
   int perturbation_magnitude_cutoff = 30;
 
   StateVector initial_condition;
@@ -322,7 +322,7 @@ int main(int argc, char **argv)
 {
 
   // Create sample with initial values for parameters
-  Sample starting_guess(7.27e4, 6.4e4, 1.61e4, 5.45e4, 1.2e1, 265);
+  Sample starting_guess(7.27e4, 6.4e4, 1.61e4, 5.45e3, 1.2e1, 265);
 
 
   std::ofstream samples ("samples"
@@ -356,9 +356,9 @@ int main(int argc, char **argv)
     = (argc > 1 ?
        std::hash<std::string>()(std::string(argv[1])) :
        std::uint_fast32_t());
-  const unsigned int n_samples = 10;
+  const unsigned int n_samples = 5;
   mh_sampler.sample (starting_guess,
-                     &Statistics::log_probability<Sample>,
+                     &Statistics::log_probability<Sample,4>,
                      &Statistics::perturb<Sample>,
                      n_samples,
                      random_seed);

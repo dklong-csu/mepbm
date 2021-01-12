@@ -3,8 +3,10 @@
 
 
 #include <vector>
+#include <iostream>
 #include "models.h"
 #include "histogram.h"
+#include "ode_solver.h"
 #include <eigen3/Eigen/Dense>
 
 
@@ -44,11 +46,49 @@ namespace Statistics
   // As a result, this function's workflow is:
   // Step 1: Solve ODE, saving the solution at each relevant time
   // Step 2: For each time point, calculate the log likelihood, and add to the cumulative log likelihood
+  template<int order>
   double log_likelihood(const std::vector<std::vector<double>>& data,
                         const std::vector<double>& times,
                         const Model::Model& ode_model,
                         Eigen::VectorXd& ic,
-                        const Histograms::Parameters& hist_prm);
+                        const Histograms::Parameters& hist_prm)
+  {
+    // Step 1 -- Solve the ODE at each time
+    ODE::StepperBDF<order> stepper(ode_model);
+    std::vector< Eigen::VectorXd > solutions;
+    solutions.push_back(ic);
+    for (unsigned int i = 1; i < times.size(); ++i)
+    {
+      // FIXME: add parameters for what dt should be and for accuracy of newton method
+      auto solution = ODE::solve_ode(stepper, solutions[i-1], times[i-1], times[i], 5e-3);
+      solutions.push_back(solution);
+    }
+
+    // Step 2 -- Accumulate log likelihood
+    double likelihood = 0.0;
+    for (unsigned int set_num=0; set_num < data.size(); ++set_num)
+    {
+      // Step 2a -- Extract the particle sizes from the ODE solution
+      const unsigned int smallest = ode_model.nucleation_order;
+      const unsigned int largest = ode_model.max_size;
+
+      std::vector<double> sizes(largest - smallest + 1);
+      std::vector<double> concentration(sizes.size());
+
+      for (unsigned int size = smallest; size < largest+1; ++size)
+      {
+        sizes[size - smallest] = size;
+        concentration[size - smallest] = solutions[set_num+1](size); // FIXME: particle size to index function needed
+      }
+      // Step 2b -- Calculate log likelihood of current data set and add to total
+      likelihood += Statistics::log_likelihood(data[set_num],
+                                               concentration,
+                                               sizes,
+                                               hist_prm);
+    }
+
+    return likelihood;
+  }
 
 
 
@@ -66,11 +106,11 @@ namespace Statistics
   //                                                   species at time = 0.
   // Histograms::Parameters return_histogram_parameters() -- an object describing the way you want to bin together
   //                                                         particle sizes for comparing between data and simulation.
-  template<class InputClass>
+  template<class InputClass, int order>
   double log_likelihood(const InputClass &my_object)
   {
     Eigen::VectorXd ic = my_object.return_initial_condition();
-    return Statistics::log_likelihood(my_object.return_data(), my_object.return_times(), my_object.return_model(),
+    return Statistics::log_likelihood<order>(my_object.return_data(), my_object.return_times(), my_object.return_model(),
                                       ic, my_object.return_histogram_parameters());
   }
 
@@ -99,7 +139,7 @@ namespace Statistics
   // and only calculate log_likelihood if log_prior is finite.
   //
   // The object used must meet the member function requirements of log_prior<InputClass> and log_likelihood<InputClass>
-  template<class InputClass>
+  template<class InputClass, int order>
   double log_probability (const InputClass &my_object)
   {
     const double log_prior = Statistics::log_prior<InputClass>(my_object);
@@ -108,7 +148,7 @@ namespace Statistics
       return log_prior;
 
     else
-      return Statistics::log_likelihood<InputClass>(my_object) + log_prior;
+      return Statistics::log_likelihood<InputClass, order>(my_object) + log_prior;
   }
 
 
