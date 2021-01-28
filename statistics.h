@@ -153,18 +153,6 @@ namespace Statistics
 
 
 
-  // A function given two real numbers returns a random number
-  // between those numbers based on a uniform distribution
-  double rand_btwn_double (double small_num, double big_num);
-
-
-
-  // A function given two integers returns a random number
-  // between those numbers based on a uniform distribution
-  int rand_btwn_int (int small_num, int big_num);
-
-
-
   // A function given an object returns an object of the same type whose
   // member variables have been randomly perturbed along with the ratio of
   // the probabilities of prm->new_prm / new_prm->prm.
