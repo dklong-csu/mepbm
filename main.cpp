@@ -67,7 +67,6 @@ public:
   StateVector initial_condition;
 
   unsigned int hist_bins = 25;
-
 };
 
 ConstantData::ConstantData()
@@ -156,6 +155,12 @@ public:
   friend std::ostream & operator<< (std::ostream &out, const Sample &sample);
 
 private:
+  // A random number generator to be used in the perturb() function.
+  // This object exists once per sample, rather than using one
+  // global object that will lead to race conditions when using
+  // multiple samplers on different threads at the same time.
+  std::mt19937 rng;
+  
   ConstantData const_parameters;
 };
 
@@ -260,18 +265,18 @@ bool Sample::within_bounds() const
 
 Sample Sample::perturb() const
 {
-  double new_kb = kb + Statistics::rand_btwn_double(-const_parameters.perturbation_magnitude[0],
-                                                    const_parameters.perturbation_magnitude[0]);
-  double new_k1 = k1 + Statistics::rand_btwn_double(-const_parameters.perturbation_magnitude[1],
-                                                    const_parameters.perturbation_magnitude[1]);
-  double new_k2 = k2 + Statistics::rand_btwn_double(-const_parameters.perturbation_magnitude[2],
-                                                    const_parameters.perturbation_magnitude[2]);
-  double new_k3 = k3 + Statistics::rand_btwn_double(-const_parameters.perturbation_magnitude[3],
-                                                    const_parameters.perturbation_magnitude[3]);
-  double new_k4 = k4 + Statistics::rand_btwn_double(-const_parameters.perturbation_magnitude[4],
-                                                    const_parameters.perturbation_magnitude[4]);
-  unsigned int new_cutoff = cutoff + Statistics::rand_btwn_int(-const_parameters.perturbation_magnitude_cutoff,
-                                                               const_parameters.perturbation_magnitude_cutoff);
+  double new_kb = kb + std::uniform_real_distribution<>(-const_parameters.perturbation_magnitude[0],
+                                                        const_parameters.perturbation_magnitude[0])(rng);
+  double new_k1 = k1 + std::uniform_real_distribution<>(-const_parameters.perturbation_magnitude[1],
+                                                        const_parameters.perturbation_magnitude[1])(rng);
+  double new_k2 = k2 + std::uniform_real_distribution<>(-const_parameters.perturbation_magnitude[2],
+                                                        const_parameters.perturbation_magnitude[2])(rng);
+  double new_k3 = k3 + std::uniform_real_distribution<>(-const_parameters.perturbation_magnitude[3],
+                                                        const_parameters.perturbation_magnitude[3])(rng);
+  double new_k4 = k4 + std::uniform_real_distribution<>(-const_parameters.perturbation_magnitude[4],
+                                                        const_parameters.perturbation_magnitude[4])(rng);
+  unsigned int new_cutoff = cutoff + std::uniform_int_distribution<>(-const_parameters.perturbation_magnitude_cutoff,
+                                                                     const_parameters.perturbation_magnitude_cutoff)(rng);
 
   Sample new_sample(new_kb, new_k1, new_k2, new_k3, new_k4, new_cutoff);
   std::cout << "New sample: " << new_sample << std::endl;
