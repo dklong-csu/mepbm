@@ -11,9 +11,11 @@
 
 #include <sampleflow/producers/metropolis_hastings.h>
 #include <sampleflow/filters/conversion.h>
+#include <sampleflow/filters/take_every_nth.h>
 #include <sampleflow/consumers/stream_output.h>
 #include <sampleflow/consumers/mean_value.h>
 #include <sampleflow/consumers/acceptance_ratio.h>
+#include <sampleflow/consumers/action.h>
 
 
 
@@ -346,6 +348,17 @@ int main(int argc, char **argv)
   SampleFlow::Consumers::AcceptanceRatio<VectorType> acceptance_ratio;
   acceptance_ratio.connect_to_producer (convert_to_vector);
 
+  SampleFlow::Filters::TakeEveryNth<Sample> every_100th(100);
+  every_100th.connect_to_producer (mh_sampler);
+
+  SampleFlow::Consumers::Action<Sample>
+    flush_after_every_100th ([&samples](const Sample &, const SampleFlow::AuxiliaryData &)
+                             {
+                               samples << std::flush;
+                             });
+  
+  flush_after_every_100th.connect_to_producer (every_100th);
+  
   // Sample from the given distribution.
   //
   // If an argument was given on the command line,
