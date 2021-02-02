@@ -4,6 +4,7 @@
 
 #include <vector>
 #include <iostream>
+#include <random>
 #include "models.h"
 #include "histogram.h"
 #include "ode_solver.h"
@@ -153,18 +154,6 @@ namespace Statistics
 
 
 
-  // A function given two real numbers returns a random number
-  // between those numbers based on a uniform distribution
-  double rand_btwn_double (double small_num, double big_num);
-
-
-
-  // A function given two integers returns a random number
-  // between those numbers based on a uniform distribution
-  int rand_btwn_int (int small_num, int big_num);
-
-
-
   // A function given an object returns an object of the same type whose
   // member variables have been randomly perturbed along with the ratio of
   // the probabilities of prm->new_prm / new_prm->prm.
@@ -173,9 +162,10 @@ namespace Statistics
   //      InputClass perturb();
   //      double perturb_ratio();
   template<class InputClass>
-  std::pair<InputClass,double> perturb (const InputClass &my_object)
+  std::pair<InputClass,double> perturb (const InputClass &my_object,
+                                        std::mt19937 &rng)
   {
-    InputClass new_object = my_object.perturb();
+    InputClass new_object = my_object.perturb(rng);
     double ratio = my_object.perturb_ratio();
 
     return {new_object, ratio};

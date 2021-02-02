@@ -67,7 +67,6 @@ public:
   StateVector initial_condition;
 
   unsigned int hist_bins = 25;
-
 };
 
 ConstantData::ConstantData()
@@ -147,7 +146,7 @@ public:
   StateVector return_initial_condition() const;
   Histograms::Parameters return_histogram_parameters() const;
   bool within_bounds() const;
-  Sample perturb() const;
+  Sample perturb(std::mt19937 &rng) const;
   static double perturb_ratio() ;
 
   Sample& operator = (const Sample &sample);
@@ -258,20 +257,20 @@ bool Sample::within_bounds() const
 
 
 
-Sample Sample::perturb() const
+Sample Sample::perturb(std::mt19937 &rng) const
 {
-  double new_kb = kb + Statistics::rand_btwn_double(-const_parameters.perturbation_magnitude[0],
-                                                    const_parameters.perturbation_magnitude[0]);
-  double new_k1 = k1 + Statistics::rand_btwn_double(-const_parameters.perturbation_magnitude[1],
-                                                    const_parameters.perturbation_magnitude[1]);
-  double new_k2 = k2 + Statistics::rand_btwn_double(-const_parameters.perturbation_magnitude[2],
-                                                    const_parameters.perturbation_magnitude[2]);
-  double new_k3 = k3 + Statistics::rand_btwn_double(-const_parameters.perturbation_magnitude[3],
-                                                    const_parameters.perturbation_magnitude[3]);
-  double new_k4 = k4 + Statistics::rand_btwn_double(-const_parameters.perturbation_magnitude[4],
-                                                    const_parameters.perturbation_magnitude[4]);
-  unsigned int new_cutoff = cutoff + Statistics::rand_btwn_int(-const_parameters.perturbation_magnitude_cutoff,
-                                                               const_parameters.perturbation_magnitude_cutoff);
+  double new_kb = kb + std::uniform_real_distribution<>(-const_parameters.perturbation_magnitude[0],
+                                                        const_parameters.perturbation_magnitude[0])(rng);
+  double new_k1 = k1 + std::uniform_real_distribution<>(-const_parameters.perturbation_magnitude[1],
+                                                        const_parameters.perturbation_magnitude[1])(rng);
+  double new_k2 = k2 + std::uniform_real_distribution<>(-const_parameters.perturbation_magnitude[2],
+                                                        const_parameters.perturbation_magnitude[2])(rng);
+  double new_k3 = k3 + std::uniform_real_distribution<>(-const_parameters.perturbation_magnitude[3],
+                                                        const_parameters.perturbation_magnitude[3])(rng);
+  double new_k4 = k4 + std::uniform_real_distribution<>(-const_parameters.perturbation_magnitude[4],
+                                                        const_parameters.perturbation_magnitude[4])(rng);
+  unsigned int new_cutoff = cutoff + std::uniform_int_distribution<>(-const_parameters.perturbation_magnitude_cutoff,
+                                                            const_parameters.perturbation_magnitude_cutoff)(rng);
 
   Sample new_sample(new_kb, new_k1, new_k2, new_k3, new_k4, new_cutoff);
   std::cout << "New sample: " << new_sample << std::endl;
@@ -357,9 +356,14 @@ int main(int argc, char **argv)
        std::hash<std::string>()(std::string(argv[1])) :
        std::uint_fast32_t());
   const unsigned int n_samples = 5;
+
+  std::mt19937 rng;
   mh_sampler.sample (starting_guess,
                      &Statistics::log_probability<Sample,4>,
-                     &Statistics::perturb<Sample>,
+                     [&rng](const Sample &s)
+                     {
+                       return Statistics::perturb<Sample> (s, rng);
+                     },
                      n_samples,
                      random_seed);
 

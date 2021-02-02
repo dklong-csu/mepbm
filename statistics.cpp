@@ -71,23 +71,3 @@ double Statistics::log_likelihood(const VectorType& data,
 
   return likelihood;
 }
-
-
-
-double Statistics::rand_btwn_double (const double small_num, const double big_num)
-{
-  static std::mt19937 gen;
-  std::uniform_real_distribution<> unif(small_num,big_num);
-
-  return unif(gen);
-}
-
-
-
-int Statistics::rand_btwn_int (const int small_num, const int big_num)
-{
-  static std::mt19937 gen;
-  std::uniform_int_distribution<> unif(small_num,big_num);
-
-  return unif(gen);
-}
