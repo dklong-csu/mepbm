@@ -371,6 +371,7 @@ int main(int argc, char **argv)
   const unsigned int n_samples = 5;
 
   std::mt19937 rng;
+  rng.seed(random_seed);
   mh_sampler.sample (starting_guess,
                      &Statistics::log_probability<Sample,4>,
                      [&rng](const Sample &s)
