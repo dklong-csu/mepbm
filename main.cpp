@@ -348,11 +348,11 @@ int main(int argc, char **argv)
   SampleFlow::Consumers::AcceptanceRatio<VectorType> acceptance_ratio;
   acceptance_ratio.connect_to_producer (convert_to_vector);
 
-  SampleFlow::Filter::TakeEveryNth<Sample> every_100th(100);
+  SampleFlow::Filters::TakeEveryNth<Sample> every_100th(100);
   every_100th.connect_to_producer (mh_sampler);
 
   SampleFlow::Consumers::Action<Sample>
-    flush_after_every_100th ([](const Sample &, const SampleFlow::AuxiliaryData &)
+    flush_after_every_100th ([&samples](const Sample &, const SampleFlow::AuxiliaryData &)
                              {
                                samples << std::flush;
                              });
