@@ -4,6 +4,7 @@
 
 #include <vector>
 #include <iostream>
+#include <random>
 #include "models.h"
 #include "histogram.h"
 #include "ode_solver.h"
@@ -162,7 +163,7 @@ namespace Statistics
   //      double perturb_ratio();
   template<class InputClass>
   std::pair<InputClass,double> perturb (const InputClass &my_object,
-                                        const std::mt19937 &rng)
+                                        std::mt19937 &rng)
   {
     InputClass new_object = my_object.perturb(rng);
     double ratio = my_object.perturb_ratio();

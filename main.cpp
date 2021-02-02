@@ -146,7 +146,7 @@ public:
   StateVector return_initial_condition() const;
   Histograms::Parameters return_histogram_parameters() const;
   bool within_bounds() const;
-  Sample perturb(const std::mt19937 &rng) const;
+  Sample perturb(std::mt19937 &rng) const;
   static double perturb_ratio() ;
 
   Sample& operator = (const Sample &sample);
@@ -257,7 +257,7 @@ bool Sample::within_bounds() const
 
 
 
-Sample Sample::perturb(const std::mt19937 &rng) const
+Sample Sample::perturb(std::mt19937 &rng) const
 {
   double new_kb = kb + std::uniform_real_distribution<>(-const_parameters.perturbation_magnitude[0],
                                                         const_parameters.perturbation_magnitude[0])(rng);
@@ -270,7 +270,7 @@ Sample Sample::perturb(const std::mt19937 &rng) const
   double new_k4 = k4 + std::uniform_real_distribution<>(-const_parameters.perturbation_magnitude[4],
                                                         const_parameters.perturbation_magnitude[4])(rng);
   unsigned int new_cutoff = cutoff + std::uniform_int_distribution<>(-const_parameters.perturbation_magnitude_cutoff,
-                                                                     const_parameters.perturbation_magnitude_cutoff)(rng);
+                                                            const_parameters.perturbation_magnitude_cutoff)(rng);
 
   Sample new_sample(new_kb, new_k1, new_k2, new_k3, new_k4, new_cutoff);
   std::cout << "New sample: " << new_sample << std::endl;
@@ -360,7 +360,6 @@ int main(int argc, char **argv)
   std::mt19937 rng;
   mh_sampler.sample (starting_guess,
                      &Statistics::log_probability<Sample,4>,
-                     //std::bind(&Statistics::perturb<Sample>, std::placeholders::_1, std::cref(rng)),
                      [&rng](const Sample &s)
                      {
                        return Statistics::perturb<Sample> (s, rng);
