@@ -146,7 +146,7 @@ public:
   StateVector return_initial_condition() const;
   Histograms::Parameters return_histogram_parameters() const;
   bool within_bounds() const;
-  Sample perturb() const;
+  Sample perturb(const std::mt19937 &rng) const;
   static double perturb_ratio() ;
 
   Sample& operator = (const Sample &sample);
@@ -155,12 +155,6 @@ public:
   friend std::ostream & operator<< (std::ostream &out, const Sample &sample);
 
 private:
-  // A random number generator to be used in the perturb() function.
-  // This object exists once per sample, rather than using one
-  // global object that will lead to race conditions when using
-  // multiple samplers on different threads at the same time.
-  std::mt19937 rng;
-  
   ConstantData const_parameters;
 };
 
@@ -263,7 +257,7 @@ bool Sample::within_bounds() const
 
 
 
-Sample Sample::perturb() const
+Sample Sample::perturb(const std::mt19937 &rng) const
 {
   double new_kb = kb + std::uniform_real_distribution<>(-const_parameters.perturbation_magnitude[0],
                                                         const_parameters.perturbation_magnitude[0])(rng);
@@ -362,9 +356,15 @@ int main(int argc, char **argv)
        std::hash<std::string>()(std::string(argv[1])) :
        std::uint_fast32_t());
   const unsigned int n_samples = 5;
+
+  std::mt19937 rng;
   mh_sampler.sample (starting_guess,
                      &Statistics::log_probability<Sample,4>,
-                     &Statistics::perturb<Sample>,
+                     //std::bind(&Statistics::perturb<Sample>, std::placeholders::_1, std::cref(rng)),
+                     [&rng](const Sample &s)
+                     {
+                       return Statistics::perturb<Sample> (s, rng);
+                     },
                      n_samples,
                      random_seed);
 

@@ -161,9 +161,10 @@ namespace Statistics
   //      InputClass perturb();
   //      double perturb_ratio();
   template<class InputClass>
-  std::pair<InputClass,double> perturb (const InputClass &my_object)
+  std::pair<InputClass,double> perturb (const InputClass &my_object,
+                                        const std::mt19937 &rng)
   {
-    InputClass new_object = my_object.perturb();
+    InputClass new_object = my_object.perturb(rng);
     double ratio = my_object.perturb_ratio();
 
     return {new_object, ratio};
