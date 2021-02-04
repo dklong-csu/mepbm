@@ -12,14 +12,24 @@ SET (CMAKE_CXX_EXTENSIONS OFF)
 # Also make sure we link with the threads library in question
 FIND_PACKAGE (Threads)
 
-# Link with Eigen library
-FIND_PACKAGE (Eigen3 3.3 REQUIRED NO_MODULE
-			  HINTS ${EIGEN_DIR} $ENV{EIGEN_DIR})
 
-IF(${Eigen3_FOUND})
-	MESSAGE(STATUS "Found Eigen at '${Eigen3_DIR}'")
+#########################################
+### Find the Eigen library
+FIND_PATH(_eigen_include_dir
+          NAMES eigen3/Eigen/Dense
+          HINTS ${EIGEN_DIR}/install/include)
+IF ("${_eigen_include_dir}" STREQUAL "_eigen_include_dir-NOTFOUND")
+  MESSAGE(FATAL_ERROR
+          "The Eigen library was not found. You have to specify a path "
+          "to that library by setting the EIGEN_DIR environment variable, "
+          "or passing '-DEIGEN_DIR=...' as an argument to 'cmake'.")
+ELSE()
+  MESSAGE(STATUS "Found EIGEN headers at ${_eigen_include_dir}")
+  INCLUDE_DIRECTORIES(${_eigen_include_dir})
 ENDIF()
 
+
+#########################################
 # Find include files in the current directory
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -60,8 +70,7 @@ ADD_EXECUTABLE(mepbm
                main.cpp
                $<TARGET_OBJECTS:libmepbm>)
 TARGET_LINK_LIBRARIES (mepbm
-                       Threads::Threads
-                       Eigen3::Eigen)
+                       Threads::Threads)
 
 
 #########################################
