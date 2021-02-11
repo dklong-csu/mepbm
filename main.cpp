@@ -41,6 +41,7 @@ public:
   ConstantData();
 
   unsigned int min_size = 3;
+  unsigned int min_reliable_size = 100;
   unsigned int max_size = 2500;
   unsigned int conserved_size = 1;
 
@@ -237,7 +238,7 @@ StateVector Sample::return_initial_condition() const
 
 Histograms::Parameters Sample::return_histogram_parameters() const
 {
-  Histograms::Parameters hist_parameters(const_parameters.hist_bins, const_parameters.min_size,
+  Histograms::Parameters hist_parameters(const_parameters.hist_bins, const_parameters.min_reliable_size,
                                          const_parameters.max_size);
   return hist_parameters;
 }
