@@ -49,21 +49,20 @@ public:
   unsigned int ligand_index = 2;
 
   double solvent = 11.3;
-  double kf = 3.6e-2;
 
   Data::PomData data_diameter;
   std::vector< std::vector<double> > data_size;
   std::vector<double> times;
 
   // { kb, k1, k2, k3, k4 }
-  std::vector<double> lower_bounds = { 1000., 4800., 10., 10., 10.};
-  std::vector<double> upper_bounds = { 2.e6, 8.e7, 8.5e5, 2.5e5, 2.5e5};
+  std::vector<double> lower_bounds = { 0., 1000., 4800., 10., 10., 10.};
+  std::vector<double> upper_bounds = { 1.e3, 2.e6, 8.e7, 8.5e5, 2.5e5, 2.5e5};
 
   unsigned int lower_bound_cutoff = 10;
   unsigned int upper_bound_cutoff = 2000;
 
-  // { kb, k1, k2, k3, k4 }
-  std::vector<double> perturbation_magnitude = { 1.e4, 1.e4, 5.e3, 4.e3, 2.5e1 };
+  // { kf, kb, k1, k2, k3, k4 }
+  std::vector<double> perturbation_magnitude = { 1.e-3, 1.e4, 1.e4, 5.e3, 4.e3, 2.5e1 };
   int perturbation_magnitude_cutoff = 30;
 
   StateVector initial_condition;
@@ -135,12 +134,12 @@ ConstantData::ConstantData()
 class Sample
 {
 public:
-  double kb, k1, k2, k3, k4;
+  double kf, kb, k1, k2, k3, k4;
   unsigned int cutoff;
 
   // Default constructor makes an invalid object
   Sample();
-  Sample(double kb, double k1, double k2, double k3, double k4, unsigned int cutoff);
+  Sample(double kf, double kb, double k1, double k2, double k3, double k4, unsigned int cutoff);
 
   std::vector< std::vector<double> > return_data() const;
   std::vector<double> return_times() const;
@@ -162,14 +161,15 @@ private:
 
 
 
-Sample::Sample(double kb, double k1, double k2, double k3, double k4, unsigned int cutoff)
-  : kb(kb), k1(k1), k2(k2), k3(k3), k4(k4), cutoff(cutoff)
+Sample::Sample(double kf, double kb, double k1, double k2, double k3, double k4, unsigned int cutoff)
+  : kf(kf), kb(kb), k1(k1), k2(k2), k3(k3), k4(k4), cutoff(cutoff)
 {}
 
 
 
 Sample::Sample()
   : Sample(std::numeric_limits<double>::signaling_NaN(),
+           std::numeric_limits<double>::signaling_NaN(),
            std::numeric_limits<double>::signaling_NaN(),
            std::numeric_limits<double>::signaling_NaN(),
            std::numeric_limits<double>::signaling_NaN(),
@@ -199,7 +199,7 @@ Model::Model Sample::return_model() const
   std::shared_ptr<Model::RightHandSideContribution> nucleation =
     std::make_shared<Model::TermolecularNucleation>(const_parameters.A_index, const_parameters.As_index,
                                                     const_parameters.ligand_index, const_parameters.min_size,
-                                                    const_parameters.kf, kb, k1, const_parameters.solvent);
+                                                    kf, kb, k1, const_parameters.solvent);
 
   std::shared_ptr<Model::RightHandSideContribution> small_growth =
     std::make_shared<Model::Growth>(const_parameters.A_index, const_parameters.min_size, cutoff,
@@ -246,11 +246,12 @@ Histograms::Parameters Sample::return_histogram_parameters() const
 
 bool Sample::within_bounds() const
 {
-  if ( kb < const_parameters.lower_bounds[0] || kb > const_parameters.upper_bounds[0]
-       || k1 < const_parameters.lower_bounds[1] || k1 > const_parameters.upper_bounds[1]
-       || k2 < const_parameters.lower_bounds[2] || k2 > const_parameters.upper_bounds[2]
-       || k3 < const_parameters.lower_bounds[3] || k3 > const_parameters.upper_bounds[3]
-       || k4 < const_parameters.lower_bounds[4] || k4 > const_parameters.upper_bounds[4]
+  if (    kf < const_parameters.lower_bounds[0] || kf > const_parameters.upper_bounds[0]
+       || kb < const_parameters.lower_bounds[1] || kb > const_parameters.upper_bounds[1]
+       || k1 < const_parameters.lower_bounds[2] || k1 > const_parameters.upper_bounds[2]
+       || k2 < const_parameters.lower_bounds[3] || k2 > const_parameters.upper_bounds[3]
+       || k3 < const_parameters.lower_bounds[4] || k3 > const_parameters.upper_bounds[4]
+       || k4 < const_parameters.lower_bounds[5] || k4 > const_parameters.upper_bounds[5]
        || cutoff < const_parameters.lower_bound_cutoff || cutoff > const_parameters.upper_bound_cutoff)
     return false;
   else
@@ -261,20 +262,22 @@ bool Sample::within_bounds() const
 
 Sample Sample::perturb(std::mt19937 &rng) const
 {
-  double new_kb = kb + std::uniform_real_distribution<>(-const_parameters.perturbation_magnitude[0],
+  double new_kf = kf + std::uniform_real_distribution<>(-const_parameters.perturbation_magnitude[0],
                                                         const_parameters.perturbation_magnitude[0])(rng);
-  double new_k1 = k1 + std::uniform_real_distribution<>(-const_parameters.perturbation_magnitude[1],
+  double new_kb = kb + std::uniform_real_distribution<>(-const_parameters.perturbation_magnitude[1],
                                                         const_parameters.perturbation_magnitude[1])(rng);
-  double new_k2 = k2 + std::uniform_real_distribution<>(-const_parameters.perturbation_magnitude[2],
+  double new_k1 = k1 + std::uniform_real_distribution<>(-const_parameters.perturbation_magnitude[2],
                                                         const_parameters.perturbation_magnitude[2])(rng);
-  double new_k3 = k3 + std::uniform_real_distribution<>(-const_parameters.perturbation_magnitude[3],
+  double new_k2 = k2 + std::uniform_real_distribution<>(-const_parameters.perturbation_magnitude[3],
                                                         const_parameters.perturbation_magnitude[3])(rng);
-  double new_k4 = k4 + std::uniform_real_distribution<>(-const_parameters.perturbation_magnitude[4],
+  double new_k3 = k3 + std::uniform_real_distribution<>(-const_parameters.perturbation_magnitude[4],
                                                         const_parameters.perturbation_magnitude[4])(rng);
+  double new_k4 = k4 + std::uniform_real_distribution<>(-const_parameters.perturbation_magnitude[5],
+                                                        const_parameters.perturbation_magnitude[5])(rng);
   unsigned int new_cutoff = cutoff + std::uniform_int_distribution<>(-const_parameters.perturbation_magnitude_cutoff,
                                                             const_parameters.perturbation_magnitude_cutoff)(rng);
 
-  Sample new_sample(new_kb, new_k1, new_k2, new_k3, new_k4, new_cutoff);
+  Sample new_sample(new_kf, new_kb, new_k1, new_k2, new_k3, new_k4, new_cutoff);
   std::cout << "New sample: " << new_sample << std::endl;
   return new_sample;
 }
@@ -290,6 +293,7 @@ double Sample::perturb_ratio()
 
 Sample& Sample::operator=(const Sample &sample)
 {
+  kf = sample.kf;
   kb = sample.kb;
   k1 = sample.k1;
   k2 = sample.k2;
@@ -304,12 +308,13 @@ Sample& Sample::operator=(const Sample &sample)
 
 Sample::operator std::valarray<double>() const
 {
-  return { kb, k1, k2, k3, k4, static_cast<double>(cutoff)};
+  return { kf, kb, k1, k2, k3, k4, static_cast<double>(cutoff)};
 }
 
 std::ostream &operator<<(std::ostream &out, const Sample &sample)
 {
-  out << sample.kb << ", "
+  out << sample.kf << ", "
+      << sample.kb << ", "
       << sample.k1 << ", "
       << sample.k2 << ", "
       << sample.k3 << ", "
@@ -323,7 +328,7 @@ int main(int argc, char **argv)
 {
 
   // Create sample with initial values for parameters
-  Sample starting_guess(7.27e4, 6.4e4, 1.61e4, 5.45e3, 1.2e1, 265);
+  Sample starting_guess(3.6e-2,7.27e4, 6.4e4, 1.61e4, 5.45e3, 1.2e1, 265);
 
 
   std::ofstream samples ("samples"
