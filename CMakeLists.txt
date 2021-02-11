@@ -17,7 +17,7 @@ FIND_PACKAGE (Threads)
 ### Find the Eigen library
 FIND_PATH(_eigen_include_dir
           NAMES eigen3/Eigen/Dense
-          HINTS ${EIGEN_DIR}/install/include)
+          HINTS ${EIGEN_DIR}/include)
 IF ("${_eigen_include_dir}" STREQUAL "_eigen_include_dir-NOTFOUND")
   MESSAGE(FATAL_ERROR
           "The Eigen library was not found. You have to specify a path "
