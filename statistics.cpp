@@ -29,16 +29,35 @@ double Statistics::log_likelihood(const VectorType& data,
 
   // Step 2 -- Turn distribution into a histogram
     // Step 2a -- Normalize distribution to create probability mass function (pmf)
+
+    // We know our model and ODE solver are imperfect. Therefore, if we encounter a negative
+    // value then we know this is a mathematical limitation. Fortunately, we can use physical
+    // intuition to understand that zero is a more accurate value. We can extend that a step
+    // further and see that instead of zero, a very small number relative to the rest of the
+    // concentrations is perhaps more accurate and plays nicely with the logarithms used later.
+    // To this end, we calculate the sum of all positive concentrations to get an idea of the
+    // size scale. Then in the pmf calculation, the negative values are changed to be 1e-9*norm.
+    // We could recalculate the norm adding in this adjustment to the negative values, but it
+    // does not make a substantial difference, so that step is skipped.
     double norm = 0.;
-    for (double concentration : distribution)
-    {
-      norm += concentration;
+    for (double concentration : distribution) {
+      if (concentration > 0)
+      {
+        norm += concentration;
+      }
     }
 
     VectorType pmf(distribution.size());
     for (unsigned int i=0; i<pmf.size(); ++i)
     {
-      pmf[i] = distribution[i] / norm;
+      if (distribution[i] < 0)
+      {
+        pmf[i] = 1e-9;
+      }
+      else
+      {
+        pmf[i] = distribution[i] / norm;
+      }
     }
 
     // Step 2b -- Create histogram from pmf
