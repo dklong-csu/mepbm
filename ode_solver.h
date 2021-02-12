@@ -11,22 +11,6 @@ namespace ODE
 {
   /***************** Classes -- Implementations in .cpp *****************/
 
-  // FIXME: This is a placeholder for the moment. Eventually I will integrate this class
-  // FIXME: with the objects in models.h but that first requires a bunch of things to be
-  // FIXME: converted from Boost data types to Eigen data types.
-  /*
-  class OdeSystem
-  {
-  public:
-    Eigen::VectorXd compute_rhs(double t, const Eigen::VectorXd &x) const;
-
-    Eigen::MatrixXd compute_jacobian(double t, const Eigen::VectorXd &x) const;
-
-    Eigen::PartialPivLU<Eigen::MatrixXd> jacobian_solver;
-  };
-
-*/
-
   /*
    * Base class for ODE time stepper
    */
