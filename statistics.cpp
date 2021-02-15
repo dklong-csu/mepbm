@@ -35,17 +35,26 @@ double Statistics::log_likelihood(const VectorType& data,
     // intuition to understand that zero is a more accurate value. We can extend that a step
     // further and see that instead of zero, a very small number relative to the rest of the
     // concentrations is perhaps more accurate and plays nicely with the logarithms used later.
-    // To this end, we calculate the sum of all positive concentrations to get an idea of the
-    // size scale. Then in the pmf calculation, the negative values are changed to be 1e-9 times
-    // the max concentration. We could recalculate the norm adding in this adjustment to the
-    // negative values, but it does not make a substantial difference, so that step is skipped.
-    double norm = 0.;
+    // To this end, we first calculate the maximum value in the distribution vector, with the
+    // intention of replacing negative values with 1e-9 * max value. Then we calculate the norm
+    // by summing all elements in distribution, replacing negative values as necessary. Finally,
+    // the vector is normalized by the norm value, again replacing negative values as necessary.
     double max_conc = 0.;
-    for (double concentration : distribution) {
+    for (double concentration : distribution)
+    {
+      max_conc = std::max(max_conc, concentration);
+    }
+
+    double norm = 0.;
+    for (double concentration : distribution)
+    {
       if (concentration > 0)
       {
         norm += concentration;
-        max_conc = std::max(max_conc, concentration);
+      }
+      else
+      {
+        norm += max_conc * 1e-9;
       }
     }
 
