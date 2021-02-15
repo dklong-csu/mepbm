@@ -36,14 +36,16 @@ double Statistics::log_likelihood(const VectorType& data,
     // further and see that instead of zero, a very small number relative to the rest of the
     // concentrations is perhaps more accurate and plays nicely with the logarithms used later.
     // To this end, we calculate the sum of all positive concentrations to get an idea of the
-    // size scale. Then in the pmf calculation, the negative values are changed to be 1e-9*norm.
-    // We could recalculate the norm adding in this adjustment to the negative values, but it
-    // does not make a substantial difference, so that step is skipped.
+    // size scale. Then in the pmf calculation, the negative values are changed to be 1e-9 times
+    // the max concentration. We could recalculate the norm adding in this adjustment to the
+    // negative values, but it does not make a substantial difference, so that step is skipped.
     double norm = 0.;
+    double max_conc = 0.;
     for (double concentration : distribution) {
       if (concentration > 0)
       {
         norm += concentration;
+        max_conc = (max_conc < concentration ? concentration : max_conc);
       }
     }
 
@@ -52,7 +54,7 @@ double Statistics::log_likelihood(const VectorType& data,
     {
       if (distribution[i] < 0)
       {
-        pmf[i] = 1e-9;
+        pmf[i] = 1e-9 * max_conc / norm;
       }
       else
       {
