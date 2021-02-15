@@ -45,7 +45,7 @@ double Statistics::log_likelihood(const VectorType& data,
       if (concentration > 0)
       {
         norm += concentration;
-        max_conc = (max_conc < concentration ? concentration : max_conc);
+        max_conc = std::max(max_conc, concentration);
       }
     }
 
