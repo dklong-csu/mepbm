@@ -24,7 +24,7 @@ jobs:
         mkdir ./eigen/install
         cd ./eigen/build
         cmake ../ -DCMAKE_INSTALL_PREFIX=../install
-        sudo make install
+        make install
         cd ../../
     - name: cmake
       run: cmake -DSAMPLEFLOW_DIR="$PWD/SampleFlow" -DEIGEN_DIR="$PWD/eigen/install" -DCMAKE_BUILD_TYPE=release .
