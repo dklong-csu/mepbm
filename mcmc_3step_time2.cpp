@@ -1,3 +1,10 @@
+/*
+ * Program to compute the posterior distribution
+ * -- 3-step mechanism
+ * -- Ir-POM chemical system
+ * -- Using data from time 1.170
+ */
+
 #include <iostream>
 #include <fstream>
 #include <limits>
@@ -55,15 +62,15 @@ public:
   std::vector< std::vector<double> > data_size;
   std::vector<double> times;
 
-  // { kb, k1, k2, k3, k4 }
-  std::vector<double> lower_bounds = { 0., 1000., 4800., 10., 10., 10.};
-  std::vector<double> upper_bounds = { 1.e3, 2.e6, 8.e7, 8.5e5, 2.5e5, 2.5e5};
+  // { kb, k1, k2, k3 }
+  std::vector<double> lower_bounds = { 0., 1000., 4800., 10., 10.};
+  std::vector<double> upper_bounds = { 1.e3, 2.e6, 8.e7, 8.5e5, 2.5e5};
 
   unsigned int lower_bound_cutoff = 10;
   unsigned int upper_bound_cutoff = 2000;
 
-  // { kf, kb, k1, k2, k3, k4 }
-  std::vector<double> perturbation_magnitude = { 1.e-3, 1.e4, 1.e4, 5.e3, 4.e3, 2.5e1 };
+  // { kf, kb, k1, k2, k3 }
+  std::vector<double> perturbation_magnitude = { 1.e-3, 1.e4, 1.e4, 5.e3, 4.e3};
   int perturbation_magnitude_cutoff = 30;
 
   StateVector initial_condition;
@@ -73,8 +80,7 @@ public:
 
 ConstantData::ConstantData()
 {
-  const std::vector<std::vector<double>> data_diam = {data_diameter.tem_diam_time1, data_diameter.tem_diam_time2,
-                                                      data_diameter.tem_diam_time3, data_diameter.tem_diam_time4};
+  const std::vector<std::vector<double>> data_diam = {data_diameter.tem_diam_time2};
   for (const auto& vec : data_diam)
   {
     std::vector<double> tmp;
@@ -85,7 +91,7 @@ ConstantData::ConstantData()
     data_size.push_back(tmp);
   }
 
-  times = {0., data_diameter.tem_time1, data_diameter.tem_time2, data_diameter.tem_time3, data_diameter.tem_time4};
+  times = {0., data_diameter.tem_time2};
 
   initial_condition = StateVector::Zero(max_size + 1);
   initial_condition(0) = 0.0012;
@@ -135,12 +141,12 @@ ConstantData::ConstantData()
 class Sample
 {
 public:
-  double kf, kb, k1, k2, k3, k4;
+  double kf, kb, k1, k2, k3;
   unsigned int cutoff;
 
   // Default constructor makes an invalid object
   Sample();
-  Sample(double kf, double kb, double k1, double k2, double k3, double k4, unsigned int cutoff);
+  Sample(double kf, double kb, double k1, double k2, double k3, unsigned int cutoff);
 
   std::vector< std::vector<double> > return_data() const;
   std::vector<double> return_times() const;
@@ -162,20 +168,19 @@ private:
 
 
 
-Sample::Sample(double kf, double kb, double k1, double k2, double k3, double k4, unsigned int cutoff)
-  : kf(kf), kb(kb), k1(k1), k2(k2), k3(k3), k4(k4), cutoff(cutoff)
+Sample::Sample(double kf, double kb, double k1, double k2, double k3, unsigned int cutoff)
+    : kf(kf), kb(kb), k1(k1), k2(k2), k3(k3), cutoff(cutoff)
 {}
 
 
 
 Sample::Sample()
-  : Sample(std::numeric_limits<double>::signaling_NaN(),
-           std::numeric_limits<double>::signaling_NaN(),
-           std::numeric_limits<double>::signaling_NaN(),
-           std::numeric_limits<double>::signaling_NaN(),
-           std::numeric_limits<double>::signaling_NaN(),
-           std::numeric_limits<double>::signaling_NaN(),
-           static_cast<unsigned int>(-1))
+    : Sample(std::numeric_limits<double>::signaling_NaN(),
+             std::numeric_limits<double>::signaling_NaN(),
+             std::numeric_limits<double>::signaling_NaN(),
+             std::numeric_limits<double>::signaling_NaN(),
+             std::numeric_limits<double>::signaling_NaN(),
+             static_cast<unsigned int>(-1))
 {}
 
 
@@ -194,35 +199,28 @@ std::vector<double> Sample::return_times() const
 
 
 
-// Here we implement a Four-Step Model
+// Here we implement a 3-Step Model
 Model::Model Sample::return_model() const
 {
   std::shared_ptr<Model::RightHandSideContribution> nucleation =
-    std::make_shared<Model::TermolecularNucleation>(const_parameters.A_index, const_parameters.As_index,
-                                                    const_parameters.ligand_index, const_parameters.min_size,
-                                                    kf, kb, k1, const_parameters.solvent);
+      std::make_shared<Model::TermolecularNucleation>(const_parameters.A_index, const_parameters.As_index,
+                                                      const_parameters.ligand_index, const_parameters.min_size,
+                                                      kf, kb, k1, const_parameters.solvent);
 
   std::shared_ptr<Model::RightHandSideContribution> small_growth =
-    std::make_shared<Model::Growth>(const_parameters.A_index, const_parameters.min_size, cutoff,
-                                    const_parameters.max_size, const_parameters.ligand_index,
-                                    const_parameters.conserved_size, k2);
+      std::make_shared<Model::Growth>(const_parameters.A_index, const_parameters.min_size, cutoff,
+                                      const_parameters.max_size, const_parameters.ligand_index,
+                                      const_parameters.conserved_size, k2);
 
   std::shared_ptr<Model::RightHandSideContribution> large_growth =
-    std::make_shared<Model::Growth>(const_parameters.A_index, cutoff+1, const_parameters.max_size,
-                                    const_parameters.max_size, const_parameters.ligand_index,
-                                    const_parameters.conserved_size, k3);
-
-  std::shared_ptr<Model::RightHandSideContribution> agglomeration =
-  std::make_shared<Model::Agglomeration>(const_parameters.min_size, cutoff,
-                                         const_parameters.min_size, cutoff,
-                                         const_parameters.max_size, const_parameters.conserved_size,
-                                         k4);
+      std::make_shared<Model::Growth>(const_parameters.A_index, cutoff+1, const_parameters.max_size,
+                                      const_parameters.max_size, const_parameters.ligand_index,
+                                      const_parameters.conserved_size, k3);
 
   Model::Model model(const_parameters.min_size, const_parameters.max_size);
   model.add_rhs_contribution(nucleation);
   model.add_rhs_contribution(small_growth);
   model.add_rhs_contribution(large_growth);
-  model.add_rhs_contribution(agglomeration);
 
   return model;
 }
@@ -248,12 +246,11 @@ Histograms::Parameters Sample::return_histogram_parameters() const
 bool Sample::within_bounds() const
 {
   if (    kf < const_parameters.lower_bounds[0] || kf > const_parameters.upper_bounds[0]
-       || kb < const_parameters.lower_bounds[1] || kb > const_parameters.upper_bounds[1]
-       || k1 < const_parameters.lower_bounds[2] || k1 > const_parameters.upper_bounds[2]
-       || k2 < const_parameters.lower_bounds[3] || k2 > const_parameters.upper_bounds[3]
-       || k3 < const_parameters.lower_bounds[4] || k3 > const_parameters.upper_bounds[4]
-       || k4 < const_parameters.lower_bounds[5] || k4 > const_parameters.upper_bounds[5]
-       || cutoff < const_parameters.lower_bound_cutoff || cutoff > const_parameters.upper_bound_cutoff)
+          || kb < const_parameters.lower_bounds[1] || kb > const_parameters.upper_bounds[1]
+          || k1 < const_parameters.lower_bounds[2] || k1 > const_parameters.upper_bounds[2]
+          || k2 < const_parameters.lower_bounds[3] || k2 > const_parameters.upper_bounds[3]
+          || k3 < const_parameters.lower_bounds[4] || k3 > const_parameters.upper_bounds[4]
+          || cutoff < const_parameters.lower_bound_cutoff || cutoff > const_parameters.upper_bound_cutoff)
     return false;
   else
     return true;
@@ -273,12 +270,10 @@ Sample Sample::perturb(std::mt19937 &rng) const
                                                         const_parameters.perturbation_magnitude[3])(rng);
   double new_k3 = k3 + std::uniform_real_distribution<>(-const_parameters.perturbation_magnitude[4],
                                                         const_parameters.perturbation_magnitude[4])(rng);
-  double new_k4 = k4 + std::uniform_real_distribution<>(-const_parameters.perturbation_magnitude[5],
-                                                        const_parameters.perturbation_magnitude[5])(rng);
   unsigned int new_cutoff = cutoff + std::uniform_int_distribution<>(-const_parameters.perturbation_magnitude_cutoff,
-                                                            const_parameters.perturbation_magnitude_cutoff)(rng);
+                                                                     const_parameters.perturbation_magnitude_cutoff)(rng);
 
-  Sample new_sample(new_kf, new_kb, new_k1, new_k2, new_k3, new_k4, new_cutoff);
+  Sample new_sample(new_kf, new_kb, new_k1, new_k2, new_k3, new_cutoff);
   std::cout << "New sample: " << new_sample << std::endl;
   return new_sample;
 }
@@ -299,7 +294,6 @@ Sample& Sample::operator=(const Sample &sample)
   k1 = sample.k1;
   k2 = sample.k2;
   k3 = sample.k3;
-  k4 = sample.k4;
   cutoff = sample.cutoff;
 
   return *this;
@@ -309,7 +303,7 @@ Sample& Sample::operator=(const Sample &sample)
 
 Sample::operator std::valarray<double>() const
 {
-  return { kf, kb, k1, k2, k3, k4, static_cast<double>(cutoff)};
+  return { kf, kb, k1, k2, k3, static_cast<double>(cutoff)};
 }
 
 std::ostream &operator<<(std::ostream &out, const Sample &sample)
@@ -319,7 +313,6 @@ std::ostream &operator<<(std::ostream &out, const Sample &sample)
       << sample.k1 << ", "
       << sample.k2 << ", "
       << sample.k3 << ", "
-      << sample.k4 << ", "
       << sample.cutoff ;
   return out;
 }
@@ -329,7 +322,7 @@ int main(int argc, char **argv)
 {
 
   // Create sample with initial values for parameters
-  Sample starting_guess(3.6e-2,7.27e4, 6.4e4, 1.61e4, 5.45e3, 1.2e1, 265);
+  Sample starting_guess(3.6e-2,7.27e4, 6.4e4, 1.61e4, 5.45e3, 265);
 
 
   std::ofstream samples ("samples"
@@ -341,13 +334,13 @@ int main(int argc, char **argv)
                          ".txt");
 
   SampleFlow::Producers::MetropolisHastings<Sample> mh_sampler;
-  
+
   SampleFlow::Consumers::StreamOutput<Sample> stream_output (samples);
   stream_output.connect_to_producer (mh_sampler);
 
   SampleFlow::Filters::Conversion<Sample,VectorType> convert_to_vector;
   convert_to_vector.connect_to_producer (mh_sampler);
-  
+
   SampleFlow::Consumers::MeanValue<VectorType> mean_value;
   mean_value.connect_to_producer (convert_to_vector);
 
@@ -358,22 +351,22 @@ int main(int argc, char **argv)
   every_100th.connect_to_producer (mh_sampler);
 
   SampleFlow::Consumers::Action<Sample>
-    flush_after_every_100th ([&samples](const Sample &, const SampleFlow::AuxiliaryData &)
-                             {
-                               samples << std::flush;
-                             });
-  
+      flush_after_every_100th ([&samples](const Sample &, const SampleFlow::AuxiliaryData &)
+                               {
+                                 samples << std::flush;
+                               });
+
   flush_after_every_100th.connect_to_producer (every_100th);
-  
+
   // Sample from the given distribution.
   //
   // If an argument was given on the command line,
   // use that string to create a hash value and use that has value as
   // seed for the sampler.
   const std::uint_fast32_t random_seed
-    = (argc > 1 ?
-       std::hash<std::string>()(std::string(argv[1])) :
-       std::uint_fast32_t());
+      = (argc > 1 ?
+         std::hash<std::string>()(std::string(argv[1])) :
+         std::uint_fast32_t());
   const unsigned int n_samples = 5;
 
   std::mt19937 rng;
@@ -392,8 +385,8 @@ int main(int argc, char **argv)
   std::cout << "Mean value of all samples:\n";
   for (auto x : mean_value.get())
     std::cout << x << ' ';
-    std::cout << std::endl;
-    std::cout << "MH acceptance ratio: "
-              << acceptance_ratio.get()
-              << std::endl;
+  std::cout << std::endl;
+  std::cout << "MH acceptance ratio: "
+            << acceptance_ratio.get()
+            << std::endl;
 }
