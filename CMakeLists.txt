@@ -66,12 +66,41 @@ ADD_LIBRARY(libmepbm
 #########################################
 ### Describe the main executable and from which files
 ### it needs to be compiled.
-ADD_EXECUTABLE(mepbm
-               main.cpp
+ADD_EXECUTABLE(mepbm_3step_time1
+               mcmc_3step_time1.cpp
                $<TARGET_OBJECTS:libmepbm>)
-TARGET_LINK_LIBRARIES (mepbm
+TARGET_LINK_LIBRARIES (mepbm_3step_time1
                        Threads::Threads)
 
+ADD_EXECUTABLE(mepbm_3step_time2
+               mcmc_3step_time2.cpp
+               $<TARGET_OBJECTS:libmepbm>)
+TARGET_LINK_LIBRARIES (mepbm_3step_time2
+                       Threads::Threads)
+
+ADD_EXECUTABLE(mepbm_3step_time3
+               mcmc_3step_time3.cpp
+               $<TARGET_OBJECTS:libmepbm>)
+TARGET_LINK_LIBRARIES (mepbm_3step_time3
+                       Threads::Threads)
+
+ADD_EXECUTABLE(mepbm_3step_time4
+               mcmc_3step_time4.cpp
+               $<TARGET_OBJECTS:libmepbm>)
+TARGET_LINK_LIBRARIES (mepbm_3step_time4
+                       Threads::Threads)
+
+ADD_EXECUTABLE(mepbm_3step_all
+               mcmc_3step_all.cpp
+               $<TARGET_OBJECTS:libmepbm>)
+TARGET_LINK_LIBRARIES (mepbm_3step_all
+                       Threads::Threads)
+
+ADD_EXECUTABLE(mepbm_4step_all
+               mcmc_4step_all.cpp
+               $<TARGET_OBJECTS:libmepbm>)
+TARGET_LINK_LIBRARIES (mepbm_4step_all
+                       Threads::Threads)
 
 #########################################
 ### Set up the testsuite machinery
