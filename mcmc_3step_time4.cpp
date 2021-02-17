@@ -23,6 +23,8 @@
 #include <sampleflow/consumers/mean_value.h>
 #include <sampleflow/consumers/acceptance_ratio.h>
 #include <sampleflow/consumers/action.h>
+#include <sampleflow/consumers/covariance_matrix.h>
+#include <sampleflow/consumers/count_samples.h>
 
 
 
@@ -47,6 +49,18 @@ class ConstantData
 public:
   ConstantData();
 
+  /*
+   * For the Ir-POM system, nucleation produces a particle of size 3.
+   * However, data can only be measured for particles larger than size ~100.
+   * We have also seen that particles do not get larger than size 2500 in experiments.
+   * We are tracking monomers.
+   *
+   * We want to have index 0 of vectors refer to the precursor A.
+   * We want to have index 1 of vectors refer to the disassociated precursor.
+   * We want to have index 2 of vectors refer to the ligand POM.
+   *
+   * The solvent used in the reaction has a known concentration.
+   */
   unsigned int min_size = 3;
   unsigned int min_reliable_size = 100;
   unsigned int max_size = 2500;
@@ -58,6 +72,9 @@ public:
 
   double solvent = 11.3;
 
+
+  // The raw data is provided with diameter measurements, but we want to convert that to particle size upon
+  // receiving the data. We also want to keep track of the time each piece of data was collected.
   Data::PomData data_diameter;
   std::vector< std::vector<double> > data_size;
   std::vector<double> times;
@@ -66,18 +83,20 @@ public:
   std::vector<double> lower_bounds = { 0., 1000., 4800., 10., 10.};
   std::vector<double> upper_bounds = { 1.e3, 2.e6, 8.e7, 8.5e5, 2.5e5};
 
+  // Particle size cutoff should be a non-negative integer, unlike the other parameters.
   unsigned int lower_bound_cutoff = 10;
   unsigned int upper_bound_cutoff = 2000;
 
-  // { kf, kb, k1, k2, k3 }
-  std::vector<double> perturbation_magnitude = { 1.e-3, 1.e4, 1.e4, 5.e3, 4.e3};
-  int perturbation_magnitude_cutoff = 30;
-
+  // Hold the initial condition for the ODEs, i.e. the starting concentration of each species
   StateVector initial_condition;
 
+  // How many bins should the data/solution be divided into for likelihood calculations
   unsigned int hist_bins = 25;
 };
 
+
+// Since the data is stored inside of a container, we need to extract the desired data from the container
+// and convert diameter measurements to particle size measurements.
 ConstantData::ConstantData()
 {
   const std::vector<std::vector<double>> data_diam = {data_diameter.tem_diam_time4};
@@ -123,11 +142,6 @@ ConstantData::ConstantData()
  *      -- The intent of this function is to compare the current state of the parameters being sampled and
  *      compare to a pre-determined domain for those parameters.
  *      If any parameter lies outside of its allowed interval, return false. Otherwise, return true.
- *  Sample perturb()
- *      -- Generates random perturbations of the parameters in the sample and returns a new object reflecting
- *      the randomly chosen new parameters.
- *  double perturb_ratio()
- *      -- Computes the ratio of probabilities parameter->new_parameters / new_parameter->parameters
  *
  *  Operators:
  *    Sample operator = (const Sample &sample);
@@ -143,23 +157,27 @@ class Sample
 public:
   double kf, kb, k1, k2, k3;
   unsigned int cutoff;
+  const unsigned int dim = 6;
 
-  // Default constructor makes an invalid object
+  // Constructors
   Sample();
   Sample(double kf, double kb, double k1, double k2, double k3, unsigned int cutoff);
 
+  // Functions that interface with the statistical calculations
   std::vector< std::vector<double> > return_data() const;
   std::vector<double> return_times() const;
   Model::Model return_model() const;
   StateVector return_initial_condition() const;
   Histograms::Parameters return_histogram_parameters() const;
   bool within_bounds() const;
-  Sample perturb(std::mt19937 &rng) const;
-  static double perturb_ratio() ;
 
+  // Sample assignment
   Sample& operator = (const Sample &sample);
+
+  // Conversion to std::valarray<double> for arithmetic purposes
   explicit operator std::valarray<double> () const;
 
+  // What it means to output a Sample
   friend std::ostream & operator<< (std::ostream &out, const Sample &sample);
 
 private:
@@ -168,12 +186,15 @@ private:
 
 
 
+// Constructor defines what the unknown parameters are in the model for a given Sample.
 Sample::Sample(double kf, double kb, double k1, double k2, double k3, unsigned int cutoff)
     : kf(kf), kb(kb), k1(k1), k2(k2), k3(k3), cutoff(cutoff)
 {}
 
 
 
+// By default, make an invalid Sample. This is to ensure that the necessary values are always given
+// to a Sample or otherwise the program won't run.
 Sample::Sample()
     : Sample(std::numeric_limits<double>::signaling_NaN(),
              std::numeric_limits<double>::signaling_NaN(),
@@ -185,6 +206,7 @@ Sample::Sample()
 
 
 
+// Provides access to the measured data used in likelihood calculations
 std::vector<std::vector<double>> Sample::return_data() const
 {
   return const_parameters.data_size;
@@ -192,6 +214,7 @@ std::vector<std::vector<double>> Sample::return_data() const
 
 
 
+// Provides access to the times the data was collected to be given to the ODE solver
 std::vector<double> Sample::return_times() const
 {
   return const_parameters.times;
@@ -199,7 +222,7 @@ std::vector<double> Sample::return_times() const
 
 
 
-// Here we implement a 3-Step Model
+// Forms the model representing the mechanism being used, in this case a 3-step mechanism
 Model::Model Sample::return_model() const
 {
   std::shared_ptr<Model::RightHandSideContribution> nucleation =
@@ -227,6 +250,7 @@ Model::Model Sample::return_model() const
 
 
 
+// Provides access to the initial conditions for the ODE solver to use
 StateVector Sample::return_initial_condition() const
 {
   return const_parameters.initial_condition;
@@ -234,6 +258,7 @@ StateVector Sample::return_initial_condition() const
 
 
 
+// Provides access to the parameters to be used to bin data/simulation for the likelihood calculation
 Histograms::Parameters Sample::return_histogram_parameters() const
 {
   Histograms::Parameters hist_parameters(const_parameters.hist_bins, const_parameters.min_reliable_size,
@@ -243,50 +268,50 @@ Histograms::Parameters Sample::return_histogram_parameters() const
 
 
 
+// A test to see if a perturbed sample holds reasonable values
 bool Sample::within_bounds() const
 {
-  if (    kf < const_parameters.lower_bounds[0] || kf > const_parameters.upper_bounds[0]
-          || kb < const_parameters.lower_bounds[1] || kb > const_parameters.upper_bounds[1]
-          || k1 < const_parameters.lower_bounds[2] || k1 > const_parameters.upper_bounds[2]
-          || k2 < const_parameters.lower_bounds[3] || k2 > const_parameters.upper_bounds[3]
-          || k3 < const_parameters.lower_bounds[4] || k3 > const_parameters.upper_bounds[4]
-          || cutoff < const_parameters.lower_bound_cutoff || cutoff > const_parameters.upper_bound_cutoff)
+  if (   kf < const_parameters.lower_bounds[0] || kf > const_parameters.upper_bounds[0]
+         || kb < const_parameters.lower_bounds[1] || kb > const_parameters.upper_bounds[1]
+         || k1 < const_parameters.lower_bounds[2] || k1 > const_parameters.upper_bounds[2]
+         || k2 < const_parameters.lower_bounds[3] || k2 > const_parameters.upper_bounds[3]
+         || k3 < const_parameters.lower_bounds[4] || k3 > const_parameters.upper_bounds[4]
+         || cutoff < const_parameters.lower_bound_cutoff || cutoff > const_parameters.upper_bound_cutoff)
     return false;
   else
     return true;
 }
 
 
-
-Sample Sample::perturb(std::mt19937 &rng) const
+// A function to perturb a sample. This generates a random sample following a normal distribution centered
+// around the current sample and with the specified covariance C. I.e. new_sample ~N(sample, C). The proposal
+// ratio is also returned, which is 1 in this case since the normal distribution is symmetric.
+std::pair<Sample,double> perturb(const Sample &sample,
+                                 const Eigen::MatrixXd &C,
+                                 std::mt19937 &rng)
 {
-  double new_kf = kf + std::uniform_real_distribution<>(-const_parameters.perturbation_magnitude[0],
-                                                        const_parameters.perturbation_magnitude[0])(rng);
-  double new_kb = kb + std::uniform_real_distribution<>(-const_parameters.perturbation_magnitude[1],
-                                                        const_parameters.perturbation_magnitude[1])(rng);
-  double new_k1 = k1 + std::uniform_real_distribution<>(-const_parameters.perturbation_magnitude[2],
-                                                        const_parameters.perturbation_magnitude[2])(rng);
-  double new_k2 = k2 + std::uniform_real_distribution<>(-const_parameters.perturbation_magnitude[3],
-                                                        const_parameters.perturbation_magnitude[3])(rng);
-  double new_k3 = k3 + std::uniform_real_distribution<>(-const_parameters.perturbation_magnitude[4],
-                                                        const_parameters.perturbation_magnitude[4])(rng);
-  unsigned int new_cutoff = cutoff + std::uniform_int_distribution<>(-const_parameters.perturbation_magnitude_cutoff,
-                                                                     const_parameters.perturbation_magnitude_cutoff)(rng);
+  // Create a vector of random numbers following a normal distribution with mean 0 and variance 1
+  Eigen::VectorXd random_vector(sample.dim);
+  for (unsigned int i=0; i < random_vector.size(); ++i)
+  {
+    random_vector(i) = std::normal_distribution<double>(0,1)(rng);
+  }
 
-  Sample new_sample(new_kf, new_kb, new_k1, new_k2, new_k3, new_cutoff);
-  std::cout << "New sample: " << new_sample << std::endl;
-  return new_sample;
+  // Using the covariance matrix, perform the affine transformation
+  // new_prm = 2.4/sqrt(dim) * L * random_vector + old_prm
+  // where LL^T = covariance matrix
+  Eigen::VectorXd old_prm(sample.dim);
+  old_prm << sample.kf, sample.kb, sample.k1, sample.k2, sample.k3, sample.cutoff;
+  const auto new_prm = 2.4/std::sqrt(1.*sample.dim) * random_vector + old_prm;
+
+  Sample new_sample(new_prm(0), new_prm(1), new_prm(2), new_prm(3),
+                    new_prm(4), static_cast<unsigned int>(new_prm(5)));
+  return {new_sample, 1.};
 }
 
 
 
-double Sample::perturb_ratio()
-{
-  return 1.;
-}
-
-
-
+// Sample assignment can be done by specifying parameter values
 Sample& Sample::operator=(const Sample &sample)
 {
   kf = sample.kf;
@@ -301,11 +326,16 @@ Sample& Sample::operator=(const Sample &sample)
 
 
 
+// When arithmetic is required, we can use a valarray containing the parameters.
 Sample::operator std::valarray<double>() const
 {
   return { kf, kb, k1, k2, k3, static_cast<double>(cutoff)};
 }
 
+
+
+// When printing to the terminal or to a file, we want comma delimited data where columns
+// refer to parameters and rows refer to samples
 std::ostream &operator<<(std::ostream &out, const Sample &sample)
 {
   out << sample.kf << ", "
@@ -320,11 +350,30 @@ std::ostream &operator<<(std::ostream &out, const Sample &sample)
 
 int main(int argc, char **argv)
 {
+  /*
+   * A previous set of samples was constructed using a slightly incorrect likelihood function.
+   * These results provide a good starting guess at what the covariance matrix is, or at least
+   * for what the covariance matrix would be without kf since that was set as a constant previously.
+   * There is a partial run for the 4-step with kf, so we can take the variance of kf from those samples
+   * and use that to fill in the gap in the covariance matrix. Hence we have
+   * cov = | var_kb   0        |
+   *       | 0        cov_prev |
+   *
+   * The values are simply hardcoded for convenience.
+   */
+  Eigen::MatrixXd initial_covariance(6,6);
+  initial_covariance <<
+      1.5e-4,	0,      0,      0,      0,      0,
+      0,      2.6e8,  1.2e8,  -2.1e8, -3.0e7, -7.2e4,
+      0,      1.2e8,  2.7e9,  8.9e8,  2.1e8,  -1.3e4,
+      0,      -2.1e8, 8.9e8,  6.2e8,  1.1e8,  4.2e4,
+      0,      -3.0e7, 2.1e8,  1.1e8,  2.3e7,  1.3e4,
+      0,      -7.2e4, -1.3e4, 4.2e4,  1.3e4,  1.1e3;
 
   // Create sample with initial values for parameters
-  Sample starting_guess(3.6e-2,7.27e4, 6.4e4, 1.61e4, 5.45e3, 265);
+  Sample starting_guess(3.6e-2, 5.7e4, 1.2e5, 4.4e4, 1.6e4, 297);
 
-
+  // Create an output file to store the accepted samples
   std::ofstream samples ("samples"
                          +
                          (argc > 1 ?
@@ -333,20 +382,40 @@ int main(int argc, char **argv)
                          +
                          ".txt");
 
+  // Create the object to conduct the metropolis hastings (MH) algorithm
   SampleFlow::Producers::MetropolisHastings<Sample> mh_sampler;
 
+  // Tell the MH algorithm where to output samples
   SampleFlow::Consumers::StreamOutput<Sample> stream_output (samples);
   stream_output.connect_to_producer (mh_sampler);
 
+  // Since our sample object is complicated, we want to be able to turn it into a vector
+  // compatible with computations whenever that is necessary
   SampleFlow::Filters::Conversion<Sample,VectorType> convert_to_vector;
   convert_to_vector.connect_to_producer (mh_sampler);
 
+  // Update the mean value of the samples during the process
+  // Updating the mean value requires computations on the samples, so we need the filter created above
   SampleFlow::Consumers::MeanValue<VectorType> mean_value;
   mean_value.connect_to_producer (convert_to_vector);
 
+  // In order to use an adaptive proposal distribution, we need to keep track of the covariance matrix
+  // corresponding to the samples generated at each step
+  // Updating the covariance matrix requires computations on the samples, so we need the filter created above
+  SampleFlow::Consumers::CovarianceMatrix<VectorType> covariance_matrix;
+  covariance_matrix.connect_to_producer(convert_to_vector);
+
+  // We want the covariance matrix to mimic the posterior distribution before we start using it so
+  // we include a counter to allow to change the perturb function once we are comfortable using the
+  // covariance matrix
+  SampleFlow::Consumers::CountSamples<Sample> counter;
+  counter.connect_to_producer(mh_sampler);
+
+  // Keep track of the acceptance ratio to see how efficient our sampling process was
   SampleFlow::Consumers::AcceptanceRatio<VectorType> acceptance_ratio;
   acceptance_ratio.connect_to_producer (convert_to_vector);
 
+  // Write to disk only on occasion to reduce load on memory
   SampleFlow::Filters::TakeEveryNth<Sample> every_100th(100);
   every_100th.connect_to_producer (mh_sampler);
 
@@ -373,9 +442,12 @@ int main(int argc, char **argv)
   rng.seed(random_seed);
   mh_sampler.sample (starting_guess,
                      &Statistics::log_probability<Sample,4>,
-                     [&rng](const Sample &s)
+                     [&](const Sample &s)
                      {
-                       return Statistics::perturb<Sample> (s, rng);
+                       if (counter.get() < 1000)
+                         return perturb(s, initial_covariance, rng);
+                       else
+                         return perturb(s, covariance_matrix.get(), rng);
                      },
                      n_samples,
                      random_seed);
