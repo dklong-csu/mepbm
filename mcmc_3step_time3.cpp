@@ -300,12 +300,15 @@ std::pair<Sample,double> perturb(const Sample &sample,
   // Using the covariance matrix, perform the affine transformation
   // new_prm = 2.4/sqrt(dim) * L * random_vector + old_prm
   // where LL^T = covariance matrix
+  const Eigen::MatrixXd L = C.llt().matrixL();
   Eigen::VectorXd old_prm(sample.dim);
   old_prm << sample.kf, sample.kb, sample.k1, sample.k2, sample.k3, sample.cutoff;
-  const auto new_prm = 2.4/std::sqrt(1.*sample.dim) * random_vector + old_prm;
+  const auto new_prm = 2.4/std::sqrt(1.*sample.dim) * L * random_vector + old_prm;
 
   Sample new_sample(new_prm(0), new_prm(1), new_prm(2), new_prm(3),
                     new_prm(4), static_cast<unsigned int>(new_prm(5)));
+
+  std::cout << "New sample: " << new_sample << "\n";
   return {new_sample, 1.};
 }
 

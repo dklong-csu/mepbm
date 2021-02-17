@@ -310,12 +310,15 @@ std::pair<Sample,double> perturb(const Sample &sample,
   // Using the covariance matrix, perform the affine transformation
   // new_prm = 2.4/sqrt(dim) * L * random_vector + old_prm
   // where LL^T = covariance matrix
+  const Eigen::MatrixXd L = C.llt().matrixL();
   Eigen::VectorXd old_prm(sample.dim);
   old_prm << sample.kf, sample.kb, sample.k1, sample.k2, sample.k3, sample.k4, sample.cutoff;
-  const auto new_prm = 2.4/std::sqrt(1.*sample.dim) * random_vector + old_prm;
+  const auto new_prm = 2.4/std::sqrt(1.*sample.dim) * L * random_vector + old_prm;
 
   Sample new_sample(new_prm(0), new_prm(1), new_prm(2), new_prm(3),
-                    new_prm(4), new_prm(5), static_cast<unsigned int>(new_prm(5)));
+                    new_prm(4), new_prm(5), static_cast<unsigned int>(new_prm(6)));
+
+  std::cout << "New sample: " << new_sample << "\n";
   return {new_sample, 1.};
 }
 
@@ -382,6 +385,7 @@ int main(int argc, char **argv)
       0,      -2.8e7, -1.4e7, 2.5e6,  2.1e6,  -2.0e4, 2.1e4,
       0,      3.3e5,  2.2e5,  -1.4e4, -2.0e4, 3.0e3,  -1.8e3,
       0,      -6.7e4, 2.5e5,  -6.9e3, 2.1e4,  -1.8e3, 3.0e3;
+
 
   // Create the initial sample equal to the mean value from the previous set of samples
   Sample starting_guess(3.6e-2,1.3e5, 1.3e5, 1.0e4, 7.4e3, 118, 246);
