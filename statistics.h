@@ -151,25 +151,6 @@ namespace Statistics
     else
       return Statistics::log_likelihood<InputClass, order>(my_object) + log_prior;
   }
-
-
-
-  // A function given an object returns an object of the same type whose
-  // member variables have been randomly perturbed along with the ratio of
-  // the probabilities of prm->new_prm / new_prm->prm.
-  // This is a template function which requires the input object, InputClass,
-  // to have member functions:
-  //      InputClass perturb();
-  //      double perturb_ratio();
-  template<class InputClass>
-  std::pair<InputClass,double> perturb (const InputClass &my_object,
-                                        std::mt19937 &rng)
-  {
-    InputClass new_object = my_object.perturb(rng);
-    double ratio = my_object.perturb_ratio();
-
-    return {new_object, ratio};
-  }
 }
 
 
