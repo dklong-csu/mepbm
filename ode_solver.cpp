@@ -70,6 +70,8 @@ std::pair<Eigen::VectorXd, unsigned int> ODE::newton_method(const FunctionBase &
   auto x0 = guess;
   auto x1 = x0;
 
+  Eigen::VectorXd d(guess.rows());
+  
   while (solution_not_found && iter < max_iter)
   {
     /*
@@ -78,7 +80,7 @@ std::pair<Eigen::VectorXd, unsigned int> ODE::newton_method(const FunctionBase &
      * --> x1 = x0 + d
      */
     auto f = fcn.value(x0);
-    Eigen::VectorXd d = jac.solve(-f);
+    d = jac.solve(-f);
     x1 = x0 + d;
 
     // Check the residual of the function to see if x1 is close to the root.
