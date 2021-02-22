@@ -94,8 +94,8 @@ std::pair<Eigen::VectorXd, unsigned int> ODE::newton_method(const FunctionBase &
     {
       divisor = std::min(x0.norm(), x1.norm());
     }
-    Eigen::VectorXd diff = f / divisor;
-    if (diff.norm() < tol)
+
+    if (f.norm() / divisor < tol)
       solution_not_found = false;
 
     // Update for the next step
