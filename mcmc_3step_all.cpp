@@ -354,115 +354,121 @@ std::ostream &operator<<(std::ostream &out, const Sample &sample)
 
 int main(int argc, char **argv)
 {
-  /*
-   * A previous set of samples was constructed using a slightly incorrect likelihood function.
-   * These results provide a good starting guess at what the covariance matrix is, or at least
-   * for what the covariance matrix would be without kf since that was set as a constant previously.
-   * There is a partial run for the 4-step with kf, so we can take the variance of kf from those samples
-   * and use that to fill in the gap in the covariance matrix. Hence we have
-   * cov = | var_kb   0        |
-   *       | 0        cov_prev |
-   *
-   * The values are simply hardcoded for convenience.
-   */
-  Eigen::MatrixXd initial_covariance(6,6);
-  initial_covariance <<
-    1.5e-4, 0,      0,      0,      0,      0,
-    0,      1.3e8,  9.0e7,  -8.1e6, -8.8e5, 1.2e3,
-    0,      9.0e7,  7.3e7,  -5.3e6, -1.3e5, 1.3e4,
-    0,      -8.1e6, -5.3e6, 1.1e6,  5.1e4,  -4.7e3,
-    0,      -8.8e5, -1.3e5, 5.1e4,  7.0e4,  -1.8e1,
-    0,      1.2e3,  1.3e4,  -4.7e3, -1.8e1, 4.7e2;
+  unsigned int n_threads = 1;
+#ifdef _OPENMP
+  n_threads = omp_get_max_threads();
+#endif
 
-  // Create the initial sample equal to the mean value from the previous set of samples
-  Sample starting_guess(3.6e-2,7.3e4, 6.3e4, 1.4e4, 8.1e3, 103);
+#pragma omp parallel for
+  for (unsigned int i=0;i<n_threads;++i) {
+    /*
+     * A previous set of samples was constructed using a slightly incorrect likelihood function.
+     * These results provide a good starting guess at what the covariance matrix is, or at least
+     * for what the covariance matrix would be without kf since that was set as a constant previously.
+     * There is a partial run for the 4-step with kf, so we can take the variance of kf from those samples
+     * and use that to fill in the gap in the covariance matrix. Hence we have
+     * cov = | var_kb   0        |
+     *       | 0        cov_prev |
+     *
+     * The values are simply hardcoded for convenience.
+     */
+    Eigen::MatrixXd initial_covariance(6, 6);
+    initial_covariance <<
+                       1.5e-4, 0, 0, 0, 0, 0,
+        0, 1.3e8, 9.0e7, -8.1e6, -8.8e5, 1.2e3,
+        0, 9.0e7, 7.3e7, -5.3e6, -1.3e5, 1.3e4,
+        0, -8.1e6, -5.3e6, 1.1e6, 5.1e4, -4.7e3,
+        0, -8.8e5, -1.3e5, 5.1e4, 7.0e4, -1.8e1,
+        0, 1.2e3, 1.3e4, -4.7e3, -1.8e1, 4.7e2;
 
-  // Create an output file to store the accepted samples
-  std::ofstream samples ("samples"
-                         +
-                         (argc > 1 ?
-                          std::string(".") + argv[1] :
-                          std::string(""))
-                         +
-                         ".txt");
+    // Create the initial sample equal to the mean value from the previous set of samples
+    Sample starting_guess(3.6e-2, 7.3e4, 6.3e4, 1.4e4, 8.1e3, 103);
 
-  // Create the object to conduct the metropolis hastings (MH) algorithm
-  SampleFlow::Producers::MetropolisHastings<Sample> mh_sampler;
+    // Create an output file to store the accepted samples
+    std::ofstream samples("samples"
+                          +
+                          (argc > 1 ?
+                           std::string(".") + std::to_string(atoi(argv[1]) + i) :
+                           std::string(".") + std::to_string(i))
+                          +
+                          ".txt");
 
-  // Tell the MH algorithm where to output samples
-  SampleFlow::Consumers::StreamOutput<Sample> stream_output (samples);
-  stream_output.connect_to_producer (mh_sampler);
+    // Create the object to conduct the metropolis hastings (MH) algorithm
+    SampleFlow::Producers::MetropolisHastings<Sample> mh_sampler;
 
-  // Since our sample object is complicated, we want to be able to turn it into a vector
-  // compatible with computations whenever that is necessary
-  SampleFlow::Filters::Conversion<Sample,VectorType> convert_to_vector;
-  convert_to_vector.connect_to_producer (mh_sampler);
+    // Tell the MH algorithm where to output samples
+    SampleFlow::Consumers::StreamOutput<Sample> stream_output(samples);
+    stream_output.connect_to_producer(mh_sampler);
 
-  // Update the mean value of the samples during the process
-  // Updating the mean value requires computations on the samples, so we need the filter created above
-  SampleFlow::Consumers::MeanValue<VectorType> mean_value;
-  mean_value.connect_to_producer (convert_to_vector);
+    // Since our sample object is complicated, we want to be able to turn it into a vector
+    // compatible with computations whenever that is necessary
+    SampleFlow::Filters::Conversion<Sample, VectorType> convert_to_vector;
+    convert_to_vector.connect_to_producer(mh_sampler);
 
-  // In order to use an adaptive proposal distribution, we need to keep track of the covariance matrix
-  // corresponding to the samples generated at each step
-  // Updating the covariance matrix requires computations on the samples, so we need the filter created above
-  SampleFlow::Consumers::CovarianceMatrix<VectorType> covariance_matrix;
-  covariance_matrix.connect_to_producer(convert_to_vector);
+    // Update the mean value of the samples during the process
+    // Updating the mean value requires computations on the samples, so we need the filter created above
+    SampleFlow::Consumers::MeanValue<VectorType> mean_value;
+    mean_value.connect_to_producer(convert_to_vector);
 
-  // We want the covariance matrix to mimic the posterior distribution before we start using it so
-  // we include a counter to allow to change the perturb function once we are comfortable using the
-  // covariance matrix
-  SampleFlow::Consumers::CountSamples<Sample> counter;
-  counter.connect_to_producer(mh_sampler);
+    // In order to use an adaptive proposal distribution, we need to keep track of the covariance matrix
+    // corresponding to the samples generated at each step
+    // Updating the covariance matrix requires computations on the samples, so we need the filter created above
+    SampleFlow::Consumers::CovarianceMatrix<VectorType> covariance_matrix;
+    covariance_matrix.connect_to_producer(convert_to_vector);
 
-  // Keep track of the acceptance ratio to see how efficient our sampling process was
-  SampleFlow::Consumers::AcceptanceRatio<VectorType> acceptance_ratio;
-  acceptance_ratio.connect_to_producer (convert_to_vector);
+    // We want the covariance matrix to mimic the posterior distribution before we start using it so
+    // we include a counter to allow to change the perturb function once we are comfortable using the
+    // covariance matrix
+    SampleFlow::Consumers::CountSamples<Sample> counter;
+    counter.connect_to_producer(mh_sampler);
 
-  // Write to disk only on occasion to reduce load on memory
-  SampleFlow::Filters::TakeEveryNth<Sample> every_100th(100);
-  every_100th.connect_to_producer (mh_sampler);
+    // Keep track of the acceptance ratio to see how efficient our sampling process was
+    SampleFlow::Consumers::AcceptanceRatio<VectorType> acceptance_ratio;
+    acceptance_ratio.connect_to_producer(convert_to_vector);
 
-  SampleFlow::Consumers::Action<Sample>
-      flush_after_every_100th ([&samples](const Sample &, const SampleFlow::AuxiliaryData &)
-                               {
-                                 samples << std::flush;
-                               });
+    // Write to disk only on occasion to reduce load on memory
+    SampleFlow::Filters::TakeEveryNth<Sample> every_100th(100);
+    every_100th.connect_to_producer(mh_sampler);
 
-  flush_after_every_100th.connect_to_producer (every_100th);
+    SampleFlow::Consumers::Action<Sample>
+        flush_after_every_100th([&samples](const Sample &, const SampleFlow::AuxiliaryData &) {
+      samples << std::flush;
+    });
 
-  // Sample from the given distribution.
-  //
-  // If an argument was given on the command line,
-  // use that string to create a hash value and use that has value as
-  // seed for the sampler.
-  const std::uint_fast32_t random_seed
-      = (argc > 1 ?
-         std::hash<std::string>()(std::string(argv[1])) :
-         std::uint_fast32_t());
-  const unsigned int n_samples = 5;
+    flush_after_every_100th.connect_to_producer(every_100th);
 
-  std::mt19937 rng;
-  rng.seed(random_seed);
-  mh_sampler.sample (starting_guess,
-                     &Statistics::log_probability<Sample,4>,
-                     [&](const Sample &s)
-                     {
-                       if (counter.get() < 1000)
-                         return perturb(s, initial_covariance, rng);
-                       else
-                         return perturb(s, covariance_matrix.get(), rng);
-                     },
-                     n_samples,
-                     random_seed);
+    // Sample from the given distribution.
+    //
+    // If an argument was given on the command line,
+    // use that string to create a hash value and use that has value as
+    // seed for the sampler.
+    const std::uint_fast32_t random_seed
+        = (argc > 1 ?
+           std::hash<std::string>()(std::to_string(atoi(argv[1]) + i)) :
+           std::hash<std::string>()(std::to_string(i)));
+    const unsigned int n_samples = 5;
 
-  // Output the statistics we have computed in the process of sampling
-  // everything
-  std::cout << "Mean value of all samples:\n";
-  for (auto x : mean_value.get())
-    std::cout << x << ' ';
-  std::cout << std::endl;
-  std::cout << "MH acceptance ratio: "
-            << acceptance_ratio.get()
-            << std::endl;
+    std::mt19937 rng;
+    rng.seed(random_seed);
+    mh_sampler.sample(starting_guess,
+                      &Statistics::log_probability<Sample, 4>,
+                      [&](const Sample &s) {
+                        if (counter.get() < 1000)
+                          return perturb(s, initial_covariance, rng);
+                        else
+                          return perturb(s, covariance_matrix.get(), rng);
+                      },
+                      n_samples,
+                      random_seed);
+
+    // Output the statistics we have computed in the process of sampling
+    // everything
+    std::cout << "Mean value of all samples:\n";
+    for (auto x : mean_value.get())
+      std::cout << x << ' ';
+    std::cout << std::endl;
+    std::cout << "MH acceptance ratio: "
+              << acceptance_ratio.get()
+              << std::endl;
+  }
 }
