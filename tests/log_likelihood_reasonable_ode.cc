@@ -12,19 +12,9 @@ int main()
 {
   // create data
   const Data::PomData all_data;
-  const std::vector<std::vector<double>> data_diam = {all_data.tem_diam_time1, all_data.tem_diam_time2,
-                                                      all_data.tem_diam_time3, all_data.tem_diam_time4};
+  const std::vector<std::vector<double>> data = {all_data.tem_diam_time1, all_data.tem_diam_time2,
+                                                 all_data.tem_diam_time3, all_data.tem_diam_time4};
 
-  std::vector<std::vector<double>> data;
-  for (auto vec : data_diam)
-  {
-    std::vector<double> tmp;
-    for (auto diam : vec)
-    {
-      tmp.push_back(std::pow(diam/0.3000805, 3));
-    }
-    data.push_back(tmp);
-  }
 
   const std::vector<double> times = {0., all_data.tem_time1, all_data.tem_time2, all_data.tem_time3, all_data.tem_time4};
 
@@ -44,7 +34,6 @@ int main()
   const double k1 = 6.40e4;
   const double k2 = 1.61e4;
   const double k3 = 5.45e3;
-  const double k4 = 1.20e1;
   const double cutoff = 265;
 
 
@@ -63,12 +52,6 @@ int main()
     = std::make_shared<Model::Growth>(A_index, cutoff+1, max_size, max_size,
                                       POM_index, conserved_size, k3);
 
-  // Agglomeration
-  std::shared_ptr<Model::RightHandSideContribution> agglomeration
-    = std::make_shared<Model::Agglomeration>(nucleation_order, cutoff,
-                                             nucleation_order, cutoff,
-                                             max_size, conserved_size, k4);
-
   // Create Model
   Model::Model three_step_alt(nucleation_order, max_size);
   three_step_alt.add_rhs_contribution(nucleation);
@@ -80,7 +63,7 @@ int main()
   ic(0) = 0.0012;
 
   // set up histogram parameters
-  const Histograms::Parameters hist_prm(25, 1.*nucleation_order, 1.*max_size);
+  const Histograms::Parameters hist_prm(27, 1.4, 4.1);
 
   // calculate log likelihood
   const double likelihood = Statistics::log_likelihood<4>(data, times, three_step_alt, ic, hist_prm);

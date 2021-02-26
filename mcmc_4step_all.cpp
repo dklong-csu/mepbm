@@ -62,9 +62,11 @@ public:
    * The solvent used in the reaction has a known concentration.
    */
   unsigned int min_size = 3;
-  unsigned int min_reliable_size = 100;
   unsigned int max_size = 2500;
   unsigned int conserved_size = 1;
+
+  unsigned int min_hist_diam = 1.4;
+  unsigned int max_hist_diam = 4.1;
 
   unsigned int A_index = 0;
   unsigned int As_index = 1;
@@ -76,7 +78,7 @@ public:
   // The raw data is provided with diameter measurements, but we want to convert that to particle size upon
   // receiving the data. We also want to keep track of the time each piece of data was collected.
   Data::PomData data_diameter;
-  std::vector< std::vector<double> > data_size;
+  std::vector< std::vector<double> > data_diam;
   std::vector<double> times;
 
   // { kb, k1, k2, k3, k4 }
@@ -91,7 +93,7 @@ public:
   StateVector initial_condition;
 
   // How many bins should the data/solution be divided into for likelihood calculations
-  unsigned int hist_bins = 25;
+  unsigned int hist_bins = 27;
 };
 
 
@@ -101,15 +103,6 @@ ConstantData::ConstantData()
 {
   const std::vector<std::vector<double>> data_diam = {data_diameter.tem_diam_time1, data_diameter.tem_diam_time2,
                                                       data_diameter.tem_diam_time3, data_diameter.tem_diam_time4};
-  for (const auto& vec : data_diam)
-  {
-    std::vector<double> tmp;
-    for (auto diam : vec)
-    {
-      tmp.push_back(std::pow(diam/0.3000805, 3));
-    }
-    data_size.push_back(tmp);
-  }
 
   times = {0., data_diameter.tem_time1, data_diameter.tem_time2, data_diameter.tem_time3, data_diameter.tem_time4};
 
@@ -211,7 +204,7 @@ Sample::Sample()
 // Provides access to the measured data used in likelihood calculations
 std::vector<std::vector<double>> Sample::return_data() const
 {
-  return const_parameters.data_size;
+  return const_parameters.data_diam;
 }
 
 
@@ -270,8 +263,8 @@ StateVector Sample::return_initial_condition() const
 // Provides access to the parameters to be used to bin data/simulation for the likelihood calculation
 Histograms::Parameters Sample::return_histogram_parameters() const
 {
-  Histograms::Parameters hist_parameters(const_parameters.hist_bins, const_parameters.min_reliable_size,
-                                         const_parameters.max_size);
+  Histograms::Parameters hist_parameters(const_parameters.hist_bins, const_parameters.min_hist_diam,
+                                         const_parameters.max_hist_diam);
   return hist_parameters;
 }
 

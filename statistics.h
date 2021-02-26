@@ -78,7 +78,7 @@ namespace Statistics
 
       for (unsigned int size = smallest; size < largest+1; ++size)
       {
-        sizes[size - smallest] = size;
+        sizes[size - smallest] = 0.3000805 * std::pow(1.*size, 1./3);
         concentration[size - smallest] = solutions[set_num+1](size); // FIXME: particle size to index function needed
       }
       // Step 2b -- Calculate log likelihood of current data set and add to total
