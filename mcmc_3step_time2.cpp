@@ -390,7 +390,7 @@ int main(int argc, char **argv)
     std::ofstream samples("samples"
                           +
                           (argc > 1 ?
-                           std::string(".") + argv[1] :
+                           std::string(".") + std::to_string( atoi(argv[1]) + i ) :
                            std::string(".") + std::to_string(i))
                           +
                           ".txt");
@@ -446,8 +446,8 @@ int main(int argc, char **argv)
     // seed for the sampler.
     const std::uint_fast32_t random_seed
         = (argc > 1 ?
-           std::hash<std::string>()(std::string(argv[1])) :
-           std::hash<unsigned int>()(i));
+           std::hash<std::string>()(std::to_string( atoi(argv[1]) + i )) :
+           std::hash<std::string>()( std::to_string(i) ) );
     const unsigned int n_samples = 5;
 
     std::mt19937 rng;
