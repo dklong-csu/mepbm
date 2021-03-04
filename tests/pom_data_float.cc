@@ -6,13 +6,17 @@
 
 
 
-void print_array(std::vector<double> array)
+using Real = float;
+
+
+
+void print_array(std::vector<Real> array)
 {
   for (unsigned int i = 0; i < array.size(); i++)
-    {
-      std::cout << array[i]
-                << std::endl;
-    }
+  {
+    std::cout << array[i]
+              << std::endl;
+  }
 }
 
 
@@ -20,7 +24,7 @@ void print_array(std::vector<double> array)
 int main ()
 {
   // create data
-  Data::PomData my_data;
+  Data::PomData<Real> my_data;
 
   // check that each is initialized properly
   print_array(my_data.chcrr_concentration);
