@@ -3,12 +3,14 @@
 #include <string>
 #include "histogram.h"
 
-using HistVector = std::vector<double>;
+
+using Real = float;
+using HistVector = std::vector<Real>;
 
 int main()
 {
   // check we can make proper histogram parameters
-  Histograms::Parameters prm(25, 0., 4.5);
+  Histograms::Parameters<Real> prm(25, 0., 4.5);
 
   std::cout << "Checking for Histograms::Parameters"
             << std::endl;
@@ -28,7 +30,7 @@ int main()
 
 
   // check if we can make a histogram
-  Histograms::Histogram hist(prm);
+  Histograms::Histogram<Real> hist(prm);
 
   std::cout << "Checking for Histograms::Histogram"
             << std::endl;
@@ -85,7 +87,7 @@ int main()
   HistVector labels = { 0,4.5,1.7, 1.7 };
   HistVector counts = { 1,1.1,3,2 };
 
-  Histograms::Histogram hist2 = Histograms::create_histogram(counts, labels, prm);
+  Histograms::Histogram<Real> hist2 = Histograms::create_histogram(counts, labels, prm);
   std::cout << "Created histogram properties:"
             << std::endl;
 
