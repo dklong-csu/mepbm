@@ -1,3 +1,5 @@
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "openmp-use-default-none"
 /*
  * Program to compute the posterior distribution
  * -- 3-step mechanism
@@ -66,9 +68,12 @@ public:
    * The solvent used in the reaction has a known concentration.
    */
   unsigned int min_size = 3;
-  unsigned int min_reliable_size = 100;
   unsigned int max_size = 2500;
   unsigned int conserved_size = 1;
+
+  Real min_bin_size = 1.4;
+  Real max_bin_size = 4.1;
+  unsigned int hist_bins = 27;
 
   unsigned int A_index = 0;
   unsigned int As_index = 1;
@@ -93,9 +98,6 @@ public:
 
   // Hold the initial condition for the ODEs, i.e. the starting concentration of each species
   StateVector initial_condition;
-
-  // How many bins should the data/solution be divided into for likelihood calculations
-  unsigned int hist_bins = 25;
 };
 
 
@@ -103,16 +105,7 @@ public:
 // and convert diameter measurements to particle size measurements.
 ConstantData::ConstantData()
 {
-  const std::vector<std::vector<Real>> data_diam = {data_diameter.tem_diam_time4};
-  for (const auto& vec : data_diam)
-  {
-    std::vector<Real> tmp;
-    for (auto diam : vec)
-    {
-      tmp.push_back(std::pow(diam/0.3000805, 3));
-    }
-    data_size.push_back(tmp);
-  }
+  data_size = {data_diameter.tem_diam_time4};
 
   times = {0., data_diameter.tem_time4};
 
@@ -265,8 +258,8 @@ StateVector Sample::return_initial_condition() const
 // Provides access to the parameters to be used to bin data/simulation for the likelihood calculation
 Histograms::Parameters<Real> Sample::return_histogram_parameters() const
 {
-  Histograms::Parameters<Real> hist_parameters(const_parameters.hist_bins, const_parameters.min_reliable_size,
-                                         const_parameters.max_size);
+  Histograms::Parameters<Real> hist_parameters(const_parameters.hist_bins, const_parameters.min_bin_size,
+                                         const_parameters.max_bin_size);
   return hist_parameters;
 }
 
