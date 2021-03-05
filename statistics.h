@@ -34,9 +34,97 @@ namespace Statistics
   // Step 3: Compute the log likelihood.
   template<typename Real>
   Real log_likelihood(const std::vector<Real>& data,
-                        const std::vector<Real>& distribution,
-                        const std::vector<Real>& sizes,
-                        const Histograms::Parameters<Real>& hist_prm);
+                      const std::vector<Real>& distribution,
+                      const std::vector<Real>& sizes,
+                      const Histograms::Parameters<Real>& hist_prm);
+
+
+
+  template<typename Real>
+  Real log_likelihood(const std::vector<Real>& data,
+                      const std::vector<Real>& distribution,
+                      const std::vector<Real>& sizes,
+                      const Histograms::Parameters<Real>& hist_prm)
+  {
+    // Step 1 -- Turn data into a histogram
+    Histograms::Histogram<Real> hist_data(hist_prm);
+    std::vector<Real> data_counts(data.size(), 1.0); // each data point occurred 1 time
+    hist_data.AddToBins(data_counts, data);
+
+    // Step 2 -- Turn distribution into a histogram
+    // Step 2a -- Normalize distribution to create probability mass function (pmf)
+
+    // We know our model and ODE solver are imperfect. Therefore, if we encounter a negative
+    // value then we know this is a mathematical limitation. Fortunately, we can use physical
+    // intuition to understand that zero is a more accurate value. We can extend that a step
+    // further and see that instead of zero, a very small number relative to the rest of the
+    // concentrations is perhaps more accurate and plays nicely with the logarithms used later.
+    // To this end, we first calculate the maximum value in the distribution vector, with the
+    // intention of replacing negative values with 1e-9 * max value. Then we calculate the norm
+    // by summing all elements in distribution, replacing negative values as necessary. Finally,
+    // the vector is normalized by the norm value, again replacing negative values as necessary.
+    double max_conc = 0.;
+    for (double concentration : distribution)
+    {
+      max_conc = std::max(max_conc, concentration);
+    }
+
+    double norm = 0.;
+    for (double concentration : distribution)
+    {
+      if (concentration > 0)
+      {
+        norm += concentration;
+      }
+      else
+      {
+        norm += max_conc * 1e-9;
+      }
+    }
+
+    std::vector<Real> pmf(distribution.size());
+    for (unsigned int i=0; i<pmf.size(); ++i)
+    {
+      if (distribution[i] < 0)
+      {
+        pmf[i] = 1e-9 * max_conc / norm;
+      }
+      else
+      {
+        pmf[i] = distribution[i] / norm;
+      }
+    }
+
+    // Step 2b -- Create histogram from pmf
+    Histograms::Histogram<Real> hist_ode(hist_prm);
+    hist_ode.AddToBins(pmf, sizes);
+
+    // Step 3 -- Combine histograms to calculate log likelihood
+    double likelihood = 0.0;
+    for (unsigned int bin=0; bin < hist_prm.n_bins; ++bin)
+    {
+      // FIXME:  I think I can change the first if to just check if there are no data points
+      // If the probability is zero and there are no data points, do not contribute anything
+      // If the probability is zero and there are data points, then return most negative number possible
+      // If the probability is non-zero, then calculate normally
+      if (hist_ode.count[bin] <= 0 && hist_data.count[bin] == 0)
+      {
+        // do nothing
+      }
+      else if (hist_ode.count[bin] <= 0)
+      {
+        // minimum possible value
+        return -std::numeric_limits<double>::max();
+      }
+      else
+      {
+        // normal calculation
+        likelihood += hist_data.count[bin]*std::log(hist_ode.count[bin]);
+      }
+    }
+
+    return likelihood;
+  }
 
 
 
@@ -50,19 +138,19 @@ namespace Statistics
   // Step 2: For each time point, calculate the log likelihood, and add to the cumulative log likelihood
   template<int order, typename Real>
   Real log_likelihood(const std::vector<std::vector<Real>>& data,
-                        const std::vector<Real>& times,
-                        const Model::Model& ode_model,
-                        Eigen::VectorXd& ic,
-                        const Histograms::Parameters<Real>& hist_prm)
+                      const std::vector<Real>& times,
+                      const Model::Model<Real>& ode_model,
+                      Eigen::Matrix<Real, Eigen::Dynamic, 1>& ic,
+                      const Histograms::Parameters<Real>& hist_prm)
   {
     // Step 1 -- Solve the ODE at each time
-    ODE::StepperBDF<order> stepper(ode_model);
-    std::vector< Eigen::VectorXd > solutions;
+    ODE::StepperBDF<order, Real> stepper(ode_model);
+    std::vector< Eigen::Matrix<Real, Eigen::Dynamic, 1> > solutions;
     solutions.push_back(ic);
     for (unsigned int i = 1; i < times.size(); ++i)
     {
       // FIXME: add parameters for what dt should be and for accuracy of newton method
-      auto solution = ODE::solve_ode(stepper, solutions[i-1], times[i-1], times[i], 5e-3);
+      auto solution = ODE::solve_ode<Real>(stepper, solutions[i-1], times[i-1], times[i], 5e-3);
       solutions.push_back(solution);
     }
 
@@ -83,10 +171,10 @@ namespace Statistics
         concentration[size - smallest] = solutions[set_num+1](size); // FIXME: particle size to index function needed
       }
       // Step 2b -- Calculate log likelihood of current data set and add to total
-      likelihood += Statistics::log_likelihood(data[set_num],
-                                               concentration,
-                                               sizes,
-                                               hist_prm);
+      likelihood += Statistics::log_likelihood<Real>(data[set_num],
+                                                     concentration,
+                                                     sizes,
+                                                     hist_prm);
     }
 
     return likelihood;
@@ -111,7 +199,7 @@ namespace Statistics
   template<class InputClass, int order, typename Real>
   Real log_likelihood(const InputClass &my_object)
   {
-    Eigen::VectorXd ic = my_object.return_initial_condition();
+    Eigen::Matrix<Real, Eigen::Dynamic, 1> ic = my_object.return_initial_condition();
     return Statistics::log_likelihood<order, Real>(my_object.return_data(), my_object.return_times(), my_object.return_model(),
                                                    ic, my_object.return_histogram_parameters());
   }

@@ -5,33 +5,35 @@
 #include <eigen3/Eigen/Dense>
 
 
+using Real = double;
 
-class SimpleOde : public Model::RightHandSideContribution
+
+class SimpleOde : public Model::RightHandSideContribution<Real>
 {
-  void add_contribution_to_rhs(const Eigen::VectorXd &x, Eigen::VectorXd &rhs)
+  void add_contribution_to_rhs(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x, Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs)
   {
     rhs += -10 * x;
   }
 
-  void add_contribution_to_jacobian(const Eigen::VectorXd &x, Eigen::MatrixXd &jacobi)
+  void add_contribution_to_jacobian(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> &jacobi)
   {
-    jacobi += -10 * Eigen::MatrixXd::Identity(x.rows(), x.rows());
+    jacobi += -10 * Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>::Identity(x.rows(), x.rows());
   }
 };
 
 int main()
 {
-  const Eigen::VectorXd ic = Eigen::VectorXd::Ones(1);
-  const double start_time = 0.;
-  const double end_time = 1.;
-  const double dt = 1e-5;
+  const Eigen::Matrix<Real, Eigen::Dynamic, 1> ic = Eigen::Matrix<Real, Eigen::Dynamic, 1>::Ones(1);
+  const Real start_time = 0.;
+  const Real end_time = 1.;
+  const Real dt = 1e-5;
 
-  std::shared_ptr<Model::RightHandSideContribution> my_ode
+  std::shared_ptr<Model::RightHandSideContribution<Real>> my_ode
       = std::make_shared<SimpleOde>();
-  Model::Model ode_system(0, 0);
+  Model::Model<Real> ode_system(0, 0);
   ode_system.add_rhs_contribution(my_ode);
-  ODE::StepperBDF<3> stepper(ode_system);
-  auto sol = ODE::solve_ode(stepper, ic, start_time, end_time, dt);
+  ODE::StepperBDF<3, Real> stepper(ode_system);
+  auto sol = ODE::solve_ode<Real>(stepper, ic, start_time, end_time, dt);
 
   // The answer should be close to exp(-10)
   std::cout << std::setprecision(20) << std::fixed << sol;

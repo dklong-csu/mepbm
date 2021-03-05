@@ -1,27 +1,31 @@
 #include <iostream>
-#include <string>
 #include <eigen3/Eigen/Dense>
 #include "models.h"
 #include "histogram.h"
 #include "statistics.h"
 #include "data.h"
 
-using StateVector = Eigen::VectorXd;
+
+
+using Real = double;
+using StateVector = Eigen::Matrix<Real, Eigen::Dynamic, 1>;
+
+
 
 int main()
 {
   // create data
-  const Data::PomData all_data;
-  const std::vector<std::vector<double>> data = {all_data.tem_diam_time1, all_data.tem_diam_time2,
+  const Data::PomData<Real> all_data;
+  const std::vector<std::vector<Real>> data = {all_data.tem_diam_time1, all_data.tem_diam_time2,
                                                  all_data.tem_diam_time3, all_data.tem_diam_time4};
 
 
-  const std::vector<double> times = {0., all_data.tem_time1, all_data.tem_time2, all_data.tem_time3, all_data.tem_time4};
+  const std::vector<Real> times = {0., all_data.tem_time1, all_data.tem_time2, all_data.tem_time3, all_data.tem_time4};
 
   // create ODE model
   const unsigned int max_size = 2500;
   const unsigned int nucleation_order = 3;
-  const double solvent = 11.3;
+  const Real solvent = 11.3;
   const unsigned int conserved_size = 1;
 
   const unsigned int A_index = 0;
@@ -29,31 +33,31 @@ int main()
   const unsigned int POM_index = 2;
   const unsigned int nucleation_index = 3;
 
-  const double kf = 3.6e-2;
-  const double kb = 7.27e4;
-  const double k1 = 6.40e4;
-  const double k2 = 1.61e4;
-  const double k3 = 5.45e3;
-  const double cutoff = 265;
+  const Real kf = 3.6e-2;
+  const Real kb = 7.27e4;
+  const Real k1 = 6.40e4;
+  const Real k2 = 1.61e4;
+  const Real k3 = 5.45e3;
+  const Real cutoff = 265;
 
 
   // Nucleation
-  std::shared_ptr<Model::RightHandSideContribution> nucleation
-    = std::make_shared<Model::TermolecularNucleation>(A_index, As_index, POM_index,nucleation_index,
+  std::shared_ptr<Model::RightHandSideContribution<Real>> nucleation
+    = std::make_shared<Model::TermolecularNucleation<Real>>(A_index, As_index, POM_index,nucleation_index,
                                                       kf, kb, k1, solvent);
 
   // Small Growth
-  std::shared_ptr<Model::RightHandSideContribution> small_growth
-    = std::make_shared<Model::Growth>(A_index, nucleation_order, cutoff, max_size,
+  std::shared_ptr<Model::RightHandSideContribution<Real>> small_growth
+    = std::make_shared<Model::Growth<Real>>(A_index, nucleation_order, cutoff, max_size,
                                       POM_index, conserved_size, k2);
 
   // Large Growth
-  std::shared_ptr<Model::RightHandSideContribution> large_growth
-    = std::make_shared<Model::Growth>(A_index, cutoff+1, max_size, max_size,
+  std::shared_ptr<Model::RightHandSideContribution<Real>> large_growth
+    = std::make_shared<Model::Growth<Real>>(A_index, cutoff+1, max_size, max_size,
                                       POM_index, conserved_size, k3);
 
   // Create Model
-  Model::Model three_step_alt(nucleation_order, max_size);
+  Model::Model<Real> three_step_alt(nucleation_order, max_size);
   three_step_alt.add_rhs_contribution(nucleation);
   three_step_alt.add_rhs_contribution(small_growth);
   three_step_alt.add_rhs_contribution(large_growth);
@@ -63,10 +67,10 @@ int main()
   ic(0) = 0.0012;
 
   // set up histogram parameters
-  const Histograms::Parameters hist_prm(27, 1.4, 4.1);
+  const Histograms::Parameters<Real> hist_prm(27, 1.4, 4.1);
 
   // calculate log likelihood
-  const double likelihood = Statistics::log_likelihood<4>(data, times, three_step_alt, ic, hist_prm);
+  const Real likelihood = Statistics::log_likelihood<4, Real>(data, times, three_step_alt, ic, hist_prm);
 
   // print result
   std::cout << "log likelihood: " << likelihood;

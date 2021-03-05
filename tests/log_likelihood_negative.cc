@@ -4,20 +4,24 @@
 
 
 
+using Real = double;
+
+
+
 int main()
 {
   // create dummy data
-  std::vector<double> data = {3,4,5,6,4,5};
+  std::vector<Real> data = {3,4,5,6,4,5};
 
   // create dummy distribution
-  std::vector<double> sizes = {3, 4, 5, 6};
-  std::vector<double> distr = {1, -1, 3, 4};
+  std::vector<Real> sizes = {3, 4, 5, 6};
+  std::vector<Real> distr = {1, -1, 3, 4};
 
   // create histogram parameters
-  Histograms::Parameters hist_prm(4, 3, 6);
+  Histograms::Parameters<Real> hist_prm(4, 3, 6);
 
   // calculate log likelihood
-  double likelihood = Statistics::log_likelihood(data, distr, sizes, hist_prm);
+  Real likelihood = Statistics::log_likelihood<Real>(data, distr, sizes, hist_prm);
 
   // print result
   std::cout << "log likelihood: " << likelihood;
