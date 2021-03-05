@@ -30,15 +30,19 @@
 
 
 
+// Set precision
+using Real = double;
+
+
 // A data type we will use to convert samples to whenever we want to
 // do arithmetic with them, such as if we want to compute mean values,
 // covariances, etc.
-using VectorType = std::valarray<double>;
+using VectorType = std::valarray<Real>;
 
 
 // A data type describing the linear algebra object vector that is used
 // in the ODE solver.
-using StateVector = Eigen::VectorXd;
+using StateVector = Eigen::Matrix<Real, Eigen::Dynamic, 1>;
 
 
 
@@ -72,18 +76,18 @@ public:
   unsigned int As_index = 1;
   unsigned int ligand_index = 2;
 
-  double solvent = 11.3;
+  Real solvent = 11.3;
 
 
   // The raw data is provided with diameter measurements, but we want to convert that to particle size upon
   // receiving the data. We also want to keep track of the time each piece of data was collected.
-  Data::PomData data_diameter;
-  std::vector< std::vector<double> > data_size;
-  std::vector<double> times;
+  Data::PomData<Real> data_diameter;
+  std::vector< std::vector<Real> > data_size;
+  std::vector<Real> times;
 
   // { kb, k1, k2, k3 }
-  std::vector<double> lower_bounds = { 0., 1000., 4800., 10., 10.};
-  std::vector<double> upper_bounds = { 1.e3, 2.e6, 8.e7, 8.5e5, 2.5e5};
+  std::vector<Real> lower_bounds = { 0., 1000., 4800., 10., 10.};
+  std::vector<Real> upper_bounds = { 1.e3, 2.e6, 8.e7, 8.5e5, 2.5e5};
 
   // Particle size cutoff should be a non-negative integer, unlike the other parameters.
   unsigned int lower_bound_cutoff = 10;
@@ -101,10 +105,10 @@ public:
 // and convert diameter measurements to particle size measurements.
 ConstantData::ConstantData()
 {
-  const std::vector<std::vector<double>> data_diam = {data_diameter.tem_diam_time2};
+  const std::vector<std::vector<Real>> data_diam = {data_diameter.tem_diam_time2};
   for (const auto& vec : data_diam)
   {
-    std::vector<double> tmp;
+    std::vector<Real> tmp;
     for (auto diam : vec)
     {
       tmp.push_back(std::pow(diam/0.3000805, 3));
@@ -129,14 +133,14 @@ ConstantData::ConstantData()
  *  A ConstantData object as defined above.
  *
  * Member functions:
- *  std::vector< std::vector<double> > return_data()
+ *  std::vector< std::vector<Real> > return_data()
  *      -- a collection of vectors corresponding to collected data which gives particle size for each data.
- *  std::vector<double> return_times()
+ *  std::vector<Real> return_times()
  *      -- the first element is intended to be time=0 and the remaining times should correspond to when
  *      the return_data() entries were collected.
  *  Model::Model return_model()
  *      -- an object describing the right hand side of the system of differential equations
- *  std::vector<double> return_initial_condition()
+ *  std::vector<Real> return_initial_condition()
  *      -- a vector giving the concentrations of the tracked chemical species at time = 0.
  *  Histograms::Parameters return_histogram_parameters()
  *      -- an object describing the to bin together particle sizes to compare the data and simulation results.
@@ -148,7 +152,7 @@ ConstantData::ConstantData()
  *  Operators:
  *    Sample operator = (const Sample &sample);
  *      -- A rule for setting parameters equal to one another.
- *    operator std::valarray<double> () const;
+ *    operator std::valarray<Real> () const;
  *      -- A rule for turning a sample into a vector of the parameters.
  *      Essentially just populating a valarray with the appropriate values.
  *    friend std::ostream & operator<< (std::ostream &out, const Sample &sample)
@@ -157,27 +161,27 @@ ConstantData::ConstantData()
 class Sample
 {
 public:
-  double kf, kb, k1, k2, k3;
+  Real kf, kb, k1, k2, k3;
   unsigned int cutoff;
   const unsigned int dim = 6;
 
   // Constructors
   Sample();
-  Sample(double kf, double kb, double k1, double k2, double k3, unsigned int cutoff);
+  Sample(Real kf, Real kb, Real k1, Real k2, Real k3, unsigned int cutoff);
 
   // Functions that interface with the statistical calculations
-  std::vector< std::vector<double> > return_data() const;
-  std::vector<double> return_times() const;
-  Model::Model return_model() const;
+  std::vector< std::vector<Real> > return_data() const;
+  std::vector<Real> return_times() const;
+  Model::Model<Real> return_model() const;
   StateVector return_initial_condition() const;
-  Histograms::Parameters return_histogram_parameters() const;
+  Histograms::Parameters<Real> return_histogram_parameters() const;
   bool within_bounds() const;
 
   // Sample assignment
   Sample& operator = (const Sample &sample);
 
-  // Conversion to std::valarray<double> for arithmetic purposes
-  explicit operator std::valarray<double> () const;
+  // Conversion to std::valarray<Real> for arithmetic purposes
+  explicit operator std::valarray<Real> () const;
 
   // What it means to output a Sample
   friend std::ostream & operator<< (std::ostream &out, const Sample &sample);
@@ -189,7 +193,7 @@ private:
 
 
 // Constructor defines what the unknown parameters are in the model for a given Sample.
-Sample::Sample(double kf, double kb, double k1, double k2, double k3, unsigned int cutoff)
+Sample::Sample(Real kf, Real kb, Real k1, Real k2, Real k3, unsigned int cutoff)
     : kf(kf), kb(kb), k1(k1), k2(k2), k3(k3), cutoff(cutoff)
 {}
 
@@ -198,18 +202,18 @@ Sample::Sample(double kf, double kb, double k1, double k2, double k3, unsigned i
 // By default, make an invalid Sample. This is to ensure that the necessary values are always given
 // to a Sample or otherwise the program won't run.
 Sample::Sample()
-    : Sample(std::numeric_limits<double>::signaling_NaN(),
-             std::numeric_limits<double>::signaling_NaN(),
-             std::numeric_limits<double>::signaling_NaN(),
-             std::numeric_limits<double>::signaling_NaN(),
-             std::numeric_limits<double>::signaling_NaN(),
+    : Sample(std::numeric_limits<Real>::signaling_NaN(),
+             std::numeric_limits<Real>::signaling_NaN(),
+             std::numeric_limits<Real>::signaling_NaN(),
+             std::numeric_limits<Real>::signaling_NaN(),
+             std::numeric_limits<Real>::signaling_NaN(),
              static_cast<unsigned int>(-1))
 {}
 
 
 
 // Provides access to the measured data used in likelihood calculations
-std::vector<std::vector<double>> Sample::return_data() const
+std::vector<std::vector<Real>> Sample::return_data() const
 {
   return const_parameters.data_size;
 }
@@ -217,7 +221,7 @@ std::vector<std::vector<double>> Sample::return_data() const
 
 
 // Provides access to the times the data was collected to be given to the ODE solver
-std::vector<double> Sample::return_times() const
+std::vector<Real> Sample::return_times() const
 {
   return const_parameters.times;
 }
@@ -225,24 +229,24 @@ std::vector<double> Sample::return_times() const
 
 
 // Forms the model representing the mechanism being used, in this case a 3-step mechanism
-Model::Model Sample::return_model() const
+Model::Model<Real> Sample::return_model() const
 {
-  std::shared_ptr<Model::RightHandSideContribution> nucleation =
-      std::make_shared<Model::TermolecularNucleation>(const_parameters.A_index, const_parameters.As_index,
+  std::shared_ptr<Model::RightHandSideContribution<Real>> nucleation =
+      std::make_shared<Model::TermolecularNucleation<Real>>(const_parameters.A_index, const_parameters.As_index,
                                                       const_parameters.ligand_index, const_parameters.min_size,
                                                       kf, kb, k1, const_parameters.solvent);
 
-  std::shared_ptr<Model::RightHandSideContribution> small_growth =
-      std::make_shared<Model::Growth>(const_parameters.A_index, const_parameters.min_size, cutoff,
+  std::shared_ptr<Model::RightHandSideContribution<Real>> small_growth =
+      std::make_shared<Model::Growth<Real>>(const_parameters.A_index, const_parameters.min_size, cutoff,
                                       const_parameters.max_size, const_parameters.ligand_index,
                                       const_parameters.conserved_size, k2);
 
-  std::shared_ptr<Model::RightHandSideContribution> large_growth =
-      std::make_shared<Model::Growth>(const_parameters.A_index, cutoff+1, const_parameters.max_size,
+  std::shared_ptr<Model::RightHandSideContribution<Real>> large_growth =
+      std::make_shared<Model::Growth<Real>>(const_parameters.A_index, cutoff+1, const_parameters.max_size,
                                       const_parameters.max_size, const_parameters.ligand_index,
                                       const_parameters.conserved_size, k3);
 
-  Model::Model model(const_parameters.min_size, const_parameters.max_size);
+  Model::Model<Real> model(const_parameters.min_size, const_parameters.max_size);
   model.add_rhs_contribution(nucleation);
   model.add_rhs_contribution(small_growth);
   model.add_rhs_contribution(large_growth);
@@ -261,9 +265,9 @@ StateVector Sample::return_initial_condition() const
 
 
 // Provides access to the parameters to be used to bin data/simulation for the likelihood calculation
-Histograms::Parameters Sample::return_histogram_parameters() const
+Histograms::Parameters<Real> Sample::return_histogram_parameters() const
 {
-  Histograms::Parameters hist_parameters(const_parameters.hist_bins, const_parameters.min_reliable_size,
+  Histograms::Parameters<Real> hist_parameters(const_parameters.hist_bins, const_parameters.min_reliable_size,
                                          const_parameters.max_size);
   return hist_parameters;
 }
@@ -288,22 +292,22 @@ bool Sample::within_bounds() const
 // A function to perturb a sample. This generates a random sample following a normal distribution centered
 // around the current sample and with the specified covariance C. I.e. new_sample ~N(sample, C). The proposal
 // ratio is also returned, which is 1 in this case since the normal distribution is symmetric.
-std::pair<Sample,double> perturb(const Sample &sample,
-                                 const Eigen::MatrixXd &C,
+std::pair<Sample,Real> perturb(const Sample &sample,
+                                 const Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> &C,
                                  std::mt19937 &rng)
 {
   // Create a vector of random numbers following a normal distribution with mean 0 and variance 1
-  Eigen::VectorXd random_vector(sample.dim);
+  Eigen::Matrix<Real, Eigen::Dynamic, 1> random_vector(sample.dim);
   for (unsigned int i=0; i < random_vector.size(); ++i)
   {
-    random_vector(i) = std::normal_distribution<double>(0,1)(rng);
+    random_vector(i) = std::normal_distribution<Real>(0,1)(rng);
   }
 
   // Using the covariance matrix, perform the affine transformation
   // new_prm = 2.4/sqrt(dim) * L * random_vector + old_prm
   // where LL^T = covariance matrix
-  const Eigen::MatrixXd L = C.llt().matrixL();
-  Eigen::VectorXd old_prm(sample.dim);
+  const Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> L = C.llt().matrixL();
+  Eigen::Matrix<Real, Eigen::Dynamic, 1> old_prm(sample.dim);
   old_prm << sample.kf, sample.kb, sample.k1, sample.k2, sample.k3, sample.cutoff;
   const auto new_prm = 2.4/std::sqrt(1.*sample.dim) * L * random_vector + old_prm;
 
@@ -332,9 +336,9 @@ Sample& Sample::operator=(const Sample &sample)
 
 
 // When arithmetic is required, we can use a valarray containing the parameters.
-Sample::operator std::valarray<double>() const
+Sample::operator std::valarray<Real>() const
 {
-  return { kf, kb, k1, k2, k3, static_cast<double>(cutoff)};
+  return { kf, kb, k1, k2, k3, static_cast<Real>(cutoff)};
 }
 
 
@@ -374,7 +378,7 @@ int main(int argc, char **argv)
      *
      * The values are simply hardcoded for convenience.
      */
-    Eigen::MatrixXd initial_covariance(6, 6);
+    Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> initial_covariance(6, 6);
     initial_covariance <<
                        1.5e-4, 0, 0, 0, 0, 0,
         0, 2.6e10, 7.1e10, -1.0e9, 1.6e9, 2.5e7,
@@ -453,7 +457,7 @@ int main(int argc, char **argv)
     std::mt19937 rng;
     rng.seed(random_seed);
     mh_sampler.sample(starting_guess,
-                      &Statistics::log_probability<Sample, 4>,
+                      &Statistics::log_probability<Sample, 4, Real>,
                       [&](const Sample &s) {
                         if (counter.get() < 1000)
                           return perturb(s, initial_covariance, rng);

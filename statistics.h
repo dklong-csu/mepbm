@@ -32,10 +32,99 @@ namespace Statistics
   // Step 1: Turn the data into a histogram to form b_i's
   // Step 2: Turn the distribution into a histogram to form p_i's
   // Step 3: Compute the log likelihood.
-  double log_likelihood(const std::vector<double>& data,
-                        const std::vector<double>& distribution,
-                        const std::vector<double>& sizes,
-                        const Histograms::Parameters& hist_prm);
+  template<typename Real>
+  Real log_likelihood(const std::vector<Real>& data,
+                      const std::vector<Real>& distribution,
+                      const std::vector<Real>& sizes,
+                      const Histograms::Parameters<Real>& hist_prm);
+
+
+
+  template<typename Real>
+  Real log_likelihood(const std::vector<Real>& data,
+                      const std::vector<Real>& distribution,
+                      const std::vector<Real>& sizes,
+                      const Histograms::Parameters<Real>& hist_prm)
+  {
+    // Step 1 -- Turn data into a histogram
+    Histograms::Histogram<Real> hist_data(hist_prm);
+    std::vector<Real> data_counts(data.size(), 1.0); // each data point occurred 1 time
+    hist_data.AddToBins(data_counts, data);
+
+    // Step 2 -- Turn distribution into a histogram
+    // Step 2a -- Normalize distribution to create probability mass function (pmf)
+
+    // We know our model and ODE solver are imperfect. Therefore, if we encounter a negative
+    // value then we know this is a mathematical limitation. Fortunately, we can use physical
+    // intuition to understand that zero is a more accurate value. We can extend that a step
+    // further and see that instead of zero, a very small number relative to the rest of the
+    // concentrations is perhaps more accurate and plays nicely with the logarithms used later.
+    // To this end, we first calculate the maximum value in the distribution vector, with the
+    // intention of replacing negative values with 1e-9 * max value. Then we calculate the norm
+    // by summing all elements in distribution, replacing negative values as necessary. Finally,
+    // the vector is normalized by the norm value, again replacing negative values as necessary.
+    double max_conc = 0.;
+    for (double concentration : distribution)
+    {
+      max_conc = std::max(max_conc, concentration);
+    }
+
+    double norm = 0.;
+    for (double concentration : distribution)
+    {
+      if (concentration > 0)
+      {
+        norm += concentration;
+      }
+      else
+      {
+        norm += max_conc * 1e-9;
+      }
+    }
+
+    std::vector<Real> pmf(distribution.size());
+    for (unsigned int i=0; i<pmf.size(); ++i)
+    {
+      if (distribution[i] < 0)
+      {
+        pmf[i] = 1e-9 * max_conc / norm;
+      }
+      else
+      {
+        pmf[i] = distribution[i] / norm;
+      }
+    }
+
+    // Step 2b -- Create histogram from pmf
+    Histograms::Histogram<Real> hist_ode(hist_prm);
+    hist_ode.AddToBins(pmf, sizes);
+
+    // Step 3 -- Combine histograms to calculate log likelihood
+    double likelihood = 0.0;
+    for (unsigned int bin=0; bin < hist_prm.n_bins; ++bin)
+    {
+      // FIXME:  I think I can change the first if to just check if there are no data points
+      // If the probability is zero and there are no data points, do not contribute anything
+      // If the probability is zero and there are data points, then return most negative number possible
+      // If the probability is non-zero, then calculate normally
+      if (hist_ode.count[bin] <= 0 && hist_data.count[bin] == 0)
+      {
+        // do nothing
+      }
+      else if (hist_ode.count[bin] <= 0)
+      {
+        // minimum possible value
+        return -std::numeric_limits<double>::max();
+      }
+      else
+      {
+        // normal calculation
+        likelihood += hist_data.count[bin]*std::log(hist_ode.count[bin]);
+      }
+    }
+
+    return likelihood;
+  }
 
 
 
@@ -47,34 +136,34 @@ namespace Statistics
   // As a result, this function's workflow is:
   // Step 1: Solve ODE, saving the solution at each relevant time
   // Step 2: For each time point, calculate the log likelihood, and add to the cumulative log likelihood
-  template<int order>
-  double log_likelihood(const std::vector<std::vector<double>>& data,
-                        const std::vector<double>& times,
-                        const Model::Model& ode_model,
-                        Eigen::VectorXd& ic,
-                        const Histograms::Parameters& hist_prm)
+  template<int order, typename Real>
+  Real log_likelihood(const std::vector<std::vector<Real>>& data,
+                      const std::vector<Real>& times,
+                      const Model::Model<Real>& ode_model,
+                      Eigen::Matrix<Real, Eigen::Dynamic, 1>& ic,
+                      const Histograms::Parameters<Real>& hist_prm)
   {
     // Step 1 -- Solve the ODE at each time
-    ODE::StepperBDF<order> stepper(ode_model);
-    std::vector< Eigen::VectorXd > solutions;
+    ODE::StepperBDF<order, Real> stepper(ode_model);
+    std::vector< Eigen::Matrix<Real, Eigen::Dynamic, 1> > solutions;
     solutions.push_back(ic);
     for (unsigned int i = 1; i < times.size(); ++i)
     {
       // FIXME: add parameters for what dt should be and for accuracy of newton method
-      auto solution = ODE::solve_ode(stepper, solutions[i-1], times[i-1], times[i], 5e-3);
+      auto solution = ODE::solve_ode<Real>(stepper, solutions[i-1], times[i-1], times[i], 5e-3);
       solutions.push_back(solution);
     }
 
     // Step 2 -- Accumulate log likelihood
-    double likelihood = 0.0;
+    Real likelihood = 0.0;
     for (unsigned int set_num=0; set_num < data.size(); ++set_num)
     {
       // Step 2a -- Extract the particle sizes from the ODE solution
       const unsigned int smallest = ode_model.nucleation_order;
       const unsigned int largest = ode_model.max_size;
 
-      std::vector<double> sizes(largest - smallest + 1);
-      std::vector<double> concentration(sizes.size());
+      std::vector<Real> sizes(largest - smallest + 1);
+      std::vector<Real> concentration(sizes.size());
 
       for (unsigned int size = smallest; size < largest+1; ++size)
       {
@@ -82,10 +171,10 @@ namespace Statistics
         concentration[size - smallest] = solutions[set_num+1](size); // FIXME: particle size to index function needed
       }
       // Step 2b -- Calculate log likelihood of current data set and add to total
-      likelihood += Statistics::log_likelihood(data[set_num],
-                                               concentration,
-                                               sizes,
-                                               hist_prm);
+      likelihood += Statistics::log_likelihood<Real>(data[set_num],
+                                                     concentration,
+                                                     sizes,
+                                                     hist_prm);
     }
 
     return likelihood;
@@ -98,21 +187,21 @@ namespace Statistics
   // and using the data specified within the object.
   //
   // The object used must have member functions
-  // std::vector< std::vector<double> > return_data() -- a collection of vectors corresponding to collected data
+  // std::vector< std::vector<Real> > return_data() -- a collection of vectors corresponding to collected data
   //                                                     which gives particle size for each data.
-  // std::vector<double> return_times() -- the first element is intended to be time=0 and the remaining times
+  // std::vector<Real> return_times() -- the first element is intended to be time=0 and the remaining times
   //                                       should correspond to when the return_data() entries were collected.
   // Model::Model return_model() -- an object describing the right hand side of the system of differential equations
-  // std::vector<double> return_initial_condition() -- a vector giving the concentrations of the tracked chemical
+  // std::vector<Real> return_initial_condition() -- a vector giving the concentrations of the tracked chemical
   //                                                   species at time = 0.
   // Histograms::Parameters return_histogram_parameters() -- an object describing the way you want to bin together
   //                                                         particle sizes for comparing between data and simulation.
-  template<class InputClass, int order>
-  double log_likelihood(const InputClass &my_object)
+  template<class InputClass, int order, typename Real>
+  Real log_likelihood(const InputClass &my_object)
   {
-    Eigen::VectorXd ic = my_object.return_initial_condition();
-    return Statistics::log_likelihood<order>(my_object.return_data(), my_object.return_times(), my_object.return_model(),
-                                      ic, my_object.return_histogram_parameters());
+    Eigen::Matrix<Real, Eigen::Dynamic, 1> ic = my_object.return_initial_condition();
+    return Statistics::log_likelihood<order, Real>(my_object.return_data(), my_object.return_times(), my_object.return_model(),
+                                                   ic, my_object.return_histogram_parameters());
   }
 
 
@@ -124,13 +213,13 @@ namespace Statistics
   // bool within_bounds() -- The intent of this function is to compare the current state of the parameters
   //                         being sampled and compare to a pre-determined domain for those parameters.
   //                         If any parameter lies outside of its allowed interval, return false. Else, return true.
-  template<class InputClass>
-  double log_prior (const InputClass &my_object)
+  template<class InputClass, typename Real>
+  Real log_prior (const InputClass &my_object)
   {
     if (my_object.within_bounds())
       return 0.;
     else
-      return -std::numeric_limits<double>::max();
+      return -std::numeric_limits<Real>::max();
   }
 
 
@@ -140,16 +229,16 @@ namespace Statistics
   // and only calculate log_likelihood if log_prior is finite.
   //
   // The object used must meet the member function requirements of log_prior<InputClass> and log_likelihood<InputClass>
-  template<class InputClass, int order>
-  double log_probability (const InputClass &my_object)
+  template<class InputClass, int order, typename Real>
+  Real log_probability (const InputClass &my_object)
   {
-    const double log_prior = Statistics::log_prior<InputClass>(my_object);
+    const Real log_prior = Statistics::log_prior<InputClass, Real>(my_object);
 
-    if (log_prior == -std::numeric_limits<double>::max())
+    if (log_prior == -std::numeric_limits<Real>::max())
       return log_prior;
 
     else
-      return Statistics::log_likelihood<InputClass, order>(my_object) + log_prior;
+      return Statistics::log_likelihood<InputClass, order, Real>(my_object) + log_prior;
   }
 }
 
