@@ -57,11 +57,11 @@ ENDIF()
 # the tests.
 ADD_LIBRARY(libmepbm
             OBJECT
-            histogram.cpp
-            models.cpp
-            statistics.cpp
-            data.cpp
-            ode_solver.cpp)
+            histogram.h
+            models.h
+            statistics.h
+            data.h
+            ode_solver.h)
 
 #########################################
 ### Describe the main executable and from which files
