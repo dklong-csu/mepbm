@@ -32,5 +32,3 @@ jobs:
       run: make
     - name: ctest
       run: ctest --output-on-failure -j2
-    - name: check on failed test
-      run: ./tests/log_likelihood_reasonable_ode_float
