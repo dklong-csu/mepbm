@@ -1,3 +1,5 @@
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "openmp-use-default-none"
 /*
  * Program to compute the posterior distribution
  * -- 4-step mechanism
@@ -69,8 +71,9 @@ public:
   unsigned int max_size = 2500;
   unsigned int conserved_size = 1;
 
-  unsigned int min_hist_diam = 1.4;
-  unsigned int max_hist_diam = 4.1;
+  Real min_bin_size = 1.4;
+  Real max_bin_size = 4.1;
+  unsigned int hist_bins = 27;
 
   unsigned int A_index = 0;
   unsigned int As_index = 1;
@@ -82,7 +85,7 @@ public:
   // The raw data is provided with diameter measurements, but we want to convert that to particle size upon
   // receiving the data. We also want to keep track of the time each piece of data was collected.
   Data::PomData<Real> data_diameter;
-  std::vector< std::vector<Real> > data_diam;
+  std::vector< std::vector<Real> > data_size;
   std::vector<Real> times;
 
   // { kb, k1, k2, k3, k4 }
@@ -95,9 +98,6 @@ public:
 
   // Hold the initial condition for the ODEs, i.e. the starting concentration of each species
   StateVector initial_condition;
-
-  // How many bins should the data/solution be divided into for likelihood calculations
-  unsigned int hist_bins = 27;
 };
 
 
@@ -105,10 +105,16 @@ public:
 // and convert diameter measurements to particle size measurements.
 ConstantData::ConstantData()
 {
-  const std::vector<std::vector<Real>> data_diam = {data_diameter.tem_diam_time1, data_diameter.tem_diam_time2,
-                                                      data_diameter.tem_diam_time3, data_diameter.tem_diam_time4};
+  data_size = {data_diameter.tem_diam_time1,
+               data_diameter.tem_diam_time2,
+               data_diameter.tem_diam_time3,
+               data_diameter.tem_diam_time4};
 
-  times = {0., data_diameter.tem_time1, data_diameter.tem_time2, data_diameter.tem_time3, data_diameter.tem_time4};
+  times = {0.,
+           data_diameter.tem_time1,
+           data_diameter.tem_time2,
+           data_diameter.tem_time3,
+           data_diameter.tem_time4};
 
   initial_condition = StateVector::Zero(max_size + 1);
   initial_condition(0) = 0.0012;
@@ -208,7 +214,7 @@ Sample::Sample()
 // Provides access to the measured data used in likelihood calculations
 std::vector<std::vector<Real>> Sample::return_data() const
 {
-  return const_parameters.data_diam;
+  return const_parameters.data_size;
 }
 
 
@@ -267,8 +273,8 @@ StateVector Sample::return_initial_condition() const
 // Provides access to the parameters to be used to bin data/simulation for the likelihood calculation
 Histograms::Parameters<Real> Sample::return_histogram_parameters() const
 {
-  Histograms::Parameters<Real> hist_parameters(const_parameters.hist_bins, const_parameters.min_hist_diam,
-                                         const_parameters.max_hist_diam);
+  Histograms::Parameters<Real> hist_parameters(const_parameters.hist_bins, const_parameters.min_bin_size,
+                                         const_parameters.max_bin_size);
   return hist_parameters;
 }
 
