@@ -33,10 +33,11 @@
 #include <cmath>
 #include <memory>
 #include <eigen3/Eigen/Dense>
+#include <eigen3/Eigen/Sparse>
 
 namespace Model
 {
-  /*
+/*
  * A function which maps the size of a particle -- i.e. the number of molecules in the particle -- and
  * returns the number of ``available atoms." The concept of ``available atoms" is a way of describing
  * how each molecule on the outside of the particle represents a binding site for which a precursor
@@ -70,7 +71,7 @@ namespace Model
  * A base class for describing the effects nucleation, growth, and agglomeration have on the
  * system of ODEs.
  */
-  template<typename Real>
+  template<typename Real, typename Matrix>
   class RightHandSideContribution
   {
   public:
@@ -78,7 +79,7 @@ namespace Model
                                          Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs) = 0;
 
     virtual void add_contribution_to_jacobian(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
-                                              Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> &J) = 0;
+                                              Matrix &J) = 0;
   };
 
 
@@ -109,8 +110,38 @@ namespace Model
  *
  * This information is housed in the Parameters class and is passed to the right-hand side function.
  */
+  template<typename Real, typename Matrix>
+  class TermolecularNucleation : public Model::RightHandSideContribution<Real, Matrix>
+  {
+  public:
+    const unsigned int A_index, As_index, ligand_index, particle_index;
+    const Real rate_forward, rate_backward, rate_nucleation;
+    const Real solvent;
+
+    // default constructor creates an invalid object
+    TermolecularNucleation();
+
+    TermolecularNucleation(unsigned int A_index, unsigned int As_index, unsigned int ligand_index,
+                           unsigned int particle_index,
+                           Real rate_forward, Real rate_backward, Real rate_nucleation,
+                           Real solvent);
+
+    void add_contribution_to_rhs(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
+                                 Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs) override;
+
+    void add_contribution_to_jacobian(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
+                                      Matrix &J) override;
+  };
+
+  /*
+   * ==================================================================================================================
+   * Specialization for a dense matrix
+   * ==================================================================================================================
+   */
+
   template<typename Real>
-  class TermolecularNucleation : public Model::RightHandSideContribution<Real>
+  class TermolecularNucleation<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>
+      : public Model::RightHandSideContribution<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>
   {
   public:
     const unsigned int A_index, As_index, ligand_index, particle_index;
@@ -133,9 +164,8 @@ namespace Model
   };
 
 
-
-  template<typename Real>
-  TermolecularNucleation<Real>::TermolecularNucleation()
+  template<typename Real, typename Matrix>
+  TermolecularNucleation<Real, Matrix>::TermolecularNucleation()
       : TermolecularNucleation(std::numeric_limits<unsigned int>::signaling_NaN(),
                                std::numeric_limits<unsigned int>::signaling_NaN(),
                                std::numeric_limits<unsigned int>::signaling_NaN(),
@@ -149,14 +179,15 @@ namespace Model
 
 
   template<typename Real>
-  TermolecularNucleation<Real>::TermolecularNucleation(const unsigned int A_index,
-                                                       const unsigned int As_index,
-                                                       const unsigned int ligand_index,
-                                                       const unsigned int particle_index,
-                                                       const Real rate_forward,
-                                                       const Real rate_backward,
-                                                       const Real rate_nucleation,
-                                                       const Real solvent)
+  TermolecularNucleation<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::TermolecularNucleation(
+      const unsigned int A_index,
+      const unsigned int As_index,
+      const unsigned int ligand_index,
+      const unsigned int particle_index,
+      const Real rate_forward,
+      const Real rate_backward,
+      const Real rate_nucleation,
+      const Real solvent)
       : A_index(A_index), As_index(As_index), ligand_index(ligand_index), particle_index(particle_index)
       , rate_forward(rate_forward), rate_backward(rate_backward), rate_nucleation(rate_nucleation)
       , solvent(solvent)
@@ -165,7 +196,9 @@ namespace Model
 
 
   template<typename Real>
-  void TermolecularNucleation<Real>::add_contribution_to_rhs(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x, Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs)
+  void TermolecularNucleation<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::add_contribution_to_rhs(
+      const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
+      Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs)
   {
     const Real diss_forward = rate_forward * x(A_index) * solvent*solvent;
     const Real diss_backward = rate_backward * x(As_index) * x(ligand_index);
@@ -180,8 +213,10 @@ namespace Model
 
 
   template<typename Real>
-  void TermolecularNucleation<Real>::add_contribution_to_jacobian(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
-                                                                  Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> &jacobi)
+  void
+  TermolecularNucleation<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::add_contribution_to_jacobian(
+      const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
+      Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> &jacobi)
   {
     const Real diss_forward_dA = rate_forward * solvent * solvent;
 
@@ -210,6 +245,135 @@ namespace Model
 
 
   /*
+   * ==================================================================================================================
+   * Specialization for a sparse matrix
+   * ==================================================================================================================
+   */
+  template<typename Real>
+  class TermolecularNucleation<Real, Eigen::SparseMatrix<Real>>
+      : public Model::RightHandSideContribution<Real, Eigen::SparseMatrix<Real>>
+  {
+  public:
+    const unsigned int A_index, As_index, ligand_index, particle_index;
+    const Real rate_forward, rate_backward, rate_nucleation;
+    const Real solvent;
+
+    // default constructor creates an invalid object
+    TermolecularNucleation();
+
+    TermolecularNucleation(unsigned int A_index, unsigned int As_index, unsigned int ligand_index,
+                           unsigned int particle_index,
+                           Real rate_forward, Real rate_backward, Real rate_nucleation,
+                           Real solvent);
+
+    void add_contribution_to_rhs(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
+                                 Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs) override;
+
+    void add_contribution_to_jacobian(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
+                                      Eigen::SparseMatrix<Real> &J) override;
+
+    void add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list);
+
+    void update_num_nonzero(unsigned int &num_nonzero);
+  };
+
+
+
+  template<typename Real>
+  TermolecularNucleation<Real, Eigen::SparseMatrix<Real>>::TermolecularNucleation(
+      const unsigned int A_index,
+      const unsigned int As_index,
+      const unsigned int ligand_index,
+      const unsigned int particle_index,
+      const Real rate_forward,
+      const Real rate_backward,
+      const Real rate_nucleation,
+      const Real solvent)
+      : A_index(A_index), As_index(As_index), ligand_index(ligand_index), particle_index(particle_index)
+      , rate_forward(rate_forward), rate_backward(rate_backward), rate_nucleation(rate_nucleation)
+      , solvent(solvent)
+  {}
+
+
+
+  template<typename Real>
+  void TermolecularNucleation<Real, Eigen::SparseMatrix<Real>>::add_contribution_to_rhs(
+      const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
+      Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs)
+  {
+    const Real diss_forward = rate_forward * x(A_index) * solvent*solvent;
+    const Real diss_backward = rate_backward * x(As_index) * x(ligand_index);
+    const Real nucleation = rate_nucleation * x(A_index) * x(As_index) * x(As_index);
+
+    rhs(A_index) += -diss_forward + diss_backward - nucleation;
+    rhs(As_index) += diss_forward - diss_backward - 2 * nucleation;
+    rhs(ligand_index) += diss_forward - diss_backward + nucleation;
+    rhs(particle_index) += nucleation;
+  }
+
+
+  template<typename Real>
+  void
+  TermolecularNucleation<Real, Eigen::SparseMatrix<Real>>::add_contribution_to_jacobian(
+      const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
+      Eigen::SparseMatrix<Real> &jacobi)
+  {
+    const Real diss_forward_dA = rate_forward * solvent * solvent;
+
+    const Real diss_backward_dAs = rate_backward * x(ligand_index);
+    const Real diss_backward_dL = rate_backward * x(As_index);
+
+    const Real nucleation_dA = rate_nucleation * x(As_index) * x(As_index);
+    const Real nucleation_dAs = 2 * rate_nucleation * x(A_index) * x(As_index);
+
+    jacobi.coeffRef(A_index, A_index) += -diss_forward_dA - nucleation_dA;
+    jacobi.coeffRef(A_index, As_index) += diss_backward_dAs - nucleation_dAs;
+    jacobi.coeffRef(A_index, ligand_index) += diss_backward_dL;
+
+    jacobi.coeffRef(As_index, A_index) += diss_forward_dA - 2 * nucleation_dA;
+    jacobi.coeffRef(As_index, As_index) += -diss_backward_dAs - 2 * nucleation_dAs;
+    jacobi.coeffRef(As_index, ligand_index) += -diss_backward_dL;
+
+    jacobi.coeffRef(ligand_index, A_index) += diss_forward_dA + nucleation_dA;
+    jacobi.coeffRef(ligand_index, As_index) += -diss_backward_dAs + nucleation_dAs;
+    jacobi.coeffRef(ligand_index, ligand_index) += -diss_backward_dL;
+
+    jacobi.coeffRef(particle_index, A_index) += nucleation_dA;
+    jacobi.coeffRef(particle_index, As_index) += nucleation_dAs;
+  }
+
+
+  template<typename Real>
+  void
+  TermolecularNucleation<Real, Eigen::SparseMatrix<Real>>::add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list)
+  {
+    triplet_list.push_back(Eigen::Triplet<Real>(A_index, A_index));
+    triplet_list.push_back(Eigen::Triplet<Real>(A_index, As_index));
+    triplet_list.push_back(Eigen::Triplet<Real>(A_index, ligand_index));
+
+    triplet_list.push_back(Eigen::Triplet<Real>(As_index, A_index));
+    triplet_list.push_back(Eigen::Triplet<Real>(As_index, As_index));
+    triplet_list.push_back(Eigen::Triplet<Real>(As_index, ligand_index));
+
+    triplet_list.push_back(Eigen::Triplet<Real>(ligand_index, A_index));
+    triplet_list.push_back(Eigen::Triplet<Real>(ligand_index, As_index));
+    triplet_list.push_back(Eigen::Triplet<Real>(ligand_index, ligand_index));
+
+    triplet_list.push_back(Eigen::Triplet<Real>(particle_index, A_index));
+    triplet_list.push_back(Eigen::Triplet<Real>(particle_index, As_index));
+  }
+
+
+  template<typename Real>
+  void
+  TermolecularNucleation<Real, Eigen::SparseMatrix<Real>>::update_num_nonzero(unsigned int &num_nonzero)
+  {
+    num_nonzero += 11;
+  }
+
+
+
+  /*
  * A class which describes the effect of particle growth on the right hand side of the ODE system.
  * This chemical process is described as
  *        A + B -> C + Ligand
@@ -229,8 +393,38 @@ namespace Model
  *
  * This information is housed in the Parameters class and is passed to the right-hand side function.
  */
+  template<typename Real, typename Matrix>
+  class Growth : public RightHandSideContribution<Real, Matrix>
+  {
+  public:
+    const unsigned int A_index, smallest_size, largest_size, max_size, ligand_index, conserved_size;
+    const Real rate;
+
+    // default constructor creates an invalid object
+    Growth();
+
+    Growth(unsigned int A_index, unsigned int smallest_size, unsigned int largest_size,
+           unsigned int max_size, unsigned int ligand_index, unsigned int conserved_size,
+           Real rate);
+
+    void add_contribution_to_rhs(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
+                                 Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs) override;
+
+    void add_contribution_to_jacobian(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
+                                      Matrix &jacobi) override;
+  };
+
+
+
+  /*
+   * ==================================================================================================================
+   * Specialization for a dense matrix
+   * ==================================================================================================================
+   */
+
   template<typename Real>
-  class Growth : public RightHandSideContribution<Real>
+  class Growth<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>
+      : public RightHandSideContribution<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>
   {
   public:
     const unsigned int A_index, smallest_size, largest_size, max_size, ligand_index, conserved_size;
@@ -252,9 +446,8 @@ namespace Model
 
 
 
-
   template<typename Real>
-  Growth<Real>::Growth()
+  Growth<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::Growth()
       : Growth(std::numeric_limits<unsigned int>::signaling_NaN(),
                std::numeric_limits<unsigned int>::signaling_NaN(),
                std::numeric_limits<unsigned int>::signaling_NaN(),
@@ -267,13 +460,14 @@ namespace Model
 
 
   template<typename Real>
-  Growth<Real>::Growth(const unsigned int A_index,
-                       const unsigned int smallest_size,
-                       const unsigned int largest_size,
-                       const unsigned int max_size,
-                       const unsigned int ligand_index,
-                       const unsigned int conserved_size,
-                       const Real rate)
+  Growth<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::Growth(
+      const unsigned int A_index,
+      const unsigned int smallest_size,
+      const unsigned int largest_size,
+      const unsigned int max_size,
+      const unsigned int ligand_index,
+      const unsigned int conserved_size,
+      const Real rate)
       : A_index(A_index)
       , smallest_size(smallest_size)
       , largest_size(largest_size)
@@ -286,8 +480,9 @@ namespace Model
 
 
   template<typename Real>
-  void Growth<Real>::add_contribution_to_rhs(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
-                                             Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs)
+  void Growth<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::add_contribution_to_rhs(
+      const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
+      Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs)
   {
     // FIXME: turn these into error messages?
     assert(smallest_size < largest_size);
@@ -311,8 +506,10 @@ namespace Model
 
 
   template<typename Real>
-  void Growth<Real>::add_contribution_to_jacobian(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
-                                                  Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> &jacobi)
+  void
+  Growth<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::add_contribution_to_jacobian(
+      const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
+      Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> &jacobi)
   {
     assert(smallest_size < largest_size);
     assert(largest_size <= max_size);
@@ -339,6 +536,169 @@ namespace Model
     }
   }
 
+
+
+  /*
+   * ==================================================================================================================
+   * Specialization for a sparse matrix
+   * ==================================================================================================================
+   */
+  template<typename Real>
+  class Growth<Real, Eigen::SparseMatrix<Real>>
+      : public RightHandSideContribution<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>
+  {
+  public:
+    const unsigned int A_index, smallest_size, largest_size, max_size, ligand_index, conserved_size;
+    const Real rate;
+
+    // default constructor creates an invalid object
+    Growth();
+
+    Growth(unsigned int A_index, unsigned int smallest_size, unsigned int largest_size,
+           unsigned int max_size, unsigned int ligand_index, unsigned int conserved_size,
+           Real rate);
+
+    void add_contribution_to_rhs(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
+                                 Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs) override;
+
+    void add_contribution_to_jacobian(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
+                                      Eigen::SparseMatrix<Real> &jacobi) override;
+
+    void add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list);
+
+    void update_num_nonzero(unsigned int &num_nonzero);
+  };
+
+
+
+  template<typename Real>
+  Growth<Real, Eigen::SparseMatrix<Real>>::Growth()
+      : Growth(std::numeric_limits<unsigned int>::signaling_NaN(),
+               std::numeric_limits<unsigned int>::signaling_NaN(),
+               std::numeric_limits<unsigned int>::signaling_NaN(),
+               std::numeric_limits<unsigned int>::signaling_NaN(),
+               std::numeric_limits<unsigned int>::signaling_NaN(),
+               std::numeric_limits<unsigned int>::signaling_NaN(),
+               std::numeric_limits<Real>::signaling_NaN())
+  {}
+
+
+
+  template<typename Real>
+  Growth<Real, Eigen::SparseMatrix<Real>>::Growth(const unsigned int A_index,
+                                                  const unsigned int smallest_size,
+                                                  const unsigned int largest_size,
+                                                  const unsigned int max_size,
+                                                  const unsigned int ligand_index,
+                                                  const unsigned int conserved_size,
+                                                  const Real rate)
+      : A_index(A_index)
+      , smallest_size(smallest_size)
+      , largest_size(largest_size)
+      , max_size(max_size)
+      , ligand_index(ligand_index)
+      , conserved_size(conserved_size)
+      , rate(rate)
+  {}
+
+
+
+  template<typename Real>
+  void Growth<Real, Eigen::SparseMatrix<Real>>::add_contribution_to_rhs(
+      const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
+      Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs)
+  {
+    // FIXME: turn these into error messages?
+    assert(smallest_size < largest_size);
+    assert(largest_size <= max_size);
+    // FIXME: I should pass some size_to_index function as an argument as this only works if
+    // FIXME: the nucleation order is 3 at the moment
+    for (unsigned int size = smallest_size; size <= largest_size; ++size)
+    {
+      const Real rxn_factor = rate *  x(A_index) * atoms<Real>(size, conserved_size) * x(size);
+      rhs(size) -= rxn_factor;
+      rhs(ligand_index) += rxn_factor;
+      rhs(A_index) -= rxn_factor;
+
+      if (size < max_size)
+      {
+        rhs(size + 1) += rxn_factor;
+      }
+    }
+  }
+
+
+
+  template<typename Real>
+  void
+  Growth<Real, Eigen::SparseMatrix<Real>>::add_contribution_to_jacobian(
+      const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
+      Eigen::SparseMatrix<Real> &jacobi)
+  {
+    assert(smallest_size < largest_size);
+    assert(largest_size <= max_size);
+
+    for (unsigned int size = smallest_size; size <= largest_size; ++size)
+    {
+      const Real rxn_factor_dA = rate * atoms<Real>(size, conserved_size) * x(size);
+      const Real rxn_factor_dn = rate * x(A_index) * atoms<Real>(size, conserved_size);
+
+      jacobi.coeffRef(size, A_index) -= rxn_factor_dA;
+      jacobi.coeffRef(size, size) -= rxn_factor_dn;
+
+      jacobi.coeffRef(ligand_index, A_index) += rxn_factor_dA;
+      jacobi.coeffRef(ligand_index, size) += rxn_factor_dn;
+
+      jacobi.coeffRef(A_index, A_index) -= rxn_factor_dA;
+      jacobi.coeffRef(A_index, size) -= rxn_factor_dn;
+
+      if (size < max_size)
+      {
+        jacobi.coeffRef(size + 1, A_index) += rxn_factor_dA;
+        jacobi.coeffRef(size + 1, size) += rxn_factor_dn;
+      }
+    }
+  }
+
+
+
+  template<typename Real>
+  void
+  Growth<Real, Eigen::SparseMatrix<Real>>::add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list)
+  {
+    assert(smallest_size < largest_size);
+    assert(largest_size <= max_size);
+
+    for (unsigned int size = smallest_size; size <= largest_size; ++size)
+    {
+      triplet_list.push_back(Eigen::Triplet<Real>(size, A_index));
+      triplet_list.push_back(Eigen::Triplet<Real>(size, size));
+
+      triplet_list.push_back(Eigen::Triplet<Real>(ligand_index, A_index));
+      triplet_list.push_back(Eigen::Triplet<Real>(ligand_index, size));
+
+      triplet_list.push_back(Eigen::Triplet<Real>(A_index, A_index));
+      triplet_list.push_back(Eigen::Triplet<Real>(A_index, size));
+
+      if (size < max_size)
+      {
+        triplet_list.push_back(Eigen::Triplet<Real>(size + 1, A_index));
+        triplet_list.push_back(Eigen::Triplet<Real>(size + 1, size));
+      }
+    }
+  }
+
+
+
+  template<typename Real>
+  void
+  Growth<Real, Eigen::SparseMatrix<Real>>::update_num_nonzero(unsigned int &num_nonzero)
+  {
+    num_nonzero += (largest_size - smallest_size) * 8;
+  }
+
+
+
   /*
  * A class which describes the effect of particle agglomeration on the right hand side of the ODE system.
  * This chemical process is described as
@@ -358,8 +718,41 @@ namespace Model
  *
  * This information is housed in the Parameters class and is passed to the right-hand side function.
  */
+  template<typename Real, typename Matrix>
+  class Agglomeration : public RightHandSideContribution<Real, Matrix>
+  {
+  public:
+    const unsigned int B_smallest_size, B_largest_size;
+    const unsigned int C_smallest_size, C_largest_size;
+    const unsigned int max_size;
+    const unsigned int conserved_size;
+    const Real rate;
+
+    // default constructor creates an invalid object
+    Agglomeration();
+
+    Agglomeration(unsigned int B_smallest_size, unsigned int B_largest_size,
+                  unsigned int C_smallest_size, unsigned int C_largest_size,
+                  unsigned int max_size, unsigned int conserved_size, Real rate);
+
+    void add_contribution_to_rhs(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
+                                 Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs) override;
+
+    void add_contribution_to_jacobian(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
+                                      Matrix &jacobi) override;
+  };
+
+
+
+  /*
+   * ==================================================================================================================
+   * Specialization for a dense matrix
+   * ==================================================================================================================
+   */
+
   template<typename Real>
-  class Agglomeration : public RightHandSideContribution<Real>
+  class Agglomeration<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>
+      : public RightHandSideContribution<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>
   {
   public:
     const unsigned int B_smallest_size, B_largest_size;
@@ -385,7 +778,7 @@ namespace Model
 
 
   template<typename Real>
-  Agglomeration<Real>::Agglomeration()
+  Agglomeration<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::Agglomeration()
       : Agglomeration(std::numeric_limits<unsigned int>::signaling_NaN(),
                       std::numeric_limits<unsigned int>::signaling_NaN(),
                       std::numeric_limits<unsigned int>::signaling_NaN(),
@@ -398,13 +791,14 @@ namespace Model
 
 
   template<typename Real>
-  Agglomeration<Real>::Agglomeration(const unsigned int B_smallest_size,
-                                     const unsigned int B_largest_size,
-                                     const unsigned int C_smallest_size,
-                                     const unsigned int C_largest_size,
-                                     const unsigned int max_size,
-                                     const unsigned int conserved_size,
-                                     const Real rate)
+  Agglomeration<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::Agglomeration(
+      const unsigned int B_smallest_size,
+      const unsigned int B_largest_size,
+      const unsigned int C_smallest_size,
+      const unsigned int C_largest_size,
+      const unsigned int max_size,
+      const unsigned int conserved_size,
+      const Real rate)
       : B_smallest_size(B_smallest_size), B_largest_size(B_largest_size)
       , C_smallest_size(C_smallest_size), C_largest_size(C_largest_size)
       , max_size(max_size)
@@ -415,8 +809,9 @@ namespace Model
 
 
   template<typename Real>
-  void Agglomeration<Real>::add_contribution_to_rhs(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
-                                                    Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs)
+  void Agglomeration<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::add_contribution_to_rhs(
+      const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
+      Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs)
   {
     // FIXME: turn these into error messages?
     assert(B_smallest_size < B_largest_size);
@@ -474,11 +869,10 @@ namespace Model
 
 
   template<typename Real>
-  void Agglomeration<Real>::add_contribution_to_jacobian(const Eigen::Matrix<Real,
-                                                         Eigen::Dynamic, 1> &x,
-                                                         Eigen::Matrix<Real,
-                                                         Eigen::Dynamic,
-                                                         Eigen::Dynamic> &jacobi)
+  void
+  Agglomeration<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::add_contribution_to_jacobian(
+      const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
+      Eigen::Matrix<Real,Eigen::Dynamic, Eigen::Dynamic> &jacobi)
   {
     std::vector<Real> rxn_factors(x.size(), 0.);
     std::vector<Real> rxn_factors_dn(x.size(), 0.);
@@ -525,38 +919,282 @@ namespace Model
 
 
 
-  // A model is a representation of the system of ODEs that's being solved. It needs to know
-  // the smallest and largest particle size (nucleation_order, max_size). The model also needs
-  // a way to evaluate the right-hand side and the Jacobian of the system of ODEs.
+  /*
+   * ==================================================================================================================
+   * Specialization for a sparse matrix
+   * ==================================================================================================================
+   */
+
   template<typename Real>
-  class Model
+  class Agglomeration<Real, Eigen::SparseMatrix<Real>>
+      : public RightHandSideContribution<Real, Eigen::SparseMatrix<Real>>
   {
   public:
-    Model(unsigned int nucleation_order, unsigned int max_size);
-
-    void add_rhs_contribution(std::shared_ptr<RightHandSideContribution<Real>> &rhs);
-    Eigen::Matrix<Real, Eigen::Dynamic, 1> rhs(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const;
-    Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> jacobian(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const;
-
-    const unsigned int nucleation_order;
+    const unsigned int B_smallest_size, B_largest_size;
+    const unsigned int C_smallest_size, C_largest_size;
     const unsigned int max_size;
-    Eigen::PartialPivLU<Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> jacobian_solver;
+    const unsigned int conserved_size;
+    const Real rate;
 
-  private:
-    std::vector<std::shared_ptr<RightHandSideContribution<Real>>> rhs_contributions;
+    // default constructor creates an invalid object
+    Agglomeration();
+
+    Agglomeration(unsigned int B_smallest_size, unsigned int B_largest_size,
+                  unsigned int C_smallest_size, unsigned int C_largest_size,
+                  unsigned int max_size, unsigned int conserved_size, Real rate);
+
+    void add_contribution_to_rhs(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
+                                 Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs) override;
+
+    void add_contribution_to_jacobian(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
+                                      Eigen::SparseMatrix<Real> &jacobi) override;
+
+    void add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list);
+
+    void update_num_nonzero(unsigned int &num_nonzero);
   };
 
 
 
   template<typename Real>
-  Model<Real>::Model(unsigned int nucleation_order, unsigned int max_size)
+  Agglomeration<Real, Eigen::SparseMatrix<Real>>::Agglomeration()
+      : Agglomeration(std::numeric_limits<unsigned int>::signaling_NaN(),
+                      std::numeric_limits<unsigned int>::signaling_NaN(),
+                      std::numeric_limits<unsigned int>::signaling_NaN(),
+                      std::numeric_limits<unsigned int>::signaling_NaN(),
+                      std::numeric_limits<unsigned int>::signaling_NaN(),
+                      std::numeric_limits<unsigned int>::signaling_NaN(),
+                      std::numeric_limits<Real>::signaling_NaN())
+  {}
+
+
+
+  template<typename Real>
+  Agglomeration<Real, Eigen::SparseMatrix<Real>>::Agglomeration(
+      const unsigned int B_smallest_size,
+      const unsigned int B_largest_size,
+      const unsigned int C_smallest_size,
+      const unsigned int C_largest_size,
+      const unsigned int max_size,
+      const unsigned int conserved_size,
+      const Real rate)
+      : B_smallest_size(B_smallest_size), B_largest_size(B_largest_size)
+      , C_smallest_size(C_smallest_size), C_largest_size(C_largest_size)
+      , max_size(max_size)
+      , conserved_size(conserved_size)
+      , rate(rate)
+  {}
+
+
+
+  template<typename Real>
+  void Agglomeration<Real, Eigen::SparseMatrix<Real>>::add_contribution_to_rhs(
+      const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
+      Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs)
+  {
+    // FIXME: turn these into error messages?
+    assert(B_smallest_size < B_largest_size);
+    assert(C_smallest_size < C_largest_size);
+    assert(B_largest_size <= max_size);
+    assert(C_largest_size <= max_size);
+
+    // Pre-calculate terms of the derivative that will be used since we require an expensive double loop.
+    // Many of the terms will be calculated more than once if they are not pre-calculated, which adds
+    // up as the double loop gets larger.
+    //
+    // The factor is calculated to be the number of binding sites * current concentration
+    std::vector<Real> rxn_factors(x.size(), 0.);
+    for (unsigned int i=B_smallest_size; i<=B_largest_size; ++i)
+    {
+      rxn_factors[i] = atoms<Real>(i, conserved_size) * x(i);
+    }
+
+    // FIXME: is this even necessary to do? It might be simpler to just calculate from
+    // FIXME: min(B_smallest_size, C_smallest_size) to max(B_largest_size, C_largest_size)
+    if (B_smallest_size != C_smallest_size || B_largest_size != C_smallest_size)
+    {
+      for (unsigned int i=C_smallest_size; i<=C_largest_size; ++i)
+      {
+        rxn_factors[i] = atoms<Real>(i, conserved_size) * x(i);
+      }
+    }
+
+    // Calculate the right-hand side contributions from agglomeration
+    // Two particles interact with each other, one B particle and one C particle.
+    // The rate this occurs based on how frequently a B particle and C particle will interact
+    // with each other as well as by how quickly the reaction occurs.
+    // The frequency of the particles meeting is proportional to the product of the rxn_factors calculated above.
+    // Then the provided rate constant, rate, scales the product to appropriately compute the reaction rate.
+    //
+    // We always track the outflow due to agglomeration. However, agglomeration might yield a particle whose
+    // size is larger than we track. For example, if the max particle size tracked is 10 and agglomeration
+    // occurs between a particle of size 6 and 7, then the loss of size 6 and 7 particles will be calculated
+    // but the gain of size 13 particles will not because only particles up to size 10 are tracked.
+    for (unsigned int i = B_smallest_size; i <= B_largest_size; ++i)
+    {
+      // If the B and C size ranges overlap, then we end up double counting some contributions.
+      // Taking the max between the B-size and the smallest C-size ensures this double counting does not occur.
+      for (unsigned int j = std::max(C_smallest_size, i); j <= C_largest_size; ++j)
+      {
+        const auto rxn_deriv = rate * rxn_factors[i] * rxn_factors[j];
+        rhs(i) -= rxn_deriv;
+        rhs(j) -= rxn_deriv;
+        if (i+j <= max_size)
+          rhs(i+j) += rxn_deriv;
+      }
+    }
+  }
+
+
+
+  template<typename Real>
+  void
+  Agglomeration<Real, Eigen::SparseMatrix<Real>>::add_contribution_to_jacobian(
+      const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
+      Eigen::SparseMatrix<Real> &jacobi)
+  {
+    std::vector<Real> rxn_factors(x.size(), 0.);
+    std::vector<Real> rxn_factors_dn(x.size(), 0.);
+    for (unsigned int i=B_smallest_size; i<=B_largest_size; ++i)
+    {
+      rxn_factors[i] = atoms<Real>(i, conserved_size) * x(i);
+      rxn_factors_dn[i] = atoms<Real>(i, conserved_size);
+    }
+
+    // FIXME: is this even necessary to do? It might be simpler to just calculate from
+    // FIXME: min(B_smallest_size, C_smallest_size) to max(B_largest_size, C_largest_size)
+    if (B_smallest_size != C_smallest_size || B_largest_size != C_smallest_size)
+    {
+      for (unsigned int i=C_smallest_size; i<=C_largest_size; ++i)
+      {
+        rxn_factors[i] = atoms<Real>(i, conserved_size) * x(i);
+        rxn_factors_dn[i] = atoms<Real>(i, conserved_size);
+      }
+    }
+
+    for (unsigned int i = B_smallest_size; i <= B_largest_size; ++i)
+    {
+      // If the B and C size ranges overlap, then we end up double counting some contributions.
+      // Taking the max between the B-size and the smallest C-size ensures this double counting does not occur.
+      for (unsigned int j = std::max(C_smallest_size, i); j <= C_largest_size; ++j)
+      {
+        const auto rxn_deriv_i = rate * rxn_factors_dn[i] * rxn_factors[j];
+        const auto rxn_deriv_j = rate * rxn_factors[i] * rxn_factors_dn[j];
+
+        jacobi.coeffRef(i, i) -= rxn_deriv_i;
+        jacobi.coeffRef(i, j) -= rxn_deriv_j;
+
+        jacobi.coeffRef(j, i) -= rxn_deriv_i;
+        jacobi.coeffRef(j, j) -= rxn_deriv_j;
+
+        if (i+j <= max_size)
+        {
+          jacobi.coeffRef(i+j, i) += rxn_deriv_i;
+          jacobi.coeffRef(i+j, j) += rxn_deriv_j;
+        }
+      }
+    }
+  }
+
+
+
+  template<typename Real>
+  void
+  Agglomeration<Real, Eigen::SparseMatrix<Real>>::add_nonzero_to_jacobian(
+      std::vector<Eigen::Triplet<Real>> &triplet_list)
+  {
+    for (unsigned int i = B_smallest_size; i <= B_largest_size; ++i)
+    {
+      // If the B and C size ranges overlap, then we end up double counting some contributions.
+      // Taking the max between the B-size and the smallest C-size ensures this double counting does not occur.
+      for (unsigned int j = std::max(C_smallest_size, i); j <= C_largest_size; ++j)
+      {
+        triplet_list.push_back(Eigen::Triplet<Real>(i,i));
+        triplet_list.push_back(Eigen::Triplet<Real>(i,j));
+
+        triplet_list.push_back(Eigen::Triplet<Real>(j,i));
+        triplet_list.push_back(Eigen::Triplet<Real>(j,j));
+
+        if (i+j <= max_size)
+        {
+          triplet_list.push_back(Eigen::Triplet<Real>(i+j,i));
+          triplet_list.push_back(Eigen::Triplet<Real>(i+j,j));
+        }
+      }
+    }
+  }
+
+
+
+  template<typename Real>
+  void
+  Agglomeration<Real, Eigen::SparseMatrix<Real>>::update_num_nonzero(unsigned int &num_nonzero)
+  {
+    num_nonzero += (std::max(B_largest_size, C_largest_size) - std::min(B_smallest_size, C_smallest_size))*6;
+  }
+
+
+
+  // A model is a representation of the system of ODEs that's being solved. It needs to know
+  // the smallest and largest particle size (nucleation_order, max_size). The model also needs
+  // a way to evaluate the right-hand side and the Jacobian of the system of ODEs.
+  template<typename Real, typename Matrix>
+  class Model
+  {
+  public:
+    Model(unsigned int nucleation_order, unsigned int max_size);
+
+    void add_rhs_contribution(std::shared_ptr<RightHandSideContribution<Real, Matrix>> &rhs);
+    Eigen::Matrix<Real, Eigen::Dynamic, 1> rhs(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const;
+    Matrix jacobian(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const;
+
+    const unsigned int nucleation_order;
+    const unsigned int max_size;
+
+  private:
+    std::vector<std::shared_ptr<RightHandSideContribution<Real, Matrix>>> rhs_contributions;
+  };
+
+
+  /*
+   * ==================================================================================================================
+   * Specialization for a dense matrix
+   * ==================================================================================================================
+   */
+
+  template<typename Real>
+  class Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>
+  {
+  public:
+    Model(unsigned int nucleation_order, unsigned int max_size);
+
+    void add_rhs_contribution(
+        std::shared_ptr<RightHandSideContribution<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>> &rhs);
+
+    Eigen::Matrix<Real, Eigen::Dynamic, 1> rhs(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const;
+    Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> jacobian(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const;
+
+    const unsigned int nucleation_order;
+    const unsigned int max_size;
+
+  private:
+    std::vector<std::shared_ptr<
+        RightHandSideContribution<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>>> rhs_contributions;
+  };
+
+
+
+  template<typename Real>
+  Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::Model(
+      unsigned int nucleation_order, unsigned int max_size)
       : nucleation_order(nucleation_order), max_size(max_size)
   {}
 
 
 
   template<typename Real>
-  void Model<Real>::add_rhs_contribution(std::shared_ptr<RightHandSideContribution<Real>> &rhs)
+  void Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::add_rhs_contribution(
+      std::shared_ptr<RightHandSideContribution<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>> &rhs)
   {
     rhs_contributions.push_back(rhs);
   }
@@ -564,7 +1202,9 @@ namespace Model
 
 
   template<typename Real>
-  Eigen::Matrix<Real, Eigen::Dynamic, 1> Model<Real>::rhs(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const
+  Eigen::Matrix<Real, Eigen::Dynamic, 1>
+  Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::rhs(
+      Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const
   {
     // Initialize the right hand side as a zero vector.
     Eigen::Matrix<Real, Eigen::Dynamic, 1> rhs = Eigen::Matrix<Real, Eigen::Dynamic, 1>::Zero(x.rows());
@@ -582,10 +1222,110 @@ namespace Model
 
   template<typename Real>
   Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>
-  Model<Real>::jacobian(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const
+  Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::jacobian(
+      Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const
   {
     // initialize the Jacobian as a zero matrix.
-    Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> J = Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>::Zero(x.rows(), x.rows());
+    Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> J
+      = Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>::Zero(x.rows(), x.rows());
+
+    // Loop through every right hand side contribution added to the model and keep adding to the Jacobian.
+    for (auto & rhs_contribution : rhs_contributions)
+    {
+      rhs_contribution->add_contribution_to_jacobian(x, J);
+    }
+
+    return J;
+  }
+
+
+
+  /*
+   * ==================================================================================================================
+   * Specialization for a sparse matrix
+   * ==================================================================================================================
+   */
+
+  template<typename Real>
+  class Model<Real, Eigen::SparseMatrix<Real>>
+  {
+  public:
+    Model(unsigned int nucleation_order, unsigned int max_size);
+
+    void add_rhs_contribution(
+        std::shared_ptr<RightHandSideContribution<Real, Eigen::SparseMatrix<Real>>> &rhs);
+
+    Eigen::Matrix<Real, Eigen::Dynamic, 1> rhs(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const;
+    Eigen::SparseMatrix<Real> jacobian(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const;
+
+    const unsigned int nucleation_order;
+    const unsigned int max_size;
+
+  private:
+    std::vector<std::shared_ptr<
+        RightHandSideContribution<Real, Eigen::SparseMatrix<Real>>>> rhs_contributions;
+  };
+
+
+
+  template<typename Real>
+  Model<Real, Eigen::SparseMatrix<Real>>::Model(unsigned int nucleation_order, unsigned int max_size)
+      : nucleation_order(nucleation_order), max_size(max_size)
+  {}
+
+
+
+  template<typename Real>
+  void Model<Real, Eigen::SparseMatrix<Real>>::add_rhs_contribution(
+      std::shared_ptr<RightHandSideContribution<Real, Eigen::SparseMatrix<Real>>> &rhs)
+  {
+    rhs_contributions.push_back(rhs);
+  }
+
+
+
+  template<typename Real>
+  Eigen::Matrix<Real, Eigen::Dynamic, 1>
+  Model<Real, Eigen::SparseMatrix<Real>>::rhs(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const
+  {
+    // Initialize the right hand side as a zero vector.
+    Eigen::Matrix<Real, Eigen::Dynamic, 1> rhs = Eigen::Matrix<Real, Eigen::Dynamic, 1>::Zero(x.rows());
+
+    // Loop through every right hand side contribution added to the model and keep adding to the right hand side.
+    for (auto & rhs_contribution : rhs_contributions)
+    {
+      rhs_contribution->add_contribution_to_rhs(x, rhs);
+    }
+
+    return rhs;
+  }
+
+
+
+  template<typename Real>
+  Eigen::SparseMatrix<Real>
+  Model<Real, Eigen::SparseMatrix<Real>>::jacobian(
+      Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const
+  {
+    // Form the sparsity pattern by mimicking construction of the matrix, but whenever
+    // a value would be calculated, simply add those indices to a list indicating nonzero entries.
+    std::vector<Eigen::Triplet<Real>> triplet_list;
+    unsigned int estimate_nonzero = 0;
+
+    for (auto & rhs_contribution : rhs_contributions)
+    {
+      rhs_contribution->update_num_nonzero(estimate_nonzero);
+    }
+
+    triplet_list.reserve(estimate_nonzero);
+
+    for (auto & rhs_contribution : rhs_contributions)
+    {
+      rhs_contribution->add_nonzero_to_jacobian(triplet_list);
+    }
+
+    Eigen::SparseMatrix<Real> J(x.rows(), x.rows());
+    J.template setFromTriplets(triplet_list.begin(), triplet_list.end());
 
     // Loop through every right hand side contribution added to the model and keep adding to the Jacobian.
     for (auto & rhs_contribution : rhs_contributions)

@@ -136,15 +136,15 @@ namespace Statistics
   // As a result, this function's workflow is:
   // Step 1: Solve ODE, saving the solution at each relevant time
   // Step 2: For each time point, calculate the log likelihood, and add to the cumulative log likelihood
-  template<int order, typename Real>
+  template<int order, typename Real, typename Matrix>
   Real log_likelihood(const std::vector<std::vector<Real>>& data,
                       const std::vector<Real>& times,
-                      const Model::Model<Real>& ode_model,
+                      const Model::Model<Real, Matrix>& ode_model,
                       Eigen::Matrix<Real, Eigen::Dynamic, 1>& ic,
                       const Histograms::Parameters<Real>& hist_prm)
   {
     // Step 1 -- Solve the ODE at each time
-    ODE::StepperBDF<order, Real> stepper(ode_model);
+    ODE::StepperBDF<order, Real, Matrix> stepper(ode_model);
     std::vector< Eigen::Matrix<Real, Eigen::Dynamic, 1> > solutions;
     solutions.push_back(ic);
     for (unsigned int i = 1; i < times.size(); ++i)

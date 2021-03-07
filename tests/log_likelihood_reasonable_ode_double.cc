@@ -8,7 +8,8 @@
 
 
 using Real = double;
-using StateVector = Eigen::Matrix<Real, Eigen::Dynamic, 1>;
+using Vector = Eigen::Matrix<Real, Eigen::Dynamic, 1>;
+using Matrix = Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>;
 
 
 
@@ -42,28 +43,28 @@ int main()
 
 
   // Nucleation
-  std::shared_ptr<Model::RightHandSideContribution<Real>> nucleation
-    = std::make_shared<Model::TermolecularNucleation<Real>>(A_index, As_index, POM_index,nucleation_index,
+  std::shared_ptr<Model::RightHandSideContribution<Real, Matrix>> nucleation
+    = std::make_shared<Model::TermolecularNucleation<Real, Matrix>>(A_index, As_index, POM_index,nucleation_index,
                                                       kf, kb, k1, solvent);
 
   // Small Growth
-  std::shared_ptr<Model::RightHandSideContribution<Real>> small_growth
-    = std::make_shared<Model::Growth<Real>>(A_index, nucleation_order, cutoff, max_size,
+  std::shared_ptr<Model::RightHandSideContribution<Real, Matrix>> small_growth
+    = std::make_shared<Model::Growth<Real, Matrix>>(A_index, nucleation_order, cutoff, max_size,
                                       POM_index, conserved_size, k2);
 
   // Large Growth
-  std::shared_ptr<Model::RightHandSideContribution<Real>> large_growth
-    = std::make_shared<Model::Growth<Real>>(A_index, cutoff+1, max_size, max_size,
+  std::shared_ptr<Model::RightHandSideContribution<Real, Matrix>> large_growth
+    = std::make_shared<Model::Growth<Real, Matrix>>(A_index, cutoff+1, max_size, max_size,
                                       POM_index, conserved_size, k3);
 
   // Create Model
-  Model::Model<Real> three_step_alt(nucleation_order, max_size);
+  Model::Model<Real, Matrix> three_step_alt(nucleation_order, max_size);
   three_step_alt.add_rhs_contribution(nucleation);
   three_step_alt.add_rhs_contribution(small_growth);
   three_step_alt.add_rhs_contribution(large_growth);
 
   // set up initial condition
-  StateVector ic = StateVector::Zero(max_size+1);
+  Vector ic = Vector::Zero(max_size+1);
   ic(0) = 0.0012;
 
   // set up histogram parameters

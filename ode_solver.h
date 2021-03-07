@@ -30,19 +30,21 @@ namespace ODE
    * go from the initial time to the final time.
    */
   template<typename Real>
-  Eigen::Matrix<Real, Eigen::Dynamic, 1> solve_ode(StepperBase<Real> &stepper,
-                                                   const Eigen::Matrix<Real, Eigen::Dynamic, 1> &ic,
-                                                   const Real t_start,
-                                                   const Real t_end,
-                                                   Real dt);
+  Eigen::Matrix<Real, Eigen::Dynamic, 1>
+  solve_ode(StepperBase<Real> &stepper,
+           const Eigen::Matrix<Real, Eigen::Dynamic, 1> &ic,
+           const Real t_start,
+           const Real t_end,
+           Real dt);
 
 
   template<typename Real>
-  Eigen::Matrix<Real, Eigen::Dynamic, 1> solve_ode(StepperBase<Real> &stepper,
-                            const Eigen::Matrix<Real, Eigen::Dynamic, 1> &ic,
-                            const Real t_start,
-                            const Real t_end,
-                            Real dt)
+  Eigen::Matrix<Real, Eigen::Dynamic, 1>
+  solve_ode(StepperBase<Real> &stepper,
+            const Eigen::Matrix<Real, Eigen::Dynamic, 1> &ic,
+            const Real t_start,
+            const Real t_end,
+            Real dt)
   {
     // Check for the pathological case where only 1 time step is used and make sure the time step is appropriate.
     if (t_start + dt > t_end)
@@ -95,20 +97,20 @@ namespace ODE
    *
    * This is a modified Newton's method where the Jacobian is held constant for the nonlinear solve.
   */
-  template<typename Real>
+  template<typename Real, typename Solver>
   std::pair<Eigen::Matrix<Real, Eigen::Dynamic, 1>, unsigned int>
   newton_method(const FunctionBase<Real> &fcn,
-                const Eigen::PartialPivLU<Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> &jac,
+                const Solver &solver,
                 const Eigen::Matrix<Real, Eigen::Dynamic, 1> &guess,
                 const Real tol = 1e-6,
                 const unsigned int max_iter = 100);
 
 
 
-  template<typename Real>
+  template<typename Real, typename Solver>
   std::pair<Eigen::Matrix<Real, Eigen::Dynamic, 1>, unsigned int>
   newton_method(const FunctionBase<Real> &fcn,
-                const Eigen::PartialPivLU<Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> &jac,
+                const Solver &solver,
                 const Eigen::Matrix<Real, Eigen::Dynamic, 1> &guess,
                 const Real tol,
                 const unsigned int max_iter)
@@ -129,7 +131,7 @@ namespace ODE
        * --> x1 = x0 + d
        */
       auto f = fcn.value(x0);
-      d = jac.solve(-f);
+      d = solver.solve(-f);
       x1 = x0 + d;
 
       // Check the residual of the function to see if x1 is close to the root.
@@ -200,11 +202,11 @@ namespace ODE
    * that the diagonal coefficients are equal -- until some criteria for updating J_f is met.
    */
 
-  template<int order, typename Real>
+  template<int order, typename Real, typename Matrix>
   class StepperSDIRK : public StepperBase<Real>
   {
   public:
-    explicit StepperSDIRK(Model::Model<Real> &ode_system);
+    explicit StepperSDIRK(Model::Model<Real, Matrix> &ode_system);
 
     Eigen::Matrix<Real, Eigen::Dynamic, 1> step_forward(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0,
                                                         Real t, Real dt) override;
@@ -212,7 +214,7 @@ namespace ODE
   private:
     bool update_jacobian;
     unsigned int num_iter_new_jac;
-    Model::Model<Real> ode_system;
+    Model::Model<Real, Matrix> ode_system;
   };
 
 
@@ -233,41 +235,43 @@ namespace ODE
    */
 
   template<typename Real>
-  class StepperSDIRK<1, Real> : public StepperBase<Real>
+  class StepperSDIRK<1, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> : public StepperBase<Real>
   {
   public:
-    explicit StepperSDIRK(const Model::Model<Real> &ode_system);
+    explicit StepperSDIRK(const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> &ode_system);
 
     Eigen::Matrix<Real, Eigen::Dynamic, 1> step_forward(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0, Real t, Real dt) override;
 
     class NewtonFunction : public FunctionBase<Real>
     {
     public:
-      NewtonFunction(const Model::Model<Real> &ode_system, const Real t, const Real dt, const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0);
+      NewtonFunction(const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> &ode_system,
+                     const Real t, const Real dt, const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0);
 
       Eigen::Matrix<Real, Eigen::Dynamic, 1> value(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const override;
 
     private:
-      const Model::Model<Real> ode_system;
+      const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> ode_system;
       const Real t, dt;
       const Eigen::Matrix<Real, Eigen::Dynamic, 1> x0;
     };
 
   private:
     bool update_jacobian;
-    Eigen::PartialPivLU<Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> jacobian_solver;
+    Eigen::PartialPivLU<Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> solver;
     unsigned int num_iter_new_jac;
-    const Model::Model<Real> ode_system;
+    const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> ode_system;
 
   };
 
 
 
   template<typename Real>
-  StepperSDIRK<1, Real>::NewtonFunction::NewtonFunction(const Model::Model<Real> &ode_system,
-                                                        const Real t,
-                                                        const Real dt,
-                                                        const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0)
+  StepperSDIRK<1, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::NewtonFunction::NewtonFunction(
+      const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> &ode_system,
+      const Real t,
+      const Real dt,
+      const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0)
       : ode_system(ode_system), t(t), dt(dt), x0(x0)
   {}
 
@@ -275,8 +279,8 @@ namespace ODE
 
   template<typename Real>
   Eigen::Matrix<Real, Eigen::Dynamic, 1>
-  StepperSDIRK<1, Real>::NewtonFunction::value(const Eigen::Matrix<Real,
-                                               Eigen::Dynamic, 1> &x) const
+  StepperSDIRK<1, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::NewtonFunction::value(
+      const Eigen::Matrix<Real,Eigen::Dynamic, 1> &x) const
   {
     Eigen::Matrix<Real, Eigen::Dynamic, 1> y = x0 + dt * x;
     return x - ode_system.rhs(y);
@@ -285,7 +289,8 @@ namespace ODE
 
 
   template<typename Real>
-  StepperSDIRK<1, Real>::StepperSDIRK(const Model::Model<Real> &ode_system)
+  StepperSDIRK<1, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::StepperSDIRK(
+      const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> &ode_system)
       : update_jacobian(true), num_iter_new_jac(0), ode_system(ode_system)
   {}
 
@@ -293,20 +298,23 @@ namespace ODE
 
   template<typename Real>
   Eigen::Matrix<Real, Eigen::Dynamic, 1>
-  StepperSDIRK<1, Real>::step_forward(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0, Real t, Real dt)
+  StepperSDIRK<1, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::step_forward(
+      Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0, Real t, Real dt)
   {
     if (update_jacobian)
     {
       Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> jac = ode_system.jacobian(x0);
 
-      Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> newton_jacobian = Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>::Identity(jac.rows(), jac.cols()) - dt * jac;
+      Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> newton_jacobian
+        = Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>::Identity(jac.rows(), jac.cols()) - dt * jac;
 
-      jacobian_solver = newton_jacobian.partialPivLu();
+      solver = newton_jacobian.partialPivLu();
     }
 
-    StepperSDIRK<1, Real>::NewtonFunction fcn(ode_system, t, dt, x0);
+    StepperSDIRK<1, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::NewtonFunction fcn(ode_system, t, dt, x0);
     const auto guess = Eigen::Matrix<Real, Eigen::Dynamic, 1>::Zero(x0.rows());
-    auto newton_result = newton_method<Real>(fcn, jacobian_solver, guess);
+    auto newton_result = newton_method<Real,
+        Eigen::PartialPivLU<Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> > >(fcn, solver, guess);
 
     auto num_newton_steps = newton_result.second;
     if (update_jacobian)
@@ -339,40 +347,43 @@ namespace ODE
    */
 
   template<typename Real>
-  class StepperSDIRK<2, Real> : public StepperBase<Real>
+  class StepperSDIRK<2, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> : public StepperBase<Real>
   {
   public:
-    explicit StepperSDIRK(const Model::Model<Real> &ode_system);
+    explicit StepperSDIRK(const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> &ode_system);
 
-    Eigen::Matrix<Real, Eigen::Dynamic, 1> step_forward(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0, Real t, Real dt) override;
+    Eigen::Matrix<Real, Eigen::Dynamic, 1>
+    step_forward(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0, Real t, Real dt) override;
 
     class NewtonFunction : public FunctionBase<Real>
     {
     public:
-      NewtonFunction(const Model::Model<Real> &ode_system, const Real t, const Real dt, const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0);
+      NewtonFunction(const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> &ode_system,
+                     const Real t, const Real dt, const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0);
 
       Eigen::Matrix<Real, Eigen::Dynamic, 1> value(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const override;
 
     private:
-      const Model::Model<Real> ode_system;
+      const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> ode_system;
       const Real t, dt;
       const Eigen::Matrix<Real, Eigen::Dynamic, 1> x0;
     };
 
   private:
     bool update_jacobian;
-    Eigen::PartialPivLU<Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> jacobian_solver;
+    Eigen::PartialPivLU<Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> solver;
     unsigned int num_iter_new_jac;
-    Model::Model<Real> ode_system;
+    Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> ode_system;
   };
 
 
 
   template<typename Real>
-  StepperSDIRK<2, Real>::NewtonFunction::NewtonFunction(const Model::Model<Real> &ode_system,
-                                                        const Real t,
-                                                        const Real dt,
-                                                        const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0)
+  StepperSDIRK<2, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::NewtonFunction::NewtonFunction(
+      const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> &ode_system,
+      const Real t,
+      const Real dt,
+      const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0)
       : ode_system(ode_system), t(t), dt(dt), x0(x0)
   {}
 
@@ -380,7 +391,8 @@ namespace ODE
 // FIXME: add comments
   template<typename Real>
   Eigen::Matrix<Real, Eigen::Dynamic, 1>
-  StepperSDIRK<2, Real>::NewtonFunction::value(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const
+  StepperSDIRK<2, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::NewtonFunction::value(
+      const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const
   {
     Eigen::Matrix<Real, Eigen::Dynamic, 1> y = x0 + dt * 1./4 * x;
     return x - ode_system.rhs(y);
@@ -389,7 +401,8 @@ namespace ODE
 
 
   template<typename Real>
-  StepperSDIRK<2, Real>::StepperSDIRK(const Model::Model<Real> &ode_system)
+  StepperSDIRK<2, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::StepperSDIRK(
+      const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> &ode_system)
       : update_jacobian(true), num_iter_new_jac(0), ode_system(ode_system)
   {}
 
@@ -398,24 +411,27 @@ namespace ODE
 // FIXME: add comments
   template<typename Real>
   Eigen::Matrix<Real, Eigen::Dynamic, 1>
-  StepperSDIRK<2, Real>::step_forward(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0, Real t, Real dt)
+  StepperSDIRK<2, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::step_forward(
+      Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0, Real t, Real dt)
   {
     if (update_jacobian)
     {
       Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> jac = ode_system.jacobian(x0);
 
-      Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> newton_jacobian = Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>::Identity(jac.rows(), jac.cols()) - dt * 1./4 * jac;
+      Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> newton_jacobian
+        = Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>::Identity(jac.rows(), jac.cols()) - dt * 1./4 * jac;
 
-      jacobian_solver = newton_jacobian.partialPivLu();
+      solver = newton_jacobian.partialPivLu();
     }
 
-    StepperSDIRK<2, Real>::NewtonFunction fcn_k1(ode_system, t, dt, x0);
+    StepperSDIRK<2, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::NewtonFunction fcn_k1(ode_system, t, dt, x0);
     const auto guess = Eigen::Matrix<Real, Eigen::Dynamic, 1>::Zero(x0.rows());
-    auto newton_result_k1 = newton_method<Real>(fcn_k1, jacobian_solver, guess);
+    auto newton_result_k1 = newton_method<Real,
+        Eigen::PartialPivLU<Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>>(fcn_k1, solver, guess);
     auto k1 = newton_result_k1.first;
 
-    StepperSDIRK<2, Real>::NewtonFunction fcn_k2(ode_system, t, dt, x0 + dt * 1./2 * k1);
-    auto newton_result_k2 = newton_method<Real>(fcn_k2, jacobian_solver, guess);
+    StepperSDIRK<2, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::NewtonFunction fcn_k2(ode_system, t, dt, x0 + dt * 1./2 * k1);
+    auto newton_result_k2 = newton_method<Real>(fcn_k2, solver, guess);
     auto k2 = newton_result_k2.first;
 
     auto num_iter = std::max(newton_result_k1.second, newton_result_k2.second);
@@ -444,22 +460,23 @@ namespace ODE
    */
 
   template<typename Real>
-  class StepperSDIRK<3, Real> : public StepperBase<Real>
+  class StepperSDIRK<3, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> : public StepperBase<Real>
   {
   public:
-    explicit StepperSDIRK(const Model::Model<Real> &ode_system);
+    explicit StepperSDIRK(const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> &ode_system);
 
     Eigen::Matrix<Real, Eigen::Dynamic, 1> step_forward(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0, Real t, Real dt) override;
 
     class NewtonFunction : public FunctionBase<Real>
     {
     public:
-      NewtonFunction(const Model::Model<Real> &ode_system, const Real t, const Real dt, const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0);
+      NewtonFunction(const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> &ode_system,
+                     const Real t, const Real dt, const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0);
 
       Eigen::Matrix<Real, Eigen::Dynamic, 1> value(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const override;
 
     private:
-      const Model::Model<Real> ode_system;
+      const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> ode_system;
       const Real t, dt;
       const Eigen::Matrix<Real, Eigen::Dynamic, 1> x0;
       const Real butcher_diag = 0.4358665215;
@@ -467,19 +484,20 @@ namespace ODE
 
   private:
     bool update_jacobian;
-    Eigen::PartialPivLU<Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> jacobian_solver;
+    Eigen::PartialPivLU<Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> solver;
     unsigned int num_iter_new_jac;
-    Model::Model<Real> ode_system;
+    Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> ode_system;
     const Real butcher_diag = 0.4358665215;
   };
 
 
 
   template<typename Real>
-  StepperSDIRK<3, Real>::NewtonFunction::NewtonFunction(const Model::Model<Real> &ode_system,
-                                                        const Real t,
-                                                        const Real dt,
-                                                        const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0)
+  StepperSDIRK<3, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::NewtonFunction::NewtonFunction(
+      const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> &ode_system,
+      const Real t,
+      const Real dt,
+      const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0)
       : ode_system(ode_system), t(t), dt(dt), x0(x0)
   {}
 
@@ -488,7 +506,8 @@ namespace ODE
 // FIXME: add comments
   template<typename Real>
   Eigen::Matrix<Real, Eigen::Dynamic, 1>
-  StepperSDIRK<3, Real>::NewtonFunction::value(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const
+  StepperSDIRK<3, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::NewtonFunction::value(
+      const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const
   {
     Eigen::Matrix<Real, Eigen::Dynamic, 1> y = x0 + dt * butcher_diag * x;
     return x - ode_system.rhs(y);
@@ -497,7 +516,8 @@ namespace ODE
 
 
   template<typename Real>
-  StepperSDIRK<3, Real>::StepperSDIRK(const Model::Model<Real> &ode_system)
+  StepperSDIRK<3, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::StepperSDIRK(
+      const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> &ode_system)
       : update_jacobian(true), num_iter_new_jac(0), ode_system(ode_system)
   {}
 
@@ -506,7 +526,8 @@ namespace ODE
 // FIXME: add comments
   template<typename Real>
   Eigen::Matrix<Real, Eigen::Dynamic, 1>
-  StepperSDIRK<3, Real>::step_forward(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0, Real t, Real dt)
+  StepperSDIRK<3, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::step_forward(
+      Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0, Real t, Real dt)
   {
     if (update_jacobian)
     {
@@ -514,23 +535,28 @@ namespace ODE
 
       Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> newton_jacobian = Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>::Identity(jac.rows(), jac.cols()) - dt * butcher_diag * jac;
 
-      jacobian_solver = newton_jacobian.partialPivLu();
+      solver = newton_jacobian.partialPivLu();
     }
 
-    StepperSDIRK<3, Real>::NewtonFunction fcn_k1(ode_system, t, dt, x0);
+    StepperSDIRK<3, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::NewtonFunction fcn_k1(ode_system, t, dt, x0);
     const auto guess = Eigen::Matrix<Real, Eigen::Dynamic, 1>::Zero(x0.rows());
-    auto newton_result_k1 = newton_method<Real>(fcn_k1, jacobian_solver, guess);
+    auto newton_result_k1 = newton_method<Real,
+      Eigen::PartialPivLU<Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>>(fcn_k1, solver, guess);
     auto k1 = newton_result_k1.first;
 
     const Real k2_coeff_k1 = (1 - butcher_diag) / 2;
-    StepperSDIRK<3, Real>::NewtonFunction fcn_k2(ode_system, t, dt, x0 + dt * k2_coeff_k1 * k1);
-    auto newton_result_k2 = newton_method<Real>(fcn_k2, jacobian_solver, guess);
+    StepperSDIRK<3, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::NewtonFunction fcn_k2(
+        ode_system, t, dt, x0 + dt * k2_coeff_k1 * k1);
+    auto newton_result_k2 = newton_method<Real,
+      Eigen::PartialPivLU<Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>>(fcn_k2, solver, guess);
     auto k2 = newton_result_k2.first;
 
     const Real k3_coeff_k1 = -3 * butcher_diag * butcher_diag / 2 + 4 * butcher_diag - 1./4;
     const Real k3_coeff_k2 =  3 * butcher_diag * butcher_diag / 2 - 5 * butcher_diag + 5./4;
-    StepperSDIRK<3, Real>::NewtonFunction fcn_k3(ode_system, t, dt, x0 + dt * k3_coeff_k1 * k1 + dt * k3_coeff_k2 * k2);
-    auto newton_result_k3 = newton_method<Real>(fcn_k3, jacobian_solver, guess);
+    StepperSDIRK<3, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::NewtonFunction
+      fcn_k3(ode_system, t, dt, x0 + dt * k3_coeff_k1 * k1 + dt * k3_coeff_k2 * k2);
+    auto newton_result_k3 = newton_method<Real,
+      Eigen::PartialPivLU<Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>>(fcn_k3, solver, guess);
     auto k3 = newton_result_k3.first;
 
     auto num_iter = std::max(newton_result_k1.second, newton_result_k2.second);
@@ -571,22 +597,23 @@ namespace ODE
    */
 
   template<typename Real>
-  class StepperSDIRK<4, Real> : public StepperBase<Real>
+  class StepperSDIRK<4, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> : public StepperBase<Real>
   {
   public:
-    explicit StepperSDIRK(const Model::Model<Real> &ode_system);
+    explicit StepperSDIRK(const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> &ode_system);
 
     Eigen::Matrix<Real, Eigen::Dynamic, 1> step_forward(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0, Real t, Real dt) override;
 
     class NewtonFunction : public FunctionBase<Real>
     {
     public:
-      NewtonFunction(const Model::Model<Real> &ode_system, const Real t, const Real dt, const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0);
+      NewtonFunction(const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> &ode_system,
+                     const Real t, const Real dt, const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0);
 
       Eigen::Matrix<Real, Eigen::Dynamic, 1> value(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const override;
 
     private:
-      const Model::Model<Real> ode_system;
+      const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> ode_system;
       const Real t, dt;
       const Eigen::Matrix<Real, Eigen::Dynamic, 1> x0;
       const Real butcher_diag = 1.06857902130163;
@@ -594,19 +621,20 @@ namespace ODE
 
   private:
     bool update_jacobian;
-    Eigen::PartialPivLU<Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> jacobian_solver;
+    Eigen::PartialPivLU<Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> solver;
     unsigned int num_iter_new_jac;
-    Model::Model<Real> ode_system;
+    Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> ode_system;
     const Real butcher_diag = 1.06857902130163;
   };
 
 
 
   template<typename Real>
-  StepperSDIRK<4, Real>::NewtonFunction::NewtonFunction(const Model::Model<Real> &ode_system,
-                                                        const Real t,
-                                                        const Real dt,
-                                                        const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0)
+  StepperSDIRK<4, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::NewtonFunction::NewtonFunction(
+      const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> &ode_system,
+      const Real t,
+      const Real dt,
+      const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0)
       : ode_system(ode_system), t(t), dt(dt), x0(x0)
   {}
 
@@ -614,7 +642,8 @@ namespace ODE
 // FIXME: add comments
   template<typename Real>
   Eigen::Matrix<Real, Eigen::Dynamic, 1>
-  StepperSDIRK<4, Real>::NewtonFunction::value(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const
+  StepperSDIRK<4, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::NewtonFunction::value(
+      const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const
   {
     Eigen::Matrix<Real, Eigen::Dynamic, 1> y = x0 + dt * butcher_diag * x;
     return x - ode_system.rhs(y);
@@ -623,7 +652,8 @@ namespace ODE
 
 
   template<typename Real>
-  StepperSDIRK<4, Real>::StepperSDIRK(const Model::Model<Real> &ode_system)
+  StepperSDIRK<4, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::StepperSDIRK(
+      const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> &ode_system)
       : update_jacobian(true), num_iter_new_jac(0), ode_system(ode_system)
   {}
 
@@ -632,31 +662,38 @@ namespace ODE
 // FIXME: add comments
   template<typename Real>
   Eigen::Matrix<Real, Eigen::Dynamic, 1>
-  StepperSDIRK<4, Real>::step_forward(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0, Real t, Real dt)
+  StepperSDIRK<4, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::step_forward(
+      Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0, Real t, Real dt)
   {
     if (update_jacobian)
     {
       Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> jac = ode_system.jacobian(x0);
 
-      Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> newton_jacobian = Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>::Identity(jac.rows(), jac.cols()) - dt * butcher_diag * jac;
+      Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> newton_jacobian
+        = Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>::Identity(jac.rows(), jac.cols()) - dt * butcher_diag * jac;
 
-      jacobian_solver = newton_jacobian.partialPivLu();
+      solver = newton_jacobian.partialPivLu();
     }
 
-    StepperSDIRK<4, Real>::NewtonFunction fcn_k1(ode_system, t, dt, x0);
+    StepperSDIRK<4, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::NewtonFunction fcn_k1(ode_system, t, dt, x0);
     const auto guess = Eigen::Matrix<Real, Eigen::Dynamic, 1>::Zero(x0.rows());
-    auto newton_result_k1 = newton_method<Real>(fcn_k1, jacobian_solver, guess);
+    auto newton_result_k1 = newton_method<Real,
+      Eigen::PartialPivLU<Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>>(fcn_k1, solver, guess);
     auto k1 = newton_result_k1.first;
 
     const Real k2_coeff_k1 = 1./2 - butcher_diag;
-    StepperSDIRK<4, Real>::NewtonFunction fcn_k2(ode_system, t, dt, x0 + dt * k2_coeff_k1 * k1);
-    auto newton_result_k2 = newton_method<Real>(fcn_k2, jacobian_solver, guess);
+    StepperSDIRK<4, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::NewtonFunction fcn_k2(
+        ode_system, t, dt, x0 + dt * k2_coeff_k1 * k1);
+    auto newton_result_k2 = newton_method<Real,
+      Eigen::PartialPivLU<Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>>(fcn_k2, solver, guess);
     auto k2 = newton_result_k2.first;
 
     const Real k3_coeff_k1 = 2 * butcher_diag;
     const Real k3_coeff_k2 =  1 - 4 * butcher_diag;
-    StepperSDIRK<4, Real>::NewtonFunction fcn_k3(ode_system, t, dt, x0 + dt * k3_coeff_k1 * k1 + dt * k3_coeff_k2 * k2);
-    auto newton_result_k3 = newton_method<Real>(fcn_k3, jacobian_solver, guess);
+    StepperSDIRK<4, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::NewtonFunction fcn_k3(
+        ode_system, t, dt, x0 + dt * k3_coeff_k1 * k1 + dt * k3_coeff_k2 * k2);
+    auto newton_result_k3 = newton_method<Real,
+      Eigen::PartialPivLU<Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>>(fcn_k3, solver, guess);
     auto k3 = newton_result_k3.first;
 
     auto num_iter = std::max(newton_result_k1.second, newton_result_k2.second);
@@ -694,18 +731,18 @@ namespace ODE
    * done with an alternative method, and the BDF method can be used afterwards.
    */
 
-  template<int order, typename Real>
+  template<int order, typename Real, typename Matrix>
   class StepperBDF : public StepperBase<Real>
   {
   public:
-    explicit StepperBDF(Model::Model<Real> &ode_system);
+    explicit StepperBDF(Model::Model<Real, Matrix> &ode_system);
 
     Eigen::Matrix<Real, Eigen::Dynamic, 1> step_forward(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0, Real t, Real dt) override;
 
   private:
     bool update_jacobian;
     unsigned int num_iter_new_jac;
-    Model::Model<Real> ode_system;
+    Model::Model<Real, Matrix> ode_system;
     std::vector<Eigen::Matrix<Real, Eigen::Dynamic, 1>> prev_sols;
   };
 
@@ -720,21 +757,22 @@ namespace ODE
    */
 
   template<typename Real>
-  class StepperBDF<1, Real> : public StepperBase<Real>
+  class StepperBDF<1, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> : public StepperBase<Real>
   {
   public:
-    explicit StepperBDF(const Model::Model<Real> &ode_system);
+    explicit StepperBDF(const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> &ode_system);
 
     Eigen::Matrix<Real, Eigen::Dynamic, 1> step_forward(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0, Real t, Real dt) override;
 
   private:
-    StepperSDIRK<1, Real> implicit_euler;
+    StepperSDIRK<1, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> implicit_euler;
   };
 
 
 
   template<typename Real>
-  StepperBDF<1, Real>::StepperBDF(const Model::Model<Real> &ode_system)
+  StepperBDF<1, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::StepperBDF(
+      const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> &ode_system)
       : implicit_euler(ode_system)
   {}
 
@@ -742,7 +780,8 @@ namespace ODE
 
   template<typename Real>
   Eigen::Matrix<Real, Eigen::Dynamic, 1>
-  StepperBDF<1, Real>::step_forward(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0, Real t, Real dt)
+  StepperBDF<1, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::step_forward(
+      Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0, Real t, Real dt)
   {
     return implicit_euler.step_forward(x0, t, dt);
   }
@@ -757,10 +796,10 @@ namespace ODE
    */
 
   template<typename Real>
-  class StepperBDF<2, Real> : public StepperBase<Real>
+  class StepperBDF<2, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> : public StepperBase<Real>
   {
   public:
-    explicit StepperBDF(const Model::Model<Real> &ode_system);
+    explicit StepperBDF(const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> &ode_system);
 
     Eigen::Matrix<Real, Eigen::Dynamic, 1> step_forward(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0, Real t, Real dt) override;
 
@@ -768,13 +807,13 @@ namespace ODE
     class NewtonFunction : public FunctionBase<Real>
     {
     public:
-      NewtonFunction(const Model::Model<Real> &ode_system, const Real t, const Real dt,
+      NewtonFunction(const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> &ode_system, const Real t, const Real dt,
                      const std::deque<Eigen::Matrix<Real, Eigen::Dynamic, 1>> &prev_sols);
 
       Eigen::Matrix<Real, Eigen::Dynamic, 1> value(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const override;
 
     private:
-      const Model::Model<Real> ode_system;
+      const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> ode_system;
       const Real t, dt;
       const std::deque<Eigen::Matrix<Real, Eigen::Dynamic, 1>> prev_sols;
     };
@@ -782,20 +821,21 @@ namespace ODE
 
   private:
     bool update_jacobian;
-    Eigen::PartialPivLU<Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> jacobian_solver;
+    Eigen::PartialPivLU<Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> solver;
     unsigned int num_iter_new_jac;
-    Model::Model<Real> ode_system;
+    Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> ode_system;
     std::deque<Eigen::Matrix<Real, Eigen::Dynamic, 1>> prev_sols;
-    StepperSDIRK<2, Real> sdirk_stepper;
+    StepperSDIRK<2, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> sdirk_stepper;
   };
 
 
 
   template<typename Real>
-  StepperBDF<2, Real>::NewtonFunction::NewtonFunction(const Model::Model<Real> &ode_system,
-                                                      const Real t,
-                                                      const Real dt,
-                                                      const std::deque<Eigen::Matrix<Real, Eigen::Dynamic, 1>> &prev_sols)
+  StepperBDF<2, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::NewtonFunction::NewtonFunction(
+      const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> &ode_system,
+      const Real t,
+      const Real dt,
+      const std::deque<Eigen::Matrix<Real, Eigen::Dynamic, 1>> &prev_sols)
       : ode_system(ode_system), t(t), dt(dt), prev_sols(prev_sols)
   {}
 
@@ -803,7 +843,8 @@ namespace ODE
 
   template<typename Real>
   Eigen::Matrix<Real, Eigen::Dynamic, 1>
-  StepperBDF<2, Real>::NewtonFunction::value(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const
+  StepperBDF<2, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::NewtonFunction::value(
+      const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const
   {
     assert(prev_sols.size() == 2);
     return x - 4./3 * prev_sols[1] + 1./3 * prev_sols[0] - 2./3 * dt * ode_system.rhs(const_cast<Eigen::Matrix<Real, Eigen::Dynamic, 1> &>(x));
@@ -812,7 +853,8 @@ namespace ODE
 
 
   template<typename Real>
-  StepperBDF<2, Real>::StepperBDF(const Model::Model<Real> &ode_system)
+  StepperBDF<2, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::StepperBDF(
+      const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> &ode_system)
       : update_jacobian(true), num_iter_new_jac(0), ode_system(ode_system), sdirk_stepper(ode_system)
   {}
 
@@ -820,7 +862,8 @@ namespace ODE
 
   template<typename Real>
   Eigen::Matrix<Real, Eigen::Dynamic, 1>
-  StepperBDF<2, Real>::step_forward(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0, Real t, Real dt)
+  StepperBDF<2, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::step_forward(
+      Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0, Real t, Real dt)
   {
     // Add x0 as a previous solution
     prev_sols.push_back(x0);
@@ -850,12 +893,13 @@ namespace ODE
 
         Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> newton_jacobian = Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>::Identity(jac.rows(), jac.cols()) - dt * 2/3 * jac;
 
-        jacobian_solver = newton_jacobian.partialPivLu();
+        solver = newton_jacobian.partialPivLu();
       }
 
-      StepperBDF<2, Real>::NewtonFunction fcn(ode_system, t, dt, prev_sols);
+      StepperBDF<2, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::NewtonFunction fcn(ode_system, t, dt, prev_sols);
       const auto guess = Eigen::Matrix<Real, Eigen::Dynamic, 1>::Zero(x0.rows());
-      auto newton_result = newton_method<Real>(fcn, jacobian_solver, guess);
+      auto newton_result = newton_method<Real,
+        Eigen::PartialPivLU<Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>>(fcn, solver, guess);
 
       auto num_newton_steps = newton_result.second;
       if (update_jacobian)
@@ -882,10 +926,10 @@ namespace ODE
    */
 
   template<typename Real>
-  class StepperBDF<3, Real> : public StepperBase<Real>
+  class StepperBDF<3, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> : public StepperBase<Real>
   {
   public:
-    explicit StepperBDF(const Model::Model<Real> &ode_system);
+    explicit StepperBDF(const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> &ode_system);
 
     Eigen::Matrix<Real, Eigen::Dynamic, 1> step_forward(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0, Real t, Real dt) override;
 
@@ -893,13 +937,13 @@ namespace ODE
     class NewtonFunction : public FunctionBase<Real>
     {
     public:
-      NewtonFunction(const Model::Model<Real> &ode_system, const Real t, const Real dt,
+      NewtonFunction(const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> &ode_system, const Real t, const Real dt,
                      const std::deque<Eigen::Matrix<Real, Eigen::Dynamic, 1>> &prev_sols);
 
       Eigen::Matrix<Real, Eigen::Dynamic, 1> value(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const override;
 
     private:
-      const Model::Model<Real> ode_system;
+      const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> ode_system;
       const Real t, dt;
       const std::deque<Eigen::Matrix<Real, Eigen::Dynamic, 1>> prev_sols;
     };
@@ -907,20 +951,21 @@ namespace ODE
 
   private:
     bool update_jacobian;
-    Eigen::PartialPivLU<Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> jacobian_solver;
+    Eigen::PartialPivLU<Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> solver;
     unsigned int num_iter_new_jac;
-    Model::Model<Real> ode_system;
+    Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> ode_system;
     std::deque<Eigen::Matrix<Real, Eigen::Dynamic, 1>> prev_sols;
-    StepperSDIRK<3, Real> sdirk_stepper;
+    StepperSDIRK<3, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> sdirk_stepper;
   };
 
 
 
   template<typename Real>
-  StepperBDF<3, Real>::NewtonFunction::NewtonFunction(const Model::Model<Real> &ode_system,
-                                                      const Real t,
-                                                      const Real dt,
-                                                      const std::deque<Eigen::Matrix<Real, Eigen::Dynamic, 1>> &prev_sols)
+  StepperBDF<3, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::NewtonFunction::NewtonFunction(
+      const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> &ode_system,
+      const Real t,
+      const Real dt,
+      const std::deque<Eigen::Matrix<Real, Eigen::Dynamic, 1>> &prev_sols)
       : ode_system(ode_system), t(t), dt(dt), prev_sols(prev_sols)
   {}
 
@@ -928,7 +973,8 @@ namespace ODE
 
   template<typename Real>
   Eigen::Matrix<Real, Eigen::Dynamic, 1>
-  StepperBDF<3, Real>::NewtonFunction::value(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const
+  StepperBDF<3, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::NewtonFunction::value(
+      const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const
   {
     assert(prev_sols.size() == 3);
     return x - 18./11 * prev_sols[2] + 9./11 * prev_sols[1] - 2./11 * prev_sols[0]
@@ -938,7 +984,8 @@ namespace ODE
 
 
   template<typename Real>
-  StepperBDF<3, Real>::StepperBDF(const Model::Model<Real> &ode_system)
+  StepperBDF<3, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::StepperBDF(
+      const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> &ode_system)
       : update_jacobian(true), num_iter_new_jac(0), ode_system(ode_system), sdirk_stepper(ode_system)
   {}
 
@@ -946,7 +993,8 @@ namespace ODE
 
   template<typename Real>
   Eigen::Matrix<Real, Eigen::Dynamic, 1>
-  StepperBDF<3, Real>::step_forward(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0, Real t, Real dt)
+  StepperBDF<3, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::step_forward(
+      Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0, Real t, Real dt)
   {
     // Add x0 as a previous solution
     prev_sols.push_back(x0);
@@ -976,12 +1024,13 @@ namespace ODE
 
         Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> newton_jacobian = Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>::Identity(jac.rows(), jac.cols()) - dt * 6/11 * jac;
 
-        jacobian_solver = newton_jacobian.partialPivLu();
+        solver = newton_jacobian.partialPivLu();
       }
 
-      StepperBDF<3, Real>::NewtonFunction fcn(ode_system, t, dt, prev_sols);
+      StepperBDF<3, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::NewtonFunction fcn(ode_system, t, dt, prev_sols);
       const auto guess = Eigen::Matrix<Real, Eigen::Dynamic, 1>::Zero(x0.rows());
-      auto newton_result = newton_method<Real>(fcn, jacobian_solver, guess);
+      auto newton_result = newton_method<Real,
+        Eigen::PartialPivLU<Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>>(fcn, solver, guess);
 
       auto num_newton_steps = newton_result.second;
       if (update_jacobian)
@@ -1008,10 +1057,10 @@ namespace ODE
    */
 
   template<typename Real>
-  class StepperBDF<4, Real> : public StepperBase<Real>
+  class StepperBDF<4, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> : public StepperBase<Real>
   {
   public:
-    explicit StepperBDF(const Model::Model<Real> &ode_system);
+    explicit StepperBDF(const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> &ode_system);
 
     Eigen::Matrix<Real, Eigen::Dynamic, 1> step_forward(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0, Real t, Real dt) override;
 
@@ -1019,13 +1068,13 @@ namespace ODE
     class NewtonFunction : public FunctionBase<Real>
     {
     public:
-      NewtonFunction(const Model::Model<Real> &ode_system, const Real t, const Real dt,
+      NewtonFunction(const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> &ode_system, const Real t, const Real dt,
                      const std::deque<Eigen::Matrix<Real, Eigen::Dynamic, 1>> &prev_sols);
 
       Eigen::Matrix<Real, Eigen::Dynamic, 1> value(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const override;
 
     private:
-      const Model::Model<Real> ode_system;
+      const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> ode_system;
       const Real t, dt;
       const std::deque<Eigen::Matrix<Real, Eigen::Dynamic, 1>> prev_sols;
     };
@@ -1033,18 +1082,21 @@ namespace ODE
 
   private:
     bool update_jacobian;
-    Eigen::PartialPivLU<Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> jacobian_solver;
+    Eigen::PartialPivLU<Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> solver;
     unsigned int num_iter_new_jac;
-    Model::Model<Real> ode_system;
+    Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> ode_system;
     std::deque<Eigen::Matrix<Real, Eigen::Dynamic, 1>> prev_sols;
-    StepperSDIRK<4, Real> sdirk_stepper;
+    StepperSDIRK<4, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> sdirk_stepper;
   };
 
 
 
   template<typename Real>
-  StepperBDF<4, Real>::NewtonFunction::NewtonFunction(const Model::Model<Real> &ode_system, const Real t, const Real dt,
-                                                     const std::deque<Eigen::Matrix<Real, Eigen::Dynamic, 1>> &prev_sols)
+  StepperBDF<4, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::NewtonFunction::NewtonFunction(
+      const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> &ode_system,
+      const Real t,
+      const Real dt,
+      const std::deque<Eigen::Matrix<Real, Eigen::Dynamic, 1>> &prev_sols)
       : ode_system(ode_system), t(t), dt(dt), prev_sols(prev_sols)
   {}
 
@@ -1052,7 +1104,8 @@ namespace ODE
 
   template<typename Real>
   Eigen::Matrix<Real, Eigen::Dynamic, 1>
-  StepperBDF<4, Real>::NewtonFunction::value(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const
+  StepperBDF<4, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::NewtonFunction::value(
+      const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const
   {
     assert(prev_sols.size() == 4);
     return x - 48./25 * prev_sols[3] + 36./25 * prev_sols[2] - 16./25 * prev_sols[1] + 3./25 * prev_sols[0]
@@ -1062,7 +1115,8 @@ namespace ODE
 
 
   template<typename Real>
-  StepperBDF<4, Real>::StepperBDF(const Model::Model<Real> &ode_system)
+  StepperBDF<4, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::StepperBDF(
+      const Model::Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> &ode_system)
       : update_jacobian(true), num_iter_new_jac(0), ode_system(ode_system), sdirk_stepper(ode_system)
   {}
 
@@ -1070,7 +1124,8 @@ namespace ODE
 
   template<typename Real>
   Eigen::Matrix<Real, Eigen::Dynamic, 1>
-  StepperBDF<4, Real>::step_forward(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0, Real t, Real dt)
+  StepperBDF<4, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::step_forward(
+      Eigen::Matrix<Real, Eigen::Dynamic, 1> &x0, Real t, Real dt)
   {
     // Add x0 as a previous solution
     prev_sols.push_back(x0);
@@ -1098,14 +1153,16 @@ namespace ODE
       {
         Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> jac = ode_system.jacobian(x0);
 
-        Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> newton_jacobian = Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>::Identity(jac.rows(), jac.cols()) - dt * 12/25 * jac;
+        Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> newton_jacobian
+          = Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>::Identity(jac.rows(), jac.cols()) - dt * 12/25 * jac;
 
-        jacobian_solver = newton_jacobian.partialPivLu();
+        solver = newton_jacobian.partialPivLu();
       }
 
-      StepperBDF<4, Real>::NewtonFunction fcn(ode_system, t, dt, prev_sols);
+      StepperBDF<4, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::NewtonFunction fcn(ode_system, t, dt, prev_sols);
       const auto guess = x0;
-      auto newton_result = newton_method<Real>(fcn, jacobian_solver, guess);
+      auto newton_result = newton_method<Real,
+        Eigen::PartialPivLU<Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>>(fcn, solver, guess);
 
       auto num_newton_steps = newton_result.second;
       if (update_jacobian)

@@ -5,7 +5,8 @@
 
 
 using Real = float;
-using StateVector = Eigen::Matrix<Real, Eigen::Dynamic, 1>;
+using Vector = Eigen::Matrix<Real, Eigen::Dynamic, 1>;
+using Matrix = Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>;
 
 /*
  * This is part of a series of tests to confirm the modular RightHandSide derived classes work as intended.
@@ -34,28 +35,28 @@ int main()
 
 
   // Nucleation
-  std::shared_ptr<Model::RightHandSideContribution<Real>> nucleation
-    = std::make_shared<Model::TermolecularNucleation<Real>>(A_index, As_index, POM_index,nucleation_index,
-                                                      kf, kb, k1, solvent);
+  std::shared_ptr<Model::RightHandSideContribution<Real, Matrix>> nucleation
+      = std::make_shared<Model::TermolecularNucleation<Real, Matrix>>(
+          A_index, As_index, POM_index,nucleation_index, kf, kb, k1, solvent);
 
   // Small Growth
-  std::shared_ptr<Model::RightHandSideContribution<Real>> small_growth
-    = std::make_shared<Model::Growth<Real>>(A_index, nucleation_order, cutoff, max_size,
-                                      POM_index, conserved_size, k2);
+  std::shared_ptr<Model::RightHandSideContribution<Real, Matrix>> small_growth
+      = std::make_shared<Model::Growth<Real, Matrix>>(
+          A_index, nucleation_order, cutoff, max_size, POM_index, conserved_size, k2);
 
   // Large Growth
-  std::shared_ptr<Model::RightHandSideContribution<Real>> large_growth
-    = std::make_shared<Model::Growth<Real>>(A_index, cutoff+1, max_size, max_size,
-                                      POM_index, conserved_size, k3);
+  std::shared_ptr<Model::RightHandSideContribution<Real, Matrix>> large_growth
+      = std::make_shared<Model::Growth<Real, Matrix>>(
+          A_index, cutoff+1, max_size, max_size, POM_index, conserved_size, k3);
 
   // Create Model
-  Model::Model<Real> three_step_alt(nucleation_order, max_size);
+  Model::Model<Real, Matrix> three_step_alt(nucleation_order, max_size);
   three_step_alt.add_rhs_contribution(nucleation);
   three_step_alt.add_rhs_contribution(small_growth);
   three_step_alt.add_rhs_contribution(large_growth);
 
   // Output right hand side
-  StateVector state(max_size+1);
+  Vector state(max_size+1);
   state(0) = 1.;
   state(1) = .9;
   state(2) = .8;
@@ -64,7 +65,7 @@ int main()
   state(5) = .5;
   state(6) = .4;
 
-  StateVector rhs = three_step_alt.rhs(state);
+  Vector rhs = three_step_alt.rhs(state);
 
   std::cout << rhs << std::endl;
 
