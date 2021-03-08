@@ -17,6 +17,7 @@
 #include "statistics.h"
 #include "data.h"
 #include <eigen3/Eigen/Dense>
+#include <eigen3/Eigen/Sparse>
 
 #include <sampleflow/producers/metropolis_hastings.h>
 #include <sampleflow/filters/conversion.h>
@@ -43,6 +44,7 @@ using VectorType = std::valarray<Real>;
 // A data type describing the linear algebra object vector that is used
 // in the ODE solver.
 using StateVector = Eigen::Matrix<Real, Eigen::Dynamic, 1>;
+using Matrix = Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>;
 
 
 
@@ -164,7 +166,7 @@ public:
   // Functions that interface with the statistical calculations
   std::vector< std::vector<Real> > return_data() const;
   std::vector<Real> return_times() const;
-  Model::Model<Real> return_model() const;
+  Model::Model<Real, Matrix> return_model() const;
   StateVector return_initial_condition() const;
   Histograms::Parameters<Real> return_histogram_parameters() const;
   bool within_bounds() const;
@@ -221,24 +223,24 @@ std::vector<Real> Sample::return_times() const
 
 
 // Forms the model representing the mechanism being used, in this case a 3-step mechanism
-Model::Model<Real> Sample::return_model() const
+Model::Model<Real, Matrix> Sample::return_model() const
 {
-  std::shared_ptr<Model::RightHandSideContribution<Real>> nucleation =
-      std::make_shared<Model::TermolecularNucleation<Real>>(const_parameters.A_index, const_parameters.As_index,
+  std::shared_ptr<Model::RightHandSideContribution<Real, Matrix>> nucleation =
+      std::make_shared<Model::TermolecularNucleation<Real, Matrix>>(const_parameters.A_index, const_parameters.As_index,
                                                       const_parameters.ligand_index, const_parameters.min_size,
                                                       kf, kb, k1, const_parameters.solvent);
 
-  std::shared_ptr<Model::RightHandSideContribution<Real>> small_growth =
-      std::make_shared<Model::Growth<Real>>(const_parameters.A_index, const_parameters.min_size, cutoff,
+  std::shared_ptr<Model::RightHandSideContribution<Real, Matrix>> small_growth =
+      std::make_shared<Model::Growth<Real, Matrix>>(const_parameters.A_index, const_parameters.min_size, cutoff,
                                       const_parameters.max_size, const_parameters.ligand_index,
                                       const_parameters.conserved_size, k2);
 
-  std::shared_ptr<Model::RightHandSideContribution<Real>> large_growth =
-      std::make_shared<Model::Growth<Real>>(const_parameters.A_index, cutoff+1, const_parameters.max_size,
+  std::shared_ptr<Model::RightHandSideContribution<Real, Matrix>> large_growth =
+      std::make_shared<Model::Growth<Real, Matrix>>(const_parameters.A_index, cutoff+1, const_parameters.max_size,
                                       const_parameters.max_size, const_parameters.ligand_index,
                                       const_parameters.conserved_size, k3);
 
-  Model::Model<Real> model(const_parameters.min_size, const_parameters.max_size);
+  Model::Model<Real, Matrix> model(const_parameters.min_size, const_parameters.max_size);
   model.add_rhs_contribution(nucleation);
   model.add_rhs_contribution(small_growth);
   model.add_rhs_contribution(large_growth);

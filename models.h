@@ -80,6 +80,11 @@ namespace Model
 
     virtual void add_contribution_to_jacobian(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
                                               Matrix &J) = 0;
+
+    virtual void add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list) = 0;
+
+    virtual void update_num_nonzero(unsigned int &num_nonzero) = 0;
+
   };
 
 
@@ -131,6 +136,10 @@ namespace Model
 
     void add_contribution_to_jacobian(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
                                       Matrix &J) override;
+
+    void add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list) {}
+
+    void update_num_nonzero(unsigned int &num_nonzero) {}
   };
 
   /*
@@ -161,6 +170,10 @@ namespace Model
 
     void add_contribution_to_jacobian(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
                                       Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> &J) override;
+
+    void add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list) {}
+
+    void update_num_nonzero(unsigned int &num_nonzero) {}
   };
 
 
@@ -250,8 +263,8 @@ namespace Model
    * ==================================================================================================================
    */
   template<typename Real>
-  class TermolecularNucleation<Real, Eigen::SparseMatrix<Real>>
-      : public Model::RightHandSideContribution<Real, Eigen::SparseMatrix<Real>>
+  class TermolecularNucleation<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>
+      : public Model::RightHandSideContribution<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>
   {
   public:
     const unsigned int A_index, As_index, ligand_index, particle_index;
@@ -270,7 +283,7 @@ namespace Model
                                  Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs) override;
 
     void add_contribution_to_jacobian(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
-                                      Eigen::SparseMatrix<Real> &J) override;
+                                      Eigen::SparseMatrix<Real, Eigen::RowMajor> &J) override;
 
     void add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list);
 
@@ -280,7 +293,7 @@ namespace Model
 
 
   template<typename Real>
-  TermolecularNucleation<Real, Eigen::SparseMatrix<Real>>::TermolecularNucleation(
+  TermolecularNucleation<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::TermolecularNucleation(
       const unsigned int A_index,
       const unsigned int As_index,
       const unsigned int ligand_index,
@@ -297,7 +310,7 @@ namespace Model
 
 
   template<typename Real>
-  void TermolecularNucleation<Real, Eigen::SparseMatrix<Real>>::add_contribution_to_rhs(
+  void TermolecularNucleation<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::add_contribution_to_rhs(
       const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
       Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs)
   {
@@ -314,9 +327,9 @@ namespace Model
 
   template<typename Real>
   void
-  TermolecularNucleation<Real, Eigen::SparseMatrix<Real>>::add_contribution_to_jacobian(
+  TermolecularNucleation<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::add_contribution_to_jacobian(
       const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
-      Eigen::SparseMatrix<Real> &jacobi)
+      Eigen::SparseMatrix<Real, Eigen::RowMajor> &jacobi)
   {
     const Real diss_forward_dA = rate_forward * solvent * solvent;
 
@@ -345,7 +358,7 @@ namespace Model
 
   template<typename Real>
   void
-  TermolecularNucleation<Real, Eigen::SparseMatrix<Real>>::add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list)
+  TermolecularNucleation<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list)
   {
     triplet_list.push_back(Eigen::Triplet<Real>(A_index, A_index));
     triplet_list.push_back(Eigen::Triplet<Real>(A_index, As_index));
@@ -366,7 +379,7 @@ namespace Model
 
   template<typename Real>
   void
-  TermolecularNucleation<Real, Eigen::SparseMatrix<Real>>::update_num_nonzero(unsigned int &num_nonzero)
+  TermolecularNucleation<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::update_num_nonzero(unsigned int &num_nonzero)
   {
     num_nonzero += 11;
   }
@@ -412,6 +425,10 @@ namespace Model
 
     void add_contribution_to_jacobian(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
                                       Matrix &jacobi) override;
+
+    void add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list) {}
+
+    void update_num_nonzero(unsigned int &num_nonzero) {}
   };
 
 
@@ -442,6 +459,10 @@ namespace Model
 
     void add_contribution_to_jacobian(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
                                       Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> &jacobi) override;
+
+    void add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list) {}
+
+    void update_num_nonzero(unsigned int &num_nonzero) {}
   };
 
 
@@ -544,8 +565,8 @@ namespace Model
    * ==================================================================================================================
    */
   template<typename Real>
-  class Growth<Real, Eigen::SparseMatrix<Real>>
-      : public RightHandSideContribution<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>
+  class Growth<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>
+      : public RightHandSideContribution<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>
   {
   public:
     const unsigned int A_index, smallest_size, largest_size, max_size, ligand_index, conserved_size;
@@ -562,7 +583,7 @@ namespace Model
                                  Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs) override;
 
     void add_contribution_to_jacobian(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
-                                      Eigen::SparseMatrix<Real> &jacobi) override;
+                                      Eigen::SparseMatrix<Real, Eigen::RowMajor> &jacobi) override;
 
     void add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list);
 
@@ -572,7 +593,7 @@ namespace Model
 
 
   template<typename Real>
-  Growth<Real, Eigen::SparseMatrix<Real>>::Growth()
+  Growth<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::Growth()
       : Growth(std::numeric_limits<unsigned int>::signaling_NaN(),
                std::numeric_limits<unsigned int>::signaling_NaN(),
                std::numeric_limits<unsigned int>::signaling_NaN(),
@@ -585,7 +606,7 @@ namespace Model
 
 
   template<typename Real>
-  Growth<Real, Eigen::SparseMatrix<Real>>::Growth(const unsigned int A_index,
+  Growth<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::Growth(const unsigned int A_index,
                                                   const unsigned int smallest_size,
                                                   const unsigned int largest_size,
                                                   const unsigned int max_size,
@@ -604,7 +625,7 @@ namespace Model
 
 
   template<typename Real>
-  void Growth<Real, Eigen::SparseMatrix<Real>>::add_contribution_to_rhs(
+  void Growth<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::add_contribution_to_rhs(
       const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
       Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs)
   {
@@ -631,9 +652,9 @@ namespace Model
 
   template<typename Real>
   void
-  Growth<Real, Eigen::SparseMatrix<Real>>::add_contribution_to_jacobian(
+  Growth<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::add_contribution_to_jacobian(
       const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
-      Eigen::SparseMatrix<Real> &jacobi)
+      Eigen::SparseMatrix<Real, Eigen::RowMajor> &jacobi)
   {
     assert(smallest_size < largest_size);
     assert(largest_size <= max_size);
@@ -664,7 +685,7 @@ namespace Model
 
   template<typename Real>
   void
-  Growth<Real, Eigen::SparseMatrix<Real>>::add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list)
+  Growth<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list)
   {
     assert(smallest_size < largest_size);
     assert(largest_size <= max_size);
@@ -692,7 +713,7 @@ namespace Model
 
   template<typename Real>
   void
-  Growth<Real, Eigen::SparseMatrix<Real>>::update_num_nonzero(unsigned int &num_nonzero)
+  Growth<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::update_num_nonzero(unsigned int &num_nonzero)
   {
     num_nonzero += (largest_size - smallest_size) * 8;
   }
@@ -740,6 +761,10 @@ namespace Model
 
     void add_contribution_to_jacobian(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
                                       Matrix &jacobi) override;
+
+    void add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list) {}
+
+    void update_num_nonzero(unsigned int &num_nonzero) {}
   };
 
 
@@ -773,6 +798,10 @@ namespace Model
 
     void add_contribution_to_jacobian(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
                                       Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> &jacobi) override;
+
+    void add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list) {}
+
+    void update_num_nonzero(unsigned int &num_nonzero) {}
   };
 
 
@@ -926,8 +955,8 @@ namespace Model
    */
 
   template<typename Real>
-  class Agglomeration<Real, Eigen::SparseMatrix<Real>>
-      : public RightHandSideContribution<Real, Eigen::SparseMatrix<Real>>
+  class Agglomeration<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>
+      : public RightHandSideContribution<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>
   {
   public:
     const unsigned int B_smallest_size, B_largest_size;
@@ -947,7 +976,7 @@ namespace Model
                                  Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs) override;
 
     void add_contribution_to_jacobian(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
-                                      Eigen::SparseMatrix<Real> &jacobi) override;
+                                      Eigen::SparseMatrix<Real, Eigen::RowMajor> &jacobi) override;
 
     void add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list);
 
@@ -957,7 +986,7 @@ namespace Model
 
 
   template<typename Real>
-  Agglomeration<Real, Eigen::SparseMatrix<Real>>::Agglomeration()
+  Agglomeration<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::Agglomeration()
       : Agglomeration(std::numeric_limits<unsigned int>::signaling_NaN(),
                       std::numeric_limits<unsigned int>::signaling_NaN(),
                       std::numeric_limits<unsigned int>::signaling_NaN(),
@@ -970,7 +999,7 @@ namespace Model
 
 
   template<typename Real>
-  Agglomeration<Real, Eigen::SparseMatrix<Real>>::Agglomeration(
+  Agglomeration<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::Agglomeration(
       const unsigned int B_smallest_size,
       const unsigned int B_largest_size,
       const unsigned int C_smallest_size,
@@ -988,7 +1017,7 @@ namespace Model
 
 
   template<typename Real>
-  void Agglomeration<Real, Eigen::SparseMatrix<Real>>::add_contribution_to_rhs(
+  void Agglomeration<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::add_contribution_to_rhs(
       const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
       Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs)
   {
@@ -1049,9 +1078,9 @@ namespace Model
 
   template<typename Real>
   void
-  Agglomeration<Real, Eigen::SparseMatrix<Real>>::add_contribution_to_jacobian(
+  Agglomeration<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::add_contribution_to_jacobian(
       const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
-      Eigen::SparseMatrix<Real> &jacobi)
+      Eigen::SparseMatrix<Real, Eigen::RowMajor> &jacobi)
   {
     std::vector<Real> rxn_factors(x.size(), 0.);
     std::vector<Real> rxn_factors_dn(x.size(), 0.);
@@ -1100,7 +1129,7 @@ namespace Model
 
   template<typename Real>
   void
-  Agglomeration<Real, Eigen::SparseMatrix<Real>>::add_nonzero_to_jacobian(
+  Agglomeration<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::add_nonzero_to_jacobian(
       std::vector<Eigen::Triplet<Real>> &triplet_list)
   {
     for (unsigned int i = B_smallest_size; i <= B_largest_size; ++i)
@@ -1128,7 +1157,7 @@ namespace Model
 
   template<typename Real>
   void
-  Agglomeration<Real, Eigen::SparseMatrix<Real>>::update_num_nonzero(unsigned int &num_nonzero)
+  Agglomeration<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::update_num_nonzero(unsigned int &num_nonzero)
   {
     num_nonzero += (std::max(B_largest_size, C_largest_size) - std::min(B_smallest_size, C_smallest_size))*6;
   }
@@ -1247,37 +1276,38 @@ namespace Model
    */
 
   template<typename Real>
-  class Model<Real, Eigen::SparseMatrix<Real>>
+  class Model<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>
   {
   public:
     Model(unsigned int nucleation_order, unsigned int max_size);
 
     void add_rhs_contribution(
-        std::shared_ptr<RightHandSideContribution<Real, Eigen::SparseMatrix<Real>>> &rhs);
+        std::shared_ptr<RightHandSideContribution<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>> &rhs);
 
     Eigen::Matrix<Real, Eigen::Dynamic, 1> rhs(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const;
-    Eigen::SparseMatrix<Real> jacobian(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const;
+    Eigen::SparseMatrix<Real, Eigen::RowMajor> jacobian(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const;
 
     const unsigned int nucleation_order;
     const unsigned int max_size;
+    std::vector< Eigen::Triplet<Real> > triplet_list;
 
   private:
     std::vector<std::shared_ptr<
-        RightHandSideContribution<Real, Eigen::SparseMatrix<Real>>>> rhs_contributions;
+        RightHandSideContribution<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>>> rhs_contributions;
   };
 
 
 
   template<typename Real>
-  Model<Real, Eigen::SparseMatrix<Real>>::Model(unsigned int nucleation_order, unsigned int max_size)
+  Model<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::Model(unsigned int nucleation_order, unsigned int max_size)
       : nucleation_order(nucleation_order), max_size(max_size)
   {}
 
 
 
   template<typename Real>
-  void Model<Real, Eigen::SparseMatrix<Real>>::add_rhs_contribution(
-      std::shared_ptr<RightHandSideContribution<Real, Eigen::SparseMatrix<Real>>> &rhs)
+  void Model<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::add_rhs_contribution(
+      std::shared_ptr<RightHandSideContribution<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>> &rhs)
   {
     rhs_contributions.push_back(rhs);
   }
@@ -1286,7 +1316,7 @@ namespace Model
 
   template<typename Real>
   Eigen::Matrix<Real, Eigen::Dynamic, 1>
-  Model<Real, Eigen::SparseMatrix<Real>>::rhs(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const
+  Model<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::rhs(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const
   {
     // Initialize the right hand side as a zero vector.
     Eigen::Matrix<Real, Eigen::Dynamic, 1> rhs = Eigen::Matrix<Real, Eigen::Dynamic, 1>::Zero(x.rows());
@@ -1303,13 +1333,13 @@ namespace Model
 
 
   template<typename Real>
-  Eigen::SparseMatrix<Real>
-  Model<Real, Eigen::SparseMatrix<Real>>::jacobian(
+  Eigen::SparseMatrix<Real, Eigen::RowMajor>
+  Model<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::jacobian(
       Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const
   {
     // Form the sparsity pattern by mimicking construction of the matrix, but whenever
     // a value would be calculated, simply add those indices to a list indicating nonzero entries.
-    std::vector<Eigen::Triplet<Real>> triplet_list;
+    triplet_list.clear();
     unsigned int estimate_nonzero = 0;
 
     for (auto & rhs_contribution : rhs_contributions)
@@ -1324,14 +1354,16 @@ namespace Model
       rhs_contribution->add_nonzero_to_jacobian(triplet_list);
     }
 
-    Eigen::SparseMatrix<Real> J(x.rows(), x.rows());
-    J.template setFromTriplets(triplet_list.begin(), triplet_list.end());
+    Eigen::SparseMatrix<Real, Eigen::RowMajor> J(x.rows(), x.rows());
+    J.setFromTriplets(triplet_list.begin(), triplet_list.end());
 
     // Loop through every right hand side contribution added to the model and keep adding to the Jacobian.
     for (auto & rhs_contribution : rhs_contributions)
     {
       rhs_contribution->add_contribution_to_jacobian(x, J);
     }
+
+    J.makeCompressed();
 
     return J;
   }
