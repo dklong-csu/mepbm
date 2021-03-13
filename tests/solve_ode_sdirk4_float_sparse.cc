@@ -3,12 +3,16 @@
 #include <ode_solver.h>
 #include "models.h"
 #include <eigen3/Eigen/Dense>
+#include <eigen3/Eigen/Sparse>
+#include <vector>
+
 
 
 
 using Real = float;
 using Vector = Eigen::Matrix<Real, Eigen::Dynamic, 1>;
 using Matrix = Eigen::SparseMatrix<Real, Eigen::RowMajor>;
+const int order = 4;
 
 
 
@@ -21,26 +25,24 @@ class SimpleOde : public Model::RightHandSideContribution<Real, Matrix>
 
   void add_contribution_to_jacobian(const Vector &x, Matrix &jacobi)
   {
-    for (unsigned int i=0; i<jacobi.rows(); ++i)
-      jacobi.coeffRef(i,i) -= 10;
+    jacobi.coeffRef(0, 0) -= 10;
+    jacobi.makeCompressed();
   }
 
   void add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list)
   {
     triplet_list.push_back(Eigen::Triplet<Real>(0, 0));
-
-    triplet_list.push_back(Eigen::Triplet<Real>(1, 1));
   }
 
   void update_num_nonzero(unsigned int &num_nonzero)
   {
-    num_nonzero += 2;
+    num_nonzero += 1;
   }
 };
 
 int main()
 {
-  const Vector ic = Vector::Ones(2);
+  const Vector ic = Vector::Ones(1);
   const Real start_time = 0.;
   const Real end_time = 1.;
   const Real dt = 1e-5;
@@ -49,7 +51,7 @@ int main()
       = std::make_shared<SimpleOde>();
   Model::Model<Real, Matrix> ode_system(0, 0);
   ode_system.add_rhs_contribution(my_ode);
-  ODE::StepperSDIRK<4, Real, Matrix> stepper(ode_system);
+  ODE::StepperSDIRK<order, Real, Matrix> stepper(ode_system);
   auto sol = ODE::solve_ode<Real>(stepper, ic, start_time, end_time, dt);
 
   // The answer should be close to exp(-10)

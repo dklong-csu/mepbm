@@ -5,6 +5,7 @@
 #include <cmath>
 #include "models.h"
 #include <eigen3/Eigen/Dense>
+#include <eigen3/Eigen/Sparse>
 
 
 
@@ -25,6 +26,10 @@ class SimpleOde : public Model::RightHandSideContribution<Real, Matrix>
   {
     jacobi += -10 * Matrix::Identity(x.rows(), x.rows());
   }
+
+  void add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list) {}
+
+  void update_num_nonzero(unsigned int &num_nonzero) {}
 };
 
 
