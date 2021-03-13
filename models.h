@@ -137,9 +137,9 @@ namespace Model
     void add_contribution_to_jacobian(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
                                       Matrix &J) override;
 
-    void add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list) {}
+    void add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list) override;
 
-    void update_num_nonzero(unsigned int &num_nonzero) {}
+    void update_num_nonzero(unsigned int &num_nonzero) override;
   };
 
   /*
@@ -285,9 +285,9 @@ namespace Model
     void add_contribution_to_jacobian(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
                                       Eigen::SparseMatrix<Real, Eigen::RowMajor> &J) override;
 
-    void add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list);
+    void add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list) override;
 
-    void update_num_nonzero(unsigned int &num_nonzero);
+    void update_num_nonzero(unsigned int &num_nonzero) override;
   };
 
 
@@ -426,9 +426,9 @@ namespace Model
     void add_contribution_to_jacobian(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
                                       Matrix &jacobi) override;
 
-    void add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list) {}
+    void add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list) override;
 
-    void update_num_nonzero(unsigned int &num_nonzero) {}
+    void update_num_nonzero(unsigned int &num_nonzero) override;
   };
 
 
@@ -585,9 +585,9 @@ namespace Model
     void add_contribution_to_jacobian(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
                                       Eigen::SparseMatrix<Real, Eigen::RowMajor> &jacobi) override;
 
-    void add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list);
+    void add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list) override;
 
-    void update_num_nonzero(unsigned int &num_nonzero);
+    void update_num_nonzero(unsigned int &num_nonzero) override;
   };
 
 
@@ -762,9 +762,9 @@ namespace Model
     void add_contribution_to_jacobian(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
                                       Matrix &jacobi) override;
 
-    void add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list) {}
+    void add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list) override;
 
-    void update_num_nonzero(unsigned int &num_nonzero) {}
+    void update_num_nonzero(unsigned int &num_nonzero) override;
   };
 
 
@@ -978,9 +978,9 @@ namespace Model
     void add_contribution_to_jacobian(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
                                       Eigen::SparseMatrix<Real, Eigen::RowMajor> &jacobi) override;
 
-    void add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list);
+    void add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list) override;
 
-    void update_num_nonzero(unsigned int &num_nonzero);
+    void update_num_nonzero(unsigned int &num_nonzero) override;
   };
 
 
@@ -1289,7 +1289,6 @@ namespace Model
 
     const unsigned int nucleation_order;
     const unsigned int max_size;
-    std::vector< Eigen::Triplet<Real> > triplet_list;
 
   private:
     std::vector<std::shared_ptr<
@@ -1339,7 +1338,7 @@ namespace Model
   {
     // Form the sparsity pattern by mimicking construction of the matrix, but whenever
     // a value would be calculated, simply add those indices to a list indicating nonzero entries.
-    triplet_list.clear();
+    std::vector< Eigen::Triplet<Real> > triplet_list;
     unsigned int estimate_nonzero = 0;
 
     for (auto & rhs_contribution : rhs_contributions)
