@@ -2,9 +2,13 @@
 #define MEPBM_ODE_SOLVER_H
 
 #include <eigen3/Eigen/Dense>
+#include <eigen3/Eigen/Sparse>
+#include "eigen3/unsupported/Eigen/src/IterativeSolvers/GMRES.h"
 #include <cmath>
 #include <deque>
+#include <vector>
 #include "models.h"
+#include <iostream>
 
 
 namespace ODE
@@ -1283,6 +1287,7 @@ namespace ODE
 
   private:
     bool update_jacobian;
+    Eigen::SparseMatrix<Real, Eigen::RowMajor> newton_jacobian;
     Eigen::BiCGSTAB<Eigen::SparseMatrix<Real, Eigen::RowMajor>, Eigen::IncompleteLUT<Real>> solver;
     unsigned int num_iter_new_jac;
     const Model::Model<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>> ode_system;
@@ -1330,8 +1335,7 @@ namespace ODE
     {
       Eigen::SparseMatrix<Real, Eigen::RowMajor> jac = ode_system.jacobian(x0);
 
-      Eigen::SparseMatrix<Real, Eigen::RowMajor> newton_jacobian
-          = -dt * jac;
+      newton_jacobian = -dt * jac;
 
       for (unsigned int i=0; i<newton_jacobian.rows(); ++i)
         newton_jacobian.coeffRef(i,i) += 1;
@@ -1342,7 +1346,7 @@ namespace ODE
     StepperSDIRK<1, Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::NewtonFunction fcn(ode_system, t, dt, x0);
     const auto guess = Eigen::Matrix<Real, Eigen::Dynamic, 1>::Zero(x0.rows());
     auto newton_result = newton_method<Real,
-        Eigen::BiCGSTAB<Eigen::SparseMatrix<Real, Eigen::RowMajor> > >(fcn, solver, guess);
+        Eigen::BiCGSTAB<Eigen::SparseMatrix<Real, Eigen::RowMajor>, Eigen::IncompleteLUT<Real> > >(fcn, solver, guess);
 
     auto num_newton_steps = newton_result.second;
     if (update_jacobian)
@@ -1448,6 +1452,7 @@ namespace ODE
 
   private:
     bool update_jacobian;
+    Eigen::SparseMatrix<Real, Eigen::RowMajor> newton_jacobian;
     Eigen::BiCGSTAB<Eigen::SparseMatrix<Real, Eigen::RowMajor>, Eigen::IncompleteLUT<Real>> solver;
     unsigned int num_iter_new_jac;
     Model::Model<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>> ode_system;
@@ -1495,8 +1500,7 @@ namespace ODE
     {
       Eigen::SparseMatrix<Real, Eigen::RowMajor> jac = ode_system.jacobian(x0);
 
-      Eigen::SparseMatrix<Real, Eigen::RowMajor> newton_jacobian
-          = -dt * 1./4 * jac;
+      newton_jacobian = -dt * 1./4 * jac;
 
       for (unsigned int i=0; i<newton_jacobian.rows(); ++i)
         newton_jacobian.coeffRef(i,i) += 1;
@@ -1565,6 +1569,7 @@ namespace ODE
 
   private:
     bool update_jacobian;
+    Eigen::SparseMatrix<Real, Eigen::RowMajor> newton_jacobian;
     Eigen::BiCGSTAB<Eigen::SparseMatrix<Real, Eigen::RowMajor>, Eigen::IncompleteLUT<Real>> solver;
     unsigned int num_iter_new_jac;
     Model::Model<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>> ode_system;
@@ -1635,8 +1640,7 @@ namespace ODE
       {
         Eigen::SparseMatrix<Real, Eigen::RowMajor> jac = ode_system.jacobian(x0);
 
-        Eigen::SparseMatrix<Real, Eigen::RowMajor> newton_jacobian
-          = -dt * 2/3 * jac;
+        newton_jacobian = -dt * 2/3 * jac;
 
         for (unsigned int i=0; i<newton_jacobian.rows(); ++i)
           newton_jacobian.coeffRef(i,i) += 1;
@@ -1709,6 +1713,7 @@ namespace ODE
 
   private:
     bool update_jacobian;
+    Eigen::SparseMatrix<Real, Eigen::RowMajor> newton_jacobian;
     Eigen::BiCGSTAB<Eigen::SparseMatrix<Real, Eigen::RowMajor>, Eigen::IncompleteLUT<Real>> solver;
     unsigned int num_iter_new_jac;
     Model::Model<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>> ode_system;
@@ -1758,8 +1763,7 @@ namespace ODE
     {
       Eigen::SparseMatrix<Real, Eigen::RowMajor> jac = ode_system.jacobian(x0);
 
-      Eigen::SparseMatrix<Real, Eigen::RowMajor> newton_jacobian
-        = -dt * butcher_diag * jac;
+      newton_jacobian = -dt * butcher_diag * jac;
 
       for (unsigned int i=0; i<newton_jacobian.rows(); ++i)
         newton_jacobian.coeffRef(i,i) += 1;
@@ -1844,6 +1848,7 @@ namespace ODE
 
   private:
     bool update_jacobian;
+    Eigen::SparseMatrix<Real, Eigen::RowMajor> newton_jacobian;
     Eigen::BiCGSTAB<Eigen::SparseMatrix<Real, Eigen::RowMajor>, Eigen::IncompleteLUT<Real>> solver;
     unsigned int num_iter_new_jac;
     Model::Model<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>> ode_system;
@@ -1915,8 +1920,7 @@ namespace ODE
       {
         Eigen::SparseMatrix<Real, Eigen::RowMajor> jac = ode_system.jacobian(x0);
 
-        Eigen::SparseMatrix<Real, Eigen::RowMajor> newton_jacobian
-          = -dt * 6/11 * jac;
+        newton_jacobian = -dt * 6/11 * jac;
 
         for (unsigned int i=0; i<newton_jacobian.rows(); ++i)
           newton_jacobian.coeffRef(i,i) += 1;
@@ -1995,6 +1999,7 @@ namespace ODE
 
   private:
     bool update_jacobian;
+    Eigen::SparseMatrix<Real, Eigen::RowMajor> newton_jacobian;
     Eigen::BiCGSTAB<Eigen::SparseMatrix<Real, Eigen::RowMajor>, Eigen::IncompleteLUT<Real>> solver;
     unsigned int num_iter_new_jac;
     Model::Model<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>> ode_system;
@@ -2043,8 +2048,7 @@ namespace ODE
     {
       Eigen::SparseMatrix<Real, Eigen::RowMajor> jac = ode_system.jacobian(x0);
 
-      Eigen::SparseMatrix<Real, Eigen::RowMajor> newton_jacobian
-          = -dt * butcher_diag * jac;
+      newton_jacobian = -dt * butcher_diag * jac;
 
       for (unsigned int i=0; i<newton_jacobian.rows(); ++i)
         newton_jacobian.coeffRef(i,i) += 1;
@@ -2128,6 +2132,7 @@ namespace ODE
 
   private:
     bool update_jacobian;
+    Eigen::SparseMatrix<Real, Eigen::RowMajor> newton_jacobian;
     Eigen::BiCGSTAB<Eigen::SparseMatrix<Real, Eigen::RowMajor>, Eigen::IncompleteLUT<Real>> solver;
     unsigned int num_iter_new_jac;
     Model::Model<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>> ode_system;
@@ -2199,8 +2204,7 @@ namespace ODE
       {
         Eigen::SparseMatrix<Real, Eigen::RowMajor> jac = ode_system.jacobian(x0);
 
-        Eigen::SparseMatrix<Real, Eigen::RowMajor> newton_jacobian
-            = -dt * 12/25 * jac;
+        newton_jacobian = -dt * 12/25 * jac;
 
         for (unsigned int i=0; i<newton_jacobian.rows(); ++i)
           newton_jacobian.coeffRef(i,i) += 1;
