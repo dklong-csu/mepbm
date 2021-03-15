@@ -16,7 +16,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: install dependencies
       run: |
-        sudo apt-get install doxygen graphviz libboost-all-dev numdiff -y
+        sudo apt-get install --fix-missing doxygen graphviz libboost-all-dev numdiff -y
         doxygen --version
         git clone https://github.com/bangerth/SampleFlow.git
         git clone https://gitlab.com/libeigen/eigen.git
