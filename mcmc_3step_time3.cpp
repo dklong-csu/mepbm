@@ -94,7 +94,7 @@ public:
 
   // { kb, k1, k2, k3 }
   std::vector<Real> lower_bounds = { 0., 1000., 4800., 10., 10.};
-  std::vector<Real> upper_bounds = { 1.e3, 2.e6, 8.e7, 8.5e5, 2.5e5};
+  std::vector<Real> upper_bounds = { 1.e3, 2.e8, 8.e7, 8.5e5, 2.5e5};
 
   // Particle size cutoff should be a non-negative integer, unlike the other parameters.
   unsigned int lower_bound_cutoff = 10;
