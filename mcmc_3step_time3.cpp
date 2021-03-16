@@ -310,7 +310,7 @@ std::pair<Sample,Real> perturb(const Sample &sample,
   Sample new_sample(new_prm(0), new_prm(1), new_prm(2), new_prm(3),
                     new_prm(4), static_cast<unsigned int>(new_prm(5)));
 
-  std::cout << "New sample: " << new_sample << "\n";
+  //std::cout << "New sample: " << new_sample << "\n";
   return {new_sample, 1.};
 }
 
