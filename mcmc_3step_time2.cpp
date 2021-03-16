@@ -33,8 +33,9 @@
 
 
 
-// Set precision
-using Real = double;
+// Set the precision of the calculations
+using Real = float;
+
 
 
 // A data type we will use to convert samples to whenever we want to
@@ -46,7 +47,7 @@ using VectorType = std::valarray<Real>;
 // A data type describing the linear algebra object vector that is used
 // in the ODE solver.
 using StateVector = Eigen::Matrix<Real, Eigen::Dynamic, 1>;
-using Matrix = Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>;
+using Matrix = Eigen::SparseMatrix<Real, Eigen::RowMajor>;
 
 
 
