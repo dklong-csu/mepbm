@@ -307,12 +307,45 @@ std::pair<Sample,Real> perturb(const Sample &sample,
   old_prm << sample.kf, sample.kb, sample.k1, sample.k2, sample.k3, sample.cutoff;
   const auto new_prm = 2.4/std::sqrt(1.*sample.dim) * L * random_vector + old_prm;
 
+  std::cout << "C: " << C << std::endl;
+  std::cout << "L: " << L << std::endl;
+  std::cout << "Random vector: " << random_vector << std::endl;
+  std::cout << "Old parameters: " << old_prm << std::endl;
+  std::cout << "New parameters: " << new_prm << std::endl << std::endl;
+
   Sample new_sample(new_prm(0), new_prm(1), new_prm(2), new_prm(3),
                     new_prm(4), static_cast<unsigned int>(new_prm(5)));
 
   //std::cout << "New sample: " << new_sample << "\n";
   return {new_sample, 1.};
 }
+
+
+
+std::pair<Sample,Real> perturb_unif(const Sample &sample,
+                                    std::mt19937 &rng)
+{
+  Eigen::Matrix<Real, Eigen::Dynamic, 1> random_vector(sample.dim);
+  for (unsigned int i=0; i < random_vector.size(); ++i)
+  {
+    random_vector(i) = std::uniform_real_distribution<Real>(-1,1)(rng);
+  }
+  Eigen::Matrix<Real, Eigen::Dynamic,1> bounds(sample.dim);
+  Eigen::Matrix<Real, Eigen::Dynamic,1> new_prm(sample.dim);
+  bounds << 0.005, 7.5e2, 7.5e3, 17.5e3, 7.5e3, 10;
+  Eigen::Matrix<Real, Eigen::Dynamic, 1> old_prm(sample.dim);
+  old_prm << sample.kf, sample.kb, sample.k1, sample.k2, sample.k3, sample.cutoff;
+  for (unsigned int i=0; i < random_vector.size(); ++i)
+    {
+      new_prm(i) = random_vector(i)*bounds(i) + old_prm(i);
+    }
+
+  Sample new_sample(sample.kf, new_prm(1), new_prm(2), new_prm(3),
+                    new_prm(4), static_cast<unsigned int>(new_prm(5)));
+
+  return {new_sample, 1.};
+}
+
 
 
 
@@ -447,7 +480,7 @@ int main(int argc, char **argv)
         = (argc > 1 ?
            std::hash<std::string>()(std::to_string(atoi(argv[1]) + i)) :
            std::hash<std::string>()(std::to_string(i)));
-    const unsigned int n_samples = 5;
+    const unsigned int n_samples = 1000;
 
     std::mt19937 rng;
     rng.seed(random_seed);
@@ -455,7 +488,7 @@ int main(int argc, char **argv)
                       &Statistics::log_probability<Sample, 4, Real>,
                       [&](const Sample &s) {
                         if (counter.get() < 1000)
-                          return perturb(s, initial_covariance, rng);
+                          return perturb_unif(s, rng);
                         else
                           return perturb(s, covariance_matrix.get(), rng);
                       },

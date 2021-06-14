@@ -1,5 +1,3 @@
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "openmp-use-default-none"
 /*
  * Program to compute the posterior distribution
  * -- 4-step mechanism
@@ -12,6 +10,8 @@
 #include <limits>
 #include <vector>
 #include <memory>
+#include <type_traits>
+
 #include "models.h"
 #include "histogram.h"
 #include "statistics.h"
@@ -29,10 +29,12 @@
 #include <sampleflow/consumers/covariance_matrix.h>
 #include <sampleflow/consumers/count_samples.h>
 
+#include <omp.h>
+
 
 
 // Set precision
-using Real = double;
+using Real = float;
 
 
 // A data type we will use to convert samples to whenever we want to
@@ -44,7 +46,8 @@ using VectorType = std::valarray<Real>;
 // A data type describing the linear algebra object vector that is used
 // in the ODE solver.
 using StateVector = Eigen::Matrix<Real, Eigen::Dynamic, 1>;
-using Matrix = Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>;
+using DenseMatrix = Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>;
+using SparseMatrix = Eigen::SparseMatrix<Real, Eigen::RowMajor>;
 
 
 
@@ -96,7 +99,7 @@ public:
 
   // Particle size cutoff should be a non-negative integer, unlike the other parameters.
   unsigned int lower_bound_cutoff = 10;
-  unsigned int upper_bound_cutoff = 2000;
+  unsigned int upper_bound_cutoff = 1000;
 
   // Hold the initial condition for the ODEs, i.e. the starting concentration of each species
   StateVector initial_condition;
@@ -158,6 +161,7 @@ ConstantData::ConstantData()
  *    friend std::ostream & operator<< (std::ostream &out, const Sample &sample)
  *      -- A rule for what to output to a line of an external file in a way that's understood as a complete sample.
  */
+template<typename Matrix>
 class Sample
 {
 public:
@@ -193,7 +197,8 @@ private:
 
 
 // Constructor defines what the unknown parameters are in the model for a given Sample.
-Sample::Sample(Real kf, Real kb, Real k1, Real k2, Real k3, Real k4, unsigned int cutoff)
+template<typename Matrix>
+Sample<Matrix>::Sample(Real kf, Real kb, Real k1, Real k2, Real k3, Real k4, unsigned int cutoff)
     : kf(kf), kb(kb), k1(k1), k2(k2), k3(k3), k4(k4), cutoff(cutoff)
 {}
 
@@ -201,7 +206,8 @@ Sample::Sample(Real kf, Real kb, Real k1, Real k2, Real k3, Real k4, unsigned in
 
 // By default, make an invalid Sample. This is to ensure that the necessary values are always given
 // to a Sample or otherwise the program won't run.
-Sample::Sample()
+template<typename Matrix>
+Sample<Matrix>::Sample()
     : Sample(std::numeric_limits<Real>::signaling_NaN(),
              std::numeric_limits<Real>::signaling_NaN(),
              std::numeric_limits<Real>::signaling_NaN(),
@@ -214,7 +220,8 @@ Sample::Sample()
 
 
 // Provides access to the measured data used in likelihood calculations
-std::vector<std::vector<Real>> Sample::return_data() const
+template<typename Matrix>
+std::vector<std::vector<Real>> Sample<Matrix>::return_data() const
 {
   return const_parameters.data_size;
 }
@@ -222,7 +229,8 @@ std::vector<std::vector<Real>> Sample::return_data() const
 
 
 // Provides access to the times the data was collected to be given to the ODE solver
-std::vector<Real> Sample::return_times() const
+template<typename Matrix>
+std::vector<Real> Sample<Matrix>::return_times() const
 {
   return const_parameters.times;
 }
@@ -230,7 +238,8 @@ std::vector<Real> Sample::return_times() const
 
 
 // Forms the model representing the mechanism being used, in this case a 4-step mechanism
-Model::Model<Real, Matrix> Sample::return_model() const
+template<typename Matrix>
+Model::Model<Real, Matrix> Sample<Matrix>::return_model() const
 {
   std::shared_ptr<Model::RightHandSideContribution<Real, Matrix>> nucleation =
       std::make_shared<Model::TermolecularNucleation<Real, Matrix>>(const_parameters.A_index, const_parameters.As_index,
@@ -265,7 +274,8 @@ Model::Model<Real, Matrix> Sample::return_model() const
 
 
 // Provides access to the initial conditions for the ODE solver to use
-StateVector Sample::return_initial_condition() const
+template<typename Matrix>
+StateVector Sample<Matrix>::return_initial_condition() const
 {
   return const_parameters.initial_condition;
 }
@@ -273,7 +283,8 @@ StateVector Sample::return_initial_condition() const
 
 
 // Provides access to the parameters to be used to bin data/simulation for the likelihood calculation
-Histograms::Parameters<Real> Sample::return_histogram_parameters() const
+template<typename Matrix>
+Histograms::Parameters<Real> Sample<Matrix>::return_histogram_parameters() const
 {
   Histograms::Parameters<Real> hist_parameters(const_parameters.hist_bins, const_parameters.min_bin_size,
                                          const_parameters.max_bin_size);
@@ -283,7 +294,8 @@ Histograms::Parameters<Real> Sample::return_histogram_parameters() const
 
 
 // A test to see if a perturbed sample holds reasonable values
-bool Sample::within_bounds() const
+template<typename Matrix>
+bool Sample<Matrix>::within_bounds() const
 {
   if (   kf < const_parameters.lower_bounds[0] || kf > const_parameters.upper_bounds[0]
          || kb < const_parameters.lower_bounds[1] || kb > const_parameters.upper_bounds[1]
@@ -400,7 +412,7 @@ int main(int argc, char **argv)
 
 
     // Create the initial sample equal to the mean value from the previous set of samples
-    Sample starting_guess(3.6e-2, 1.3e5, 1.3e5, 1.0e4, 7.4e3, 118, 246);
+    Sample starting_guess(3.6e-2, 1.3e5, 1.3e5, 1.0e4, 7.4e3, 118, 400);
 
     // Create an output file to store the accepted samples
     std::ofstream samples("samples"
@@ -464,7 +476,7 @@ int main(int argc, char **argv)
         = (argc > 1 ?
            std::hash<std::string>()(std::to_string( atoi(argv[1]) + i )) :
            std::hash<std::string>()( std::to_string(i) ) );
-    const unsigned int n_samples = 5;
+    const unsigned int n_samples = 50;
 
     std::mt19937 rng;
     rng.seed(random_seed);
