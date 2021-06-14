@@ -4,7 +4,7 @@
  * Program to compute the posterior distribution
  * -- 3-step mechanism
  * -- Ir-POM chemical system
- * -- Using data from time 4.838
+ * -- Using data from time 2.336
  */
 
 #include <iostream>
@@ -94,7 +94,7 @@ public:
 
   // { kb, k1, k2, k3 }
   std::vector<Real> lower_bounds = { 0., 1000., 4800., 10., 10.};
-  std::vector<Real> upper_bounds = { 1.e3, 2.e8, 8.e7, 8.5e5, 2.5e5};
+  std::vector<Real> upper_bounds = { 1.e3, 2.e8, 1.e8, 1.e8, 1.e8};
 
   // Particle size cutoff should be a non-negative integer, unlike the other parameters.
   unsigned int lower_bound_cutoff = 10;
@@ -102,6 +102,7 @@ public:
 
   // Hold the initial condition for the ODEs, i.e. the starting concentration of each species
   StateVector initial_condition;
+
 };
 
 
@@ -315,6 +316,32 @@ std::pair<Sample,Real> perturb(const Sample &sample,
 
 
 
+std::pair<Sample,Real> perturb_unif(const Sample &sample,
+                                    std::mt19937 &rng)
+{
+  Eigen::Matrix<Real, Eigen::Dynamic, 1> random_vector(sample.dim);
+  for (unsigned int i=0; i < random_vector.size(); ++i)
+    {
+      random_vector(i) = std::uniform_real_distribution<Real>(-1,1)(rng);
+    }
+  Eigen::Matrix<Real, Eigen::Dynamic,1> bounds(sample.dim);
+  Eigen::Matrix<Real, Eigen::Dynamic,1> new_prm(sample.dim);
+  bounds << 0.001, 1.0e2, 7.5e2, 7.5e2, 1.0e2, 10;
+  Eigen::Matrix<Real, Eigen::Dynamic, 1> old_prm(sample.dim);
+  old_prm << sample.kf, sample.kb, sample.k1, sample.k2, sample.k3, sample.cutoff;
+  for (unsigned int i=1; i < random_vector.size(); ++i)
+    {
+      new_prm(i) = random_vector(i)*bounds(i) + old_prm(i);
+    }
+
+  Sample new_sample(new_prm(1)*5.e-7, new_prm(1), new_prm(2), new_prm(3),
+                    new_prm(4), static_cast<unsigned int>(new_prm(5)));
+
+  return {new_sample, 1.};
+}
+
+
+
 // Sample assignment can be done by specifying parameter values
 Sample& Sample::operator=(const Sample &sample)
 {
@@ -375,14 +402,14 @@ int main(int argc, char **argv)
     Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> initial_covariance(6, 6);
     initial_covariance <<
                        1.5e-4, 0, 0, 0, 0, 0,
-        0, 2.6e8, 1.2e8, -2.1e8, -3.0e7, -7.2e4,
-        0, 1.2e8, 2.7e9, 8.9e8, 2.1e8, -1.3e4,
-        0, -2.1e8, 8.9e8, 6.2e8, 1.1e8, 4.2e4,
-        0, -3.0e7, 2.1e8, 1.1e8, 2.3e7, 1.3e4,
-        0, -7.2e4, -1.3e4, 4.2e4, 1.3e4, 1.1e3;
+        0, 1.7e8, 7.1e8, -1.9e8, 5.8e6, -6.6e4,
+        0, 7.1e8, 6.3e9, 6.8e8, 3.1e8, -2.1e5,
+        0, -1.9e8, 6.8e8, 1.7e9, 1.4e8, -4.3e5,
+        0, 5.8e6, 3.1e8, 1.4e8, 3.2e7, 1.1e4,
+        0, -6.6e4, -2.1e5, -4.3e5, 1.1e4, 2.0e3;
 
     // Create sample with initial values for parameters
-    Sample starting_guess(3.6e-2, 5.7e4, 1.2e5, 4.4e4, 1.6e4, 297);
+    Sample starting_guess(2.1e4*5e-7, 2.1e4, 1.6e5, 1.8e5, 2.5e4, 168);
 
     // Create an output file to store the accepted samples
     std::ofstream samples("samples"
@@ -446,15 +473,15 @@ int main(int argc, char **argv)
         = (argc > 1 ?
            std::hash<std::string>()(std::to_string(atoi(argv[1]) + i)) :
            std::hash<std::string>()(std::to_string(i)));
-    const unsigned int n_samples = 5;
+    const unsigned int n_samples = 20000;
 
     std::mt19937 rng;
     rng.seed(random_seed);
     mh_sampler.sample(starting_guess,
                       &Statistics::log_probability<Sample, 4, Real>,
                       [&](const Sample &s) {
-                        if (counter.get() < 1000)
-                          return perturb(s, initial_covariance, rng);
+                        if (counter.get() < 50000)
+                          return perturb_unif(s, rng);
                         else
                           return perturb(s, covariance_matrix.get(), rng);
                       },

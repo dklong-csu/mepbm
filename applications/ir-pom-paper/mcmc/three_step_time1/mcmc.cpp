@@ -4,7 +4,7 @@
  * Program to compute the posterior distribution
  * -- 3-step mechanism
  * -- Ir-POM chemical system
- * -- Using data from time 0.918
+ * -- Using data from time 2.336
  */
 
 #include <iostream>
@@ -94,7 +94,7 @@ public:
 
   // { kb, k1, k2, k3 }
   std::vector<Real> lower_bounds = { 0., 1000., 4800., 10., 10.};
-  std::vector<Real> upper_bounds = { 1.e3, 2.e8, 8.e7, 8.5e5, 2.5e5};
+  std::vector<Real> upper_bounds = { 1.e3, 2.e8, 1.e8, 1.e8, 1.e8};
 
   // Particle size cutoff should be a non-negative integer, unlike the other parameters.
   unsigned int lower_bound_cutoff = 10;
@@ -102,6 +102,7 @@ public:
 
   // Hold the initial condition for the ODEs, i.e. the starting concentration of each species
   StateVector initial_condition;
+
 };
 
 
@@ -273,11 +274,11 @@ Histograms::Parameters<Real> Sample::return_histogram_parameters() const
 bool Sample::within_bounds() const
 {
   if (   kf < const_parameters.lower_bounds[0] || kf > const_parameters.upper_bounds[0]
-      || kb < const_parameters.lower_bounds[1] || kb > const_parameters.upper_bounds[1]
-      || k1 < const_parameters.lower_bounds[2] || k1 > const_parameters.upper_bounds[2]
-      || k2 < const_parameters.lower_bounds[3] || k2 > const_parameters.upper_bounds[3]
-      || k3 < const_parameters.lower_bounds[4] || k3 > const_parameters.upper_bounds[4]
-      || cutoff < const_parameters.lower_bound_cutoff || cutoff > const_parameters.upper_bound_cutoff)
+         || kb < const_parameters.lower_bounds[1] || kb > const_parameters.upper_bounds[1]
+         || k1 < const_parameters.lower_bounds[2] || k1 > const_parameters.upper_bounds[2]
+         || k2 < const_parameters.lower_bounds[3] || k2 > const_parameters.upper_bounds[3]
+         || k3 < const_parameters.lower_bounds[4] || k3 > const_parameters.upper_bounds[4]
+         || cutoff < const_parameters.lower_bound_cutoff || cutoff > const_parameters.upper_bound_cutoff)
     return false;
   else
     return true;
@@ -310,6 +311,32 @@ std::pair<Sample,Real> perturb(const Sample &sample,
                     new_prm(4), static_cast<unsigned int>(new_prm(5)));
 
   //std::cout << "New sample: " << new_sample << "\n";
+  return {new_sample, 1.};
+}
+
+
+
+std::pair<Sample,Real> perturb_unif(const Sample &sample,
+                                    std::mt19937 &rng)
+{
+  Eigen::Matrix<Real, Eigen::Dynamic, 1> random_vector(sample.dim);
+  for (unsigned int i=0; i < random_vector.size(); ++i)
+    {
+      random_vector(i) = std::uniform_real_distribution<Real>(-1,1)(rng);
+    }
+  Eigen::Matrix<Real, Eigen::Dynamic,1> bounds(sample.dim);
+  Eigen::Matrix<Real, Eigen::Dynamic,1> new_prm(sample.dim);
+  bounds << 0.0025, 7.5e2, 1.e4, 1.e4, 7.5e2, 10;
+  Eigen::Matrix<Real, Eigen::Dynamic, 1> old_prm(sample.dim);
+  old_prm << sample.kf, sample.kb, sample.k1, sample.k2, sample.k3, sample.cutoff;
+  for (unsigned int i=1; i < random_vector.size(); ++i)
+    {
+      new_prm(i) = random_vector(i)*bounds(i) + old_prm(i);
+    }
+
+  Sample new_sample(new_prm(1)*5.e-7, new_prm(1), new_prm(2), new_prm(3),
+                    new_prm(4), static_cast<unsigned int>(new_prm(5)));
+
   return {new_sample, 1.};
 }
 
@@ -375,15 +402,14 @@ int main(int argc, char **argv)
     Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> initial_covariance(6, 6);
     initial_covariance <<
                        1.5e-4, 0, 0, 0, 0, 0,
-        0, 1.8e9, 2.7e9, -9.9e8, -4.8e7, 4.5e6,
-        0, 2.7e9, 7.7e9, -4.2e8, 1.5e8, 5.9e6,
-        0, -9.9e8, -4.2e8, 2.0e8, 1.5e9, -3.1e6,
-        0, -4.8e7, 1.5e8, 1.5e8, 2.4e7, -1.8e5,
-        0, 4.5e6, 5.9e6, -3.1e6, -1.8e5, 1.54;
-
+        0, 1.7e8, 7.1e8, -1.9e8, 5.8e6, -6.6e4,
+        0, 7.1e8, 6.3e9, 6.8e8, 3.1e8, -2.1e5,
+        0, -1.9e8, 6.8e8, 1.7e9, 1.4e8, -4.3e5,
+        0, 5.8e6, 3.1e8, 1.4e8, 3.2e7, 1.1e4,
+        0, -6.6e4, -2.1e5, -4.3e5, 1.1e4, 2.0e3;
 
     // Create sample with initial values for parameters
-    Sample starting_guess(3.6e-2, 2.1e4, 1.8e5, 9.7e4, 2.3e4, 139);
+    Sample starting_guess(8.6e3*5e-7, 8.6e3, 2.7e5, 3.0e5, 1.8e4, 97);
 
     // Create an output file to store the accepted samples
     std::ofstream samples("samples"
@@ -447,15 +473,15 @@ int main(int argc, char **argv)
         = (argc > 1 ?
            std::hash<std::string>()(std::to_string(atoi(argv[1]) + i)) :
            std::hash<std::string>()(std::to_string(i)));
-    const unsigned int n_samples = 5;
+    const unsigned int n_samples = 20000;
 
     std::mt19937 rng;
     rng.seed(random_seed);
     mh_sampler.sample(starting_guess,
                       &Statistics::log_probability<Sample, 4, Real>,
                       [&](const Sample &s) {
-                        if (counter.get() < 1000)
-                          return perturb(s, initial_covariance, rng);
+                        if (counter.get() < 50000)
+                          return perturb_unif(s, rng);
                         else
                           return perturb(s, covariance_matrix.get(), rng);
                       },

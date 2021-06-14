@@ -1,3 +1,5 @@
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "openmp-use-default-none"
 /*
  * Program to compute the posterior distribution
  * -- 4-step mechanism
@@ -10,8 +12,6 @@
 #include <limits>
 #include <vector>
 #include <memory>
-#include <type_traits>
-
 #include "models.h"
 #include "histogram.h"
 #include "statistics.h"
@@ -32,7 +32,6 @@
 #include <omp.h>
 
 
-
 // Set precision
 using Real = float;
 
@@ -46,8 +45,7 @@ using VectorType = std::valarray<Real>;
 // A data type describing the linear algebra object vector that is used
 // in the ODE solver.
 using StateVector = Eigen::Matrix<Real, Eigen::Dynamic, 1>;
-using DenseMatrix = Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>;
-using SparseMatrix = Eigen::SparseMatrix<Real, Eigen::RowMajor>;
+using Matrix = Eigen::SparseMatrix<Real, Eigen::RowMajor>;
 
 
 
@@ -95,11 +93,11 @@ public:
 
   // { kb, k1, k2, k3, k4 }
   std::vector<Real> lower_bounds = { 0., 1000., 4800., 10., 10., 0.};
-  std::vector<Real> upper_bounds = { 1.e3, 2.e8, 8.e7, 8.5e5, 2.5e5, 2.5e5};
+  std::vector<Real> upper_bounds = { 1.e3, 2.e8, 1.e8, 1.e8, 1.e8, 1.e8};
 
   // Particle size cutoff should be a non-negative integer, unlike the other parameters.
   unsigned int lower_bound_cutoff = 10;
-  unsigned int upper_bound_cutoff = 1000;
+  unsigned int upper_bound_cutoff = 600;
 
   // Hold the initial condition for the ODEs, i.e. the starting concentration of each species
   StateVector initial_condition;
@@ -161,7 +159,6 @@ ConstantData::ConstantData()
  *    friend std::ostream & operator<< (std::ostream &out, const Sample &sample)
  *      -- A rule for what to output to a line of an external file in a way that's understood as a complete sample.
  */
-template<typename Matrix>
 class Sample
 {
 public:
@@ -197,8 +194,7 @@ private:
 
 
 // Constructor defines what the unknown parameters are in the model for a given Sample.
-template<typename Matrix>
-Sample<Matrix>::Sample(Real kf, Real kb, Real k1, Real k2, Real k3, Real k4, unsigned int cutoff)
+Sample::Sample(Real kf, Real kb, Real k1, Real k2, Real k3, Real k4, unsigned int cutoff)
     : kf(kf), kb(kb), k1(k1), k2(k2), k3(k3), k4(k4), cutoff(cutoff)
 {}
 
@@ -206,8 +202,7 @@ Sample<Matrix>::Sample(Real kf, Real kb, Real k1, Real k2, Real k3, Real k4, uns
 
 // By default, make an invalid Sample. This is to ensure that the necessary values are always given
 // to a Sample or otherwise the program won't run.
-template<typename Matrix>
-Sample<Matrix>::Sample()
+Sample::Sample()
     : Sample(std::numeric_limits<Real>::signaling_NaN(),
              std::numeric_limits<Real>::signaling_NaN(),
              std::numeric_limits<Real>::signaling_NaN(),
@@ -220,8 +215,7 @@ Sample<Matrix>::Sample()
 
 
 // Provides access to the measured data used in likelihood calculations
-template<typename Matrix>
-std::vector<std::vector<Real>> Sample<Matrix>::return_data() const
+std::vector<std::vector<Real>> Sample::return_data() const
 {
   return const_parameters.data_size;
 }
@@ -229,8 +223,7 @@ std::vector<std::vector<Real>> Sample<Matrix>::return_data() const
 
 
 // Provides access to the times the data was collected to be given to the ODE solver
-template<typename Matrix>
-std::vector<Real> Sample<Matrix>::return_times() const
+std::vector<Real> Sample::return_times() const
 {
   return const_parameters.times;
 }
@@ -238,8 +231,7 @@ std::vector<Real> Sample<Matrix>::return_times() const
 
 
 // Forms the model representing the mechanism being used, in this case a 4-step mechanism
-template<typename Matrix>
-Model::Model<Real, Matrix> Sample<Matrix>::return_model() const
+Model::Model<Real, Matrix> Sample::return_model() const
 {
   std::shared_ptr<Model::RightHandSideContribution<Real, Matrix>> nucleation =
       std::make_shared<Model::TermolecularNucleation<Real, Matrix>>(const_parameters.A_index, const_parameters.As_index,
@@ -274,8 +266,7 @@ Model::Model<Real, Matrix> Sample<Matrix>::return_model() const
 
 
 // Provides access to the initial conditions for the ODE solver to use
-template<typename Matrix>
-StateVector Sample<Matrix>::return_initial_condition() const
+StateVector Sample::return_initial_condition() const
 {
   return const_parameters.initial_condition;
 }
@@ -283,8 +274,7 @@ StateVector Sample<Matrix>::return_initial_condition() const
 
 
 // Provides access to the parameters to be used to bin data/simulation for the likelihood calculation
-template<typename Matrix>
-Histograms::Parameters<Real> Sample<Matrix>::return_histogram_parameters() const
+Histograms::Parameters<Real> Sample::return_histogram_parameters() const
 {
   Histograms::Parameters<Real> hist_parameters(const_parameters.hist_bins, const_parameters.min_bin_size,
                                          const_parameters.max_bin_size);
@@ -294,8 +284,7 @@ Histograms::Parameters<Real> Sample<Matrix>::return_histogram_parameters() const
 
 
 // A test to see if a perturbed sample holds reasonable values
-template<typename Matrix>
-bool Sample<Matrix>::within_bounds() const
+bool Sample::within_bounds() const
 {
   if (   kf < const_parameters.lower_bounds[0] || kf > const_parameters.upper_bounds[0]
          || kb < const_parameters.lower_bounds[1] || kb > const_parameters.upper_bounds[1]
@@ -310,32 +299,30 @@ bool Sample<Matrix>::within_bounds() const
 }
 
 
-// A function to perturb a sample. This generates a random sample following a normal distribution centered
-// around the current sample and with the specified covariance C. I.e. new_sample ~N(sample, C). The proposal
-// ratio is also returned, which is 1 in this case since the normal distribution is symmetric.
-std::pair<Sample,Real> perturb(const Sample &sample,
-                                 const Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> &C,
-                                 std::mt19937 &rng)
+std::pair<Sample,Real> perturb_unif(const Sample &sample,
+				     std::mt19937 &rng)
 {
-  // Create a vector of random numbers following a normal distribution with mean 0 and variance 1
   Eigen::Matrix<Real, Eigen::Dynamic, 1> random_vector(sample.dim);
   for (unsigned int i=0; i < random_vector.size(); ++i)
-  {
-    random_vector(i) = std::normal_distribution<Real>(0,1)(rng);
-  }
-
-  // Using the covariance matrix, perform the affine transformation
-  // new_prm = 2.4/sqrt(dim) * L * random_vector + old_prm
-  // where LL^T = covariance matrix
-  const Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> L = C.llt().matrixL();
+    {
+      random_vector(i) = std::uniform_real_distribution<Real>(-1,1)(rng);
+    }
+  Eigen::Matrix<Real, Eigen::Dynamic,1> bounds(sample.dim);
+  Eigen::Matrix<Real, Eigen::Dynamic,1> new_prm(sample.dim);
+  bounds << 0.0025, 5.e2, 1e3, 1e3, 1e3, 50, 10;
   Eigen::Matrix<Real, Eigen::Dynamic, 1> old_prm(sample.dim);
-  old_prm << sample.kf, sample.kb, sample.k1, sample.k2, sample.k3, sample.k4, sample.cutoff;
-  const auto new_prm = 2.4/std::sqrt(1.*sample.dim) * L * random_vector + old_prm;
+  old_prm << sample.kf, sample.kb, sample.k1, sample.k2, sample.k3, sample.k4,  sample.cutoff;
+  for (unsigned int i=0; i < random_vector.size(); ++i)
+    {
+      new_prm(i) = random_vector(i)*bounds(i) + old_prm(i);
+    }
+
+  new_prm(0) = (5e-7)*new_prm(1);
 
   Sample new_sample(new_prm(0), new_prm(1), new_prm(2), new_prm(3),
-                    new_prm(4), new_prm(5), static_cast<unsigned int>(new_prm(6)));
-
-  std::cout << "New sample: " << new_sample << "\n";
+                    new_prm(4), new_prm(5),
+		    static_cast<unsigned int>(new_prm(6)));
+  
   return {new_sample, 1.};
 }
 
@@ -389,30 +376,9 @@ int main(int argc, char **argv)
 
 #pragma omp parallel for
   for (unsigned int i=0;i<n_threads;++i) {
-    /*
-     * A previous set of samples was constructed using a slightly incorrect likelihood function.
-     * These results provide a good starting guess at what the covariance matrix is, or at least
-     * for what the covariance matrix would be without kf since that was set as a constant previously.
-     * There is a partial run for the 4-step with kf, so we can take the variance of kf from those samples
-     * and use that to fill in the gap in the covariance matrix. Hence we have
-     * cov = | var_kb   0        |
-     *       | 0        cov_prev |
-     *
-     * The values are simply hardcoded for convenience.
-     */
-    Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> initial_covariance(7, 7);
-    initial_covariance <<
-                       1.5e-4, 0, 0, 0, 0, 0, 0,
-        0, 2.3e9, 1.8e9, -6.4e7, -2.8e7, 3.3e5, -6.7e4,
-        0, 1.8e9, 1.6e9, -4.6e7, -1.4e7, 2.2e5, 2.5e5,
-        0, -6.4e7, -4.6e7, 4.7e6, 2.5e6, -1.4e4, -6.9e3,
-        0, -2.8e7, -1.4e7, 2.5e6, 2.1e6, -2.0e4, 2.1e4,
-        0, 3.3e5, 2.2e5, -1.4e4, -2.0e4, 3.0e3, -1.8e3,
-        0, -6.7e4, 2.5e5, -6.9e3, 2.1e4, -1.8e3, 3.0e3;
-
-
+   
     // Create the initial sample equal to the mean value from the previous set of samples
-    Sample starting_guess(3.6e-2, 1.3e5, 1.3e5, 1.0e4, 7.4e3, 118, 400);
+    Sample starting_guess(7.0e-2, 1.4e5, 1.4e5, 1.1e4, 7.2e3, 354, 118);
 
     // Create an output file to store the accepted samples
     std::ofstream samples("samples"
@@ -476,17 +442,14 @@ int main(int argc, char **argv)
         = (argc > 1 ?
            std::hash<std::string>()(std::to_string( atoi(argv[1]) + i )) :
            std::hash<std::string>()( std::to_string(i) ) );
-    const unsigned int n_samples = 50;
+    const unsigned int n_samples = 20000;
 
     std::mt19937 rng;
     rng.seed(random_seed);
     mh_sampler.sample(starting_guess,
                       &Statistics::log_probability<Sample, 4, Real>,
                       [&](const Sample &s) {
-                        if (counter.get() < 1000)
-                          return perturb(s, initial_covariance, rng);
-                        else
-                          return perturb(s, covariance_matrix.get(), rng);
+                          return perturb_unif(s, rng);
                       },
                       n_samples,
                       random_seed);
