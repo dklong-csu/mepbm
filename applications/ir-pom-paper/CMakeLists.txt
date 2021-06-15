@@ -4,3 +4,4 @@ MESSAGE(STATUS "Setting up Ir-POM applications")
 
 ADD_SUBDIRECTORY(mcmc)
 ADD_SUBDIRECTORY(figure4)
+ADD_SUBDIRECTORY(bin_vs_no_bin)
