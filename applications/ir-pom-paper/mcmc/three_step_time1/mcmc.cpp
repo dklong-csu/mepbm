@@ -4,7 +4,7 @@
  * Program to compute the posterior distribution
  * -- 3-step mechanism
  * -- Ir-POM chemical system
- * -- Using data from times 0.918, 1.170, 2.336, 4.838
+ * -- Using data from time 2.336
  */
 
 #include <iostream>
@@ -47,7 +47,6 @@ using VectorType = std::valarray<Real>;
 // in the ODE solver.
 using StateVector = Eigen::Matrix<Real, Eigen::Dynamic, 1>;
 using Matrix = Eigen::SparseMatrix<Real, Eigen::RowMajor>;
-
 
 
 
@@ -95,7 +94,7 @@ public:
 
   // { kb, k1, k2, k3 }
   std::vector<Real> lower_bounds = { 0., 1000., 4800., 10., 10.};
-  std::vector<Real> upper_bounds = { 1.e3, 2.e8, 8.e7, 8.5e5, 2.5e5};
+  std::vector<Real> upper_bounds = { 1.e3, 2.e8, 1.e8, 1.e8, 1.e8};
 
   // Particle size cutoff should be a non-negative integer, unlike the other parameters.
   unsigned int lower_bound_cutoff = 10;
@@ -103,6 +102,7 @@ public:
 
   // Hold the initial condition for the ODEs, i.e. the starting concentration of each species
   StateVector initial_condition;
+
 };
 
 
@@ -110,16 +110,9 @@ public:
 // and convert diameter measurements to particle size measurements.
 ConstantData::ConstantData()
 {
-  data_size = {data_diameter.tem_diam_time1,
-               data_diameter.tem_diam_time2,
-               data_diameter.tem_diam_time3,
-               data_diameter.tem_diam_time4};
+  data_size = {data_diameter.tem_diam_time1};
 
-  times = {0.,
-           data_diameter.tem_time1,
-           data_diameter.tem_time2,
-           data_diameter.tem_time3,
-           data_diameter.tem_time4};
+  times = {0., data_diameter.tem_time1};
 
   initial_condition = StateVector::Zero(max_size + 1);
   initial_condition(0) = 0.0012;
@@ -271,7 +264,7 @@ StateVector Sample::return_initial_condition() const
 Histograms::Parameters<Real> Sample::return_histogram_parameters() const
 {
   Histograms::Parameters<Real> hist_parameters(const_parameters.hist_bins, const_parameters.min_bin_size,
-                                               const_parameters.max_bin_size);
+                                         const_parameters.max_bin_size);
   return hist_parameters;
 }
 
@@ -281,11 +274,11 @@ Histograms::Parameters<Real> Sample::return_histogram_parameters() const
 bool Sample::within_bounds() const
 {
   if (   kf < const_parameters.lower_bounds[0] || kf > const_parameters.upper_bounds[0]
-      || kb < const_parameters.lower_bounds[1] || kb > const_parameters.upper_bounds[1]
-      || k1 < const_parameters.lower_bounds[2] || k1 > const_parameters.upper_bounds[2]
-      || k2 < const_parameters.lower_bounds[3] || k2 > const_parameters.upper_bounds[3]
-      || k3 < const_parameters.lower_bounds[4] || k3 > const_parameters.upper_bounds[4]
-      || cutoff < const_parameters.lower_bound_cutoff || cutoff > const_parameters.upper_bound_cutoff)
+         || kb < const_parameters.lower_bounds[1] || kb > const_parameters.upper_bounds[1]
+         || k1 < const_parameters.lower_bounds[2] || k1 > const_parameters.upper_bounds[2]
+         || k2 < const_parameters.lower_bounds[3] || k2 > const_parameters.upper_bounds[3]
+         || k3 < const_parameters.lower_bounds[4] || k3 > const_parameters.upper_bounds[4]
+         || cutoff < const_parameters.lower_bound_cutoff || cutoff > const_parameters.upper_bound_cutoff)
     return false;
   else
     return true;
@@ -318,6 +311,32 @@ std::pair<Sample,Real> perturb(const Sample &sample,
                     new_prm(4), static_cast<unsigned int>(new_prm(5)));
 
   //std::cout << "New sample: " << new_sample << "\n";
+  return {new_sample, 1.};
+}
+
+
+
+std::pair<Sample,Real> perturb_unif(const Sample &sample,
+                                    std::mt19937 &rng)
+{
+  Eigen::Matrix<Real, Eigen::Dynamic, 1> random_vector(sample.dim);
+  for (unsigned int i=0; i < random_vector.size(); ++i)
+    {
+      random_vector(i) = std::uniform_real_distribution<Real>(-1,1)(rng);
+    }
+  Eigen::Matrix<Real, Eigen::Dynamic,1> bounds(sample.dim);
+  Eigen::Matrix<Real, Eigen::Dynamic,1> new_prm(sample.dim);
+  bounds << 0.0025, 7.5e2, 1.e4, 1.e4, 7.5e2, 10;
+  Eigen::Matrix<Real, Eigen::Dynamic, 1> old_prm(sample.dim);
+  old_prm << sample.kf, sample.kb, sample.k1, sample.k2, sample.k3, sample.cutoff;
+  for (unsigned int i=1; i < random_vector.size(); ++i)
+    {
+      new_prm(i) = random_vector(i)*bounds(i) + old_prm(i);
+    }
+
+  Sample new_sample(new_prm(1)*5.e-7, new_prm(1), new_prm(2), new_prm(3),
+                    new_prm(4), static_cast<unsigned int>(new_prm(5)));
+
   return {new_sample, 1.};
 }
 
@@ -383,14 +402,14 @@ int main(int argc, char **argv)
     Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> initial_covariance(6, 6);
     initial_covariance <<
                        1.5e-4, 0, 0, 0, 0, 0,
-        0, 1.3e8, 9.0e7, -8.1e6, -8.8e5, 1.2e3,
-        0, 9.0e7, 7.3e7, -5.3e6, -1.3e5, 1.3e4,
-        0, -8.1e6, -5.3e6, 1.1e6, 5.1e4, -4.7e3,
-        0, -8.8e5, -1.3e5, 5.1e4, 7.0e4, -1.8e1,
-        0, 1.2e3, 1.3e4, -4.7e3, -1.8e1, 4.7e2;
+        0, 1.7e8, 7.1e8, -1.9e8, 5.8e6, -6.6e4,
+        0, 7.1e8, 6.3e9, 6.8e8, 3.1e8, -2.1e5,
+        0, -1.9e8, 6.8e8, 1.7e9, 1.4e8, -4.3e5,
+        0, 5.8e6, 3.1e8, 1.4e8, 3.2e7, 1.1e4,
+        0, -6.6e4, -2.1e5, -4.3e5, 1.1e4, 2.0e3;
 
-    // Create the initial sample equal to the mean value from the previous set of samples
-    Sample starting_guess(3.6e-2, 7.3e4, 6.3e4, 1.4e4, 8.1e3, 103);
+    // Create sample with initial values for parameters
+    Sample starting_guess(8.6e3*5e-7, 8.6e3, 2.7e5, 3.0e5, 1.8e4, 97);
 
     // Create an output file to store the accepted samples
     std::ofstream samples("samples"
@@ -454,15 +473,15 @@ int main(int argc, char **argv)
         = (argc > 1 ?
            std::hash<std::string>()(std::to_string(atoi(argv[1]) + i)) :
            std::hash<std::string>()(std::to_string(i)));
-    const unsigned int n_samples = 5;
+    const unsigned int n_samples = 20000;
 
     std::mt19937 rng;
     rng.seed(random_seed);
     mh_sampler.sample(starting_guess,
                       &Statistics::log_probability<Sample, 4, Real>,
                       [&](const Sample &s) {
-                        if (counter.get() < 1000)
-                          return perturb(s, initial_covariance, rng);
+                        if (counter.get() < 50000)
+                          return perturb_unif(s, rng);
                         else
                           return perturb(s, covariance_matrix.get(), rng);
                       },

@@ -2,9 +2,9 @@
 #pragma ide diagnostic ignored "openmp-use-default-none"
 /*
  * Program to compute the posterior distribution
- * -- 4-step mechanism
+ * -- 3-step mechanism
  * -- Ir-POM chemical system
- * -- Using data from times 0.918, 1.170, 2.336, 4.838
+ * -- Using data from time 2.336
  */
 
 #include <iostream>
@@ -29,10 +29,12 @@
 #include <sampleflow/consumers/covariance_matrix.h>
 #include <sampleflow/consumers/count_samples.h>
 
+#include <omp.h>
 
 
-// Set precision
-using Real = double;
+// Set the precision of the calculations
+using Real = float;
+
 
 
 // A data type we will use to convert samples to whenever we want to
@@ -44,7 +46,7 @@ using VectorType = std::valarray<Real>;
 // A data type describing the linear algebra object vector that is used
 // in the ODE solver.
 using StateVector = Eigen::Matrix<Real, Eigen::Dynamic, 1>;
-using Matrix = Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>;
+using Matrix = Eigen::SparseMatrix<Real, Eigen::RowMajor>;
 
 
 
@@ -90,9 +92,9 @@ public:
   std::vector< std::vector<Real> > data_size;
   std::vector<Real> times;
 
-  // { kb, k1, k2, k3, k4 }
-  std::vector<Real> lower_bounds = { 0., 1000., 4800., 10., 10., 0.};
-  std::vector<Real> upper_bounds = { 1.e3, 2.e8, 8.e7, 8.5e5, 2.5e5, 2.5e5};
+  // { kb, k1, k2, k3 }
+  std::vector<Real> lower_bounds = { 0., 1000., 4800., 10., 10.};
+  std::vector<Real> upper_bounds = { 1.e3, 2.e8, 1.e8, 1.e8, 1.e8};
 
   // Particle size cutoff should be a non-negative integer, unlike the other parameters.
   unsigned int lower_bound_cutoff = 10;
@@ -100,6 +102,7 @@ public:
 
   // Hold the initial condition for the ODEs, i.e. the starting concentration of each species
   StateVector initial_condition;
+
 };
 
 
@@ -107,16 +110,9 @@ public:
 // and convert diameter measurements to particle size measurements.
 ConstantData::ConstantData()
 {
-  data_size = {data_diameter.tem_diam_time1,
-               data_diameter.tem_diam_time2,
-               data_diameter.tem_diam_time3,
-               data_diameter.tem_diam_time4};
+  data_size = {data_diameter.tem_diam_time3};
 
-  times = {0.,
-           data_diameter.tem_time1,
-           data_diameter.tem_time2,
-           data_diameter.tem_time3,
-           data_diameter.tem_time4};
+  times = {0., data_diameter.tem_time3};
 
   initial_condition = StateVector::Zero(max_size + 1);
   initial_condition(0) = 0.0012;
@@ -161,13 +157,13 @@ ConstantData::ConstantData()
 class Sample
 {
 public:
-  Real kf, kb, k1, k2, k3, k4;
+  Real kf, kb, k1, k2, k3;
   unsigned int cutoff;
-  const unsigned int dim = 7;
+  const unsigned int dim = 6;
 
   // Constructors
   Sample();
-  Sample(Real kf, Real kb, Real k1, Real k2, Real k3, Real k4, unsigned int cutoff);
+  Sample(Real kf, Real kb, Real k1, Real k2, Real k3, unsigned int cutoff);
 
   // Functions that interface with the statistical calculations
   std::vector< std::vector<Real> > return_data() const;
@@ -193,8 +189,8 @@ private:
 
 
 // Constructor defines what the unknown parameters are in the model for a given Sample.
-Sample::Sample(Real kf, Real kb, Real k1, Real k2, Real k3, Real k4, unsigned int cutoff)
-    : kf(kf), kb(kb), k1(k1), k2(k2), k3(k3), k4(k4), cutoff(cutoff)
+Sample::Sample(Real kf, Real kb, Real k1, Real k2, Real k3, unsigned int cutoff)
+    : kf(kf), kb(kb), k1(k1), k2(k2), k3(k3), cutoff(cutoff)
 {}
 
 
@@ -203,7 +199,6 @@ Sample::Sample(Real kf, Real kb, Real k1, Real k2, Real k3, Real k4, unsigned in
 // to a Sample or otherwise the program won't run.
 Sample::Sample()
     : Sample(std::numeric_limits<Real>::signaling_NaN(),
-             std::numeric_limits<Real>::signaling_NaN(),
              std::numeric_limits<Real>::signaling_NaN(),
              std::numeric_limits<Real>::signaling_NaN(),
              std::numeric_limits<Real>::signaling_NaN(),
@@ -229,7 +224,7 @@ std::vector<Real> Sample::return_times() const
 
 
 
-// Forms the model representing the mechanism being used, in this case a 4-step mechanism
+// Forms the model representing the mechanism being used, in this case a 3-step mechanism
 Model::Model<Real, Matrix> Sample::return_model() const
 {
   std::shared_ptr<Model::RightHandSideContribution<Real, Matrix>> nucleation =
@@ -247,17 +242,10 @@ Model::Model<Real, Matrix> Sample::return_model() const
                                       const_parameters.max_size, const_parameters.ligand_index,
                                       const_parameters.conserved_size, k3);
 
-  std::shared_ptr<Model::RightHandSideContribution<Real, Matrix>> agglomeration =
-      std::make_shared<Model::Agglomeration<Real, Matrix>>(const_parameters.min_size, cutoff,
-                                             const_parameters.min_size, cutoff,
-                                             const_parameters.max_size, const_parameters.conserved_size,
-                                             k4);
-
   Model::Model<Real, Matrix> model(const_parameters.min_size, const_parameters.max_size);
   model.add_rhs_contribution(nucleation);
   model.add_rhs_contribution(small_growth);
   model.add_rhs_contribution(large_growth);
-  model.add_rhs_contribution(agglomeration);
 
   return model;
 }
@@ -290,7 +278,6 @@ bool Sample::within_bounds() const
          || k1 < const_parameters.lower_bounds[2] || k1 > const_parameters.upper_bounds[2]
          || k2 < const_parameters.lower_bounds[3] || k2 > const_parameters.upper_bounds[3]
          || k3 < const_parameters.lower_bounds[4] || k3 > const_parameters.upper_bounds[4]
-         || k4 < const_parameters.lower_bounds[5] || k4 > const_parameters.upper_bounds[5]
          || cutoff < const_parameters.lower_bound_cutoff || cutoff > const_parameters.upper_bound_cutoff)
     return false;
   else
@@ -317,13 +304,39 @@ std::pair<Sample,Real> perturb(const Sample &sample,
   // where LL^T = covariance matrix
   const Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> L = C.llt().matrixL();
   Eigen::Matrix<Real, Eigen::Dynamic, 1> old_prm(sample.dim);
-  old_prm << sample.kf, sample.kb, sample.k1, sample.k2, sample.k3, sample.k4, sample.cutoff;
+  old_prm << sample.kf, sample.kb, sample.k1, sample.k2, sample.k3, sample.cutoff;
   const auto new_prm = 2.4/std::sqrt(1.*sample.dim) * L * random_vector + old_prm;
 
   Sample new_sample(new_prm(0), new_prm(1), new_prm(2), new_prm(3),
-                    new_prm(4), new_prm(5), static_cast<unsigned int>(new_prm(6)));
+                    new_prm(4), static_cast<unsigned int>(new_prm(5)));
 
-  std::cout << "New sample: " << new_sample << "\n";
+  //std::cout << "New sample: " << new_sample << "\n";
+  return {new_sample, 1.};
+}
+
+
+
+std::pair<Sample,Real> perturb_unif(const Sample &sample,
+                                    std::mt19937 &rng)
+{
+  Eigen::Matrix<Real, Eigen::Dynamic, 1> random_vector(sample.dim);
+  for (unsigned int i=0; i < random_vector.size(); ++i)
+    {
+      random_vector(i) = std::uniform_real_distribution<Real>(-1,1)(rng);
+    }
+  Eigen::Matrix<Real, Eigen::Dynamic,1> bounds(sample.dim);
+  Eigen::Matrix<Real, Eigen::Dynamic,1> new_prm(sample.dim);
+  bounds << 0.0025, 5.0e2, 5.0e3, 5.0e3, 3.0e3, 10;
+  Eigen::Matrix<Real, Eigen::Dynamic, 1> old_prm(sample.dim);
+  old_prm << sample.kf, sample.kb, sample.k1, sample.k2, sample.k3, sample.cutoff;
+  for (unsigned int i=1; i < random_vector.size(); ++i)
+    {
+      new_prm(i) = random_vector(i)*bounds(i) + old_prm(i);
+    }
+
+  Sample new_sample(new_prm(1)*5.e-7, new_prm(1), new_prm(2), new_prm(3),
+                    new_prm(4), static_cast<unsigned int>(new_prm(5)));
+
   return {new_sample, 1.};
 }
 
@@ -337,7 +350,6 @@ Sample& Sample::operator=(const Sample &sample)
   k1 = sample.k1;
   k2 = sample.k2;
   k3 = sample.k3;
-  k4 = sample.k4;
   cutoff = sample.cutoff;
 
   return *this;
@@ -348,7 +360,7 @@ Sample& Sample::operator=(const Sample &sample)
 // When arithmetic is required, we can use a valarray containing the parameters.
 Sample::operator std::valarray<Real>() const
 {
-  return { kf, kb, k1, k2, k3, k4, static_cast<Real>(cutoff)};
+  return { kf, kb, k1, k2, k3, static_cast<Real>(cutoff)};
 }
 
 
@@ -362,7 +374,6 @@ std::ostream &operator<<(std::ostream &out, const Sample &sample)
       << sample.k1 << ", "
       << sample.k2 << ", "
       << sample.k3 << ", "
-      << sample.k4 << ", "
       << sample.cutoff ;
   return out;
 }
@@ -388,25 +399,23 @@ int main(int argc, char **argv)
      *
      * The values are simply hardcoded for convenience.
      */
-    Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> initial_covariance(7, 7);
+    Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> initial_covariance(6, 6);
     initial_covariance <<
-                       1.5e-4, 0, 0, 0, 0, 0, 0,
-        0, 2.3e9, 1.8e9, -6.4e7, -2.8e7, 3.3e5, -6.7e4,
-        0, 1.8e9, 1.6e9, -4.6e7, -1.4e7, 2.2e5, 2.5e5,
-        0, -6.4e7, -4.6e7, 4.7e6, 2.5e6, -1.4e4, -6.9e3,
-        0, -2.8e7, -1.4e7, 2.5e6, 2.1e6, -2.0e4, 2.1e4,
-        0, 3.3e5, 2.2e5, -1.4e4, -2.0e4, 3.0e3, -1.8e3,
-        0, -6.7e4, 2.5e5, -6.9e3, 2.1e4, -1.8e3, 3.0e3;
+                       1.5e-4, 0, 0, 0, 0, 0,
+        0, 1.7e8, 7.1e8, -1.9e8, 5.8e6, -6.6e4,
+        0, 7.1e8, 6.3e9, 6.8e8, 3.1e8, -2.1e5,
+        0, -1.9e8, 6.8e8, 1.7e9, 1.4e8, -4.3e5,
+        0, 5.8e6, 3.1e8, 1.4e8, 3.2e7, 1.1e4,
+        0, -6.6e4, -2.1e5, -4.3e5, 1.1e4, 2.0e3;
 
-
-    // Create the initial sample equal to the mean value from the previous set of samples
-    Sample starting_guess(3.6e-2, 1.3e5, 1.3e5, 1.0e4, 7.4e3, 118, 246);
+    // Create sample with initial values for parameters
+    Sample starting_guess(0.0127, 2.5e4, 2.6e5, 3.0e5, 3.6e4, 117);
 
     // Create an output file to store the accepted samples
     std::ofstream samples("samples"
                           +
                           (argc > 1 ?
-                           std::string(".") + std::to_string( atoi(argv[1]) + i ) :
+                           std::string(".") + std::to_string(atoi(argv[1]) + i) :
                            std::string(".") + std::to_string(i))
                           +
                           ".txt");
@@ -462,17 +471,17 @@ int main(int argc, char **argv)
     // seed for the sampler.
     const std::uint_fast32_t random_seed
         = (argc > 1 ?
-           std::hash<std::string>()(std::to_string( atoi(argv[1]) + i )) :
-           std::hash<std::string>()( std::to_string(i) ) );
-    const unsigned int n_samples = 5;
+           std::hash<std::string>()(std::to_string(atoi(argv[1]) + i)) :
+           std::hash<std::string>()(std::to_string(i)));
+    const unsigned int n_samples = 20000;
 
     std::mt19937 rng;
     rng.seed(random_seed);
     mh_sampler.sample(starting_guess,
                       &Statistics::log_probability<Sample, 4, Real>,
                       [&](const Sample &s) {
-                        if (counter.get() < 1000)
-                          return perturb(s, initial_covariance, rng);
+                        if (counter.get() < 50000)
+                          return perturb_unif(s, rng);
                         else
                           return perturb(s, covariance_matrix.get(), rng);
                       },

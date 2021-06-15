@@ -1,0 +1,8 @@
+CMAKE_MINIMUM_REQUIRED (VERSION 3.1)
+
+ADD_SUBDIRECTORY(four_step_all_times)
+ADD_SUBDIRECTORY(three_step_all_times)
+ADD_SUBDIRECTORY(three_step_time1)
+ADD_SUBDIRECTORY(three_step_time2)
+ADD_SUBDIRECTORY(three_step_time3)
+ADD_SUBDIRECTORY(three_step_time4)
