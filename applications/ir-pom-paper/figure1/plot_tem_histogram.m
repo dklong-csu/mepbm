@@ -1,3 +1,5 @@
+% Reproduced and modified with permission from Derek Handwerk
+% Original can be found at: https://github.com/drhandwerk/pbm
 function f = plot_tem_histogram(histdata,diameter_range,time,font_size)
     f=figure;
     color_code = '#0072BD';
