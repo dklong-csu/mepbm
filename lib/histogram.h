@@ -11,6 +11,10 @@ namespace Histograms
   // This class describes the parameters for a histogram
   // A histogram needs to know the number of bins it has,
   // the smallest x-value, and the largest x-value.
+  ///
+  /// A class that holds the hyperparameters which describe a histogram, namely the number of bins,
+  /// the left endpoint of the histogram domain, and the right endpoint of the histogram domain.
+  ///
   template<typename Real>
   class Parameters
   {
@@ -18,25 +22,26 @@ namespace Histograms
     unsigned int n_bins;
     Real x_start, x_end;
 
-    // constructor -- require all parameters specified when creating this object.
+    /// constructor
     Parameters(const unsigned int n_bins_value,
       const Real x_start_value,
       const Real x_end_value);
   };
 
 
-
-  //This class describes a histogram.
-  // A histogram requires specification of the minimum/maximum x-value and the number of bins.
-  // From these parameters, the points that define the boundaries of each bin are defined as interval_pts.
-  // For example, interval_pts = { 0, 1, 2} corresponds to bin 0: x in [0,1); bin 1: x in [1,2); and bin 2: x in [2,3].
-  // Currently, interval_pts is created based off uniform spacing.
-  // A histogram also needs to keep track of how many items are in each bin.
-  // This is accomplished through the variable count.
-  // For example, count[i] indicates the number of items in the ith bin, i.e. x in [interval_pts[i], interval_pts[i+1]) (starting from bin 0).
-  // The subroutine "AddToBins" adds the ability to add data to the histogram. The user provides two vectors corresponding to an x-value
-  // and the corresponding amount of "stuff" (given as the y-value) that x-value has. The subroutine uses the x-value to decide which bin of the histogram
-  // the data belongs to and adds the y-value to the appropriate entry of counts.
+  ///
+  /// This class describes a histogram.
+  /// A histogram requires specification of the minimum/maximum x-value and the number of bins.
+  /// From these parameters, the points that define the boundaries of each bin are defined as interval_pts.
+  /// For example, interval_pts = { 0, 1, 2} corresponds to bin 0: x in [0,1); bin 1: x in [1,2); and bin 2: x in [2,3].
+  /// interval_pts is created based off uniform spacing.
+  /// A histogram also needs to keep track of how many items are in each bin.
+  /// This is accomplished through the variable count.
+  /// For example, count[i] indicates the number of items in the ith bin, i.e. x in [interval_pts[i], interval_pts[i+1]) (starting from bin 0).
+  /// The function "AddToBins" adds the ability to add data to the histogram. The user provides two vectors corresponding to an x-value
+  /// and the corresponding amount of "stuff" (given as the y-value) that x-value has. The subroutine uses the x-value to decide which bin of the histogram
+  /// the data belongs to and adds the y-value to the appropriate entry of counts.
+  ///
   template<typename Real>
   class Histogram
   {
@@ -45,23 +50,25 @@ namespace Histograms
     unsigned int num_bins;
     std::vector<Real> interval_pts, count;
 
-    // constructor -- require parameters be passed in upon creation of this object.
+    /// constructor
     Histogram(const Histograms::Parameters<Real>& parameters);
 
-
+    /// Adds data to the histogram
     void AddToBins(const std::vector<Real>& y,
              const std::vector<Real>& x);
 
 
   private:
+    /// Function that performs the bisection method in order to determine which bin data should be added to
     unsigned int bisection_method(Real x);
   };
 
 
-
-  // This function creates a histogram.
-  // Given the x-values (labels) and y-values (counts) of the user's data, along with the appropriate parameters,
-  // this function creates a histogram object and adds the data to populate the bins.
+  ///
+  /// This function creates a histogram.
+  /// Given the x-values (labels) and y-values (counts) of the user's data, along with the appropriate parameters,
+  /// this function creates a histogram object and adds the data to populate the bins.
+  ///
   template<typename Real>
   Histogram<Real> create_histogram(const std::vector<Real>& counts,
                                    const std::vector<Real>& labels,
@@ -73,7 +80,6 @@ namespace Histograms
    * Definitions
    *===================================================================================*/
 
-  // constructor -- require all parameters specified when creating this object.
   template<typename Real>
   Parameters<Real>::Parameters(const unsigned int n_bins_value,
                                const Real x_start_value,
@@ -86,7 +92,6 @@ namespace Histograms
 
 
 
-// constructor -- require parameters be passed in upon creation of this object.
   template<typename Real>
   Histogram<Real>::Histogram(const Histograms::Parameters<Real>& parameters)
   {
@@ -185,9 +190,6 @@ namespace Histograms
 
 
 
-// This function creates a histogram.
-// Given the x-values (labels) and y-values (counts) of the user's data, along with the appropriate parameters,
-// this function creates a histogram object and adds the data to populate the bins.
   template<typename Real>
   Histograms::Histogram<Real> create_histogram(const std::vector<Real>& counts,
                                                const std::vector<Real>& labels,

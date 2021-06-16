@@ -13,9 +13,7 @@
 
 namespace ODE
 {
-  /*
-   * Base class for ODE time stepper
-   */
+  /// Base class for describing how an ODE solver should step forward in time
   template<typename Real>
   class StepperBase
   {
@@ -25,12 +23,7 @@ namespace ODE
 
 
 
-  /*
-   * A function which solves an ODE. This is intended to just lay out the basic framework for an ODE solve.
-   * The stepper -- some derived class of StepperBase -- is intended to do most of the work of the ODE solve
-   * within its `step_forward` method. This function simply facilitates repeatedly using `step_forward` to
-   * go from the initial time to the final time.
-   */
+  /// A function that solves an ODE based on the time stepping rules provided
   template<typename Real>
   Eigen::Matrix<Real, Eigen::Dynamic, 1>
   solve_ode(StepperBase<Real> &stepper,
@@ -93,14 +86,8 @@ namespace ODE
 
 
 
-  /*
-   * A function which performs Newton's method to find the root of a nonlinear equation.
-   * Technically, this is a modification where the Jacobian is taken as a constant for the
-   * entire process. This is to save time as computing a decomposition of a Jacobian is more
-   * expensive than solving with a precomputed decomposition (e.g. LU decomposition).
-   *
-   * This is a modified Newton's method where the Jacobian is held constant for the nonlinear solve.
-  */
+  /// A function that performs a modified Newton's method to find the zero of a function.
+  /// The Newton's method is modified by infrequently calculating the Jacobian to save on computational expense.
   template<typename Real, typename Solver>
   std::pair<Eigen::Matrix<Real, Eigen::Dynamic, 1>, unsigned int>
   newton_method(const FunctionBase<Real> &fcn,
@@ -164,52 +151,7 @@ namespace ODE
 
 
 
-  /*
-   * ===============================================================================================================
-   * Base classes for SDIRK solvers and BDF solvers
-   * ===============================================================================================================
-   */
-
-  /*
-   * Singly diagonally implicit Runge-Kutta -- or SDIRK -- methods are methods designed to be used
-   * with a modified Newton's method that uses the same Jacobian multiple times before updating it.
-   * Consider a Runge-Kutta method's Butcher tableau and write the coefficients as a matrix.
-   * In this matrix, anything on the upper triangular (including diagonal) part means the method is
-   * implicit. "Diagonally" in SDIRK means the diagonal is non-zero but everything else in the upper
-   * triangle is zero. "Singly" in SDIRK means all of the diagonal coefficients are the same. Each row
-   * of this matrix corresponds to one nonlinear solve. Using the modified Newton's method, SDIRK methods
-   * have the advantage of having the same Jacobian matrix for each of these nonlinear solves.
-   *
-   * This is easiest to see with an example:
-   * Consider this second order SDIRK method
-   *    1/4 | 1/4   0
-   *    3/4 | 1/2   1/4
-   *    ------------------
-   *        | 1/2   1/2
-   *
-   * This can be solved by translating the Butcher tableau to
-   *    k1 = f(t + h*1/4, x0 +h*1/4*k1)
-   *    k2 = f(t + h*3/4, x0 + h*1/2*k1 + h*1/4*k2)
-   *    x1 = x0 + h*1/2*k1 + h*1/2*k2
-   * where f(...) represents the right-hand side of the ODE.
-   *
-   * Solving for k1 using the Newton method means
-   *    J_F^{(n)}*(k1^{(n+1)} - k1^{(n)}) = -F^{(n)}
-   * where the function F is defined
-   *    F^{(n)} = k1^{(n)} - f(t + h*1/4, x0 +h*1/4*k1^{(n)})
-   * and the chain rule means the Jacobian of F with respect to k1, J_F, is
-   *    J_F^{(n)} = I - h*1/4*J_f(t + h*1/4, x0 +h*1/4*k1^{(n)})
-   * where J_f is the Jacobian of the right-hand side of the ODE.
-   * The advantage of SDIRK is that when solving for k2 we have
-   *    J_F^{(n)} = I - h*1/4*J_f(t + h*3/4, x0 + h*1/2*k1 + h*1/4*k2).
-   *
-   * Computing a representation of J_F^-1 is the computationally expensive part of this process. Thus instead
-   * of using Newton's method and having to compute the Jacobian many times, a modified Newton's method can be
-   * used such that the Jacobian is computed infrequently. In this case, J_f remains constant for k1 and k2 within
-   * a single time step and for every future time step -- and therefore J_F is constant because of the SDIRK restriction
-   * that the diagonal coefficients are equal -- until some criteria for updating J_f is met.
-   */
-
+  /// Base class for singly diagonally implicit Runge-Kutta (SDIRK) time steppers
   template<int order, typename Real, typename Matrix>
   class StepperSDIRK : public StepperBase<Real>
   {
@@ -227,17 +169,7 @@ namespace ODE
 
 
 
-  /*
-   * Backward differentiation formula (BDF) methods are implicit linear multistep methods which use solutions from
-   * previous time points to approximate the next time point and use the current time point for the derivative. The
-   * first order BDF method needs one previous time step to calculate future time steps. The initial condition satisfies
-   * this, so it can be used for the entire problem. The second order BDF requires two previous times, but at the start
-   * of the problem only the initial condition is known. In order to preserve second order convergence, the first time
-   * step must be done with a second order method which does not need previous time step -- e.g. 2nd order SDIRK -- and
-   * then the remaining steps can then use the BDF method. For an n-th order BDF method, the first n-1 steps must be
-   * done with an alternative method, and the BDF method can be used afterwards.
-   */
-
+  /// Base class for backward differentiation formula (BDF) time steppers
   template<int order, typename Real, typename Matrix>
   class StepperBDF : public StepperBase<Real>
   {
@@ -270,21 +202,7 @@ namespace ODE
    * =============================================================================================================
    */
 
-  /********************************** SDIRK **********************************/
-
-  /*
-   * The first order SDIRK method used is Implicit Euler. This has Butcher tableau
-   *    1 | 1
-   *    -------
-   *      | 1
-   * which translates to
-   *    k = f(t + h, x0 + h*k)
-   *    x1 = x0 + h*k
-   * To solve for x1 all that really needs to be done is
-   *    k - f(t + h, x0 + h*k) = 0 --> solve for k using newton's method
-   *    FIXME: add more details
-   */
-
+  /// First order SDIRK time stepper, also known as Implicit Euler
   template<typename Real>
   class StepperSDIRK<1, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> : public StepperBase<Real>
   {
@@ -383,14 +301,7 @@ namespace ODE
 
 
 
-  /*********************************** BDF ***********************************/
-
-  /*
-   * The first order BDF is Implicit Euler, just like the first order SDIRK method. Since
-   * SDIRK is already implemented, this class will just use the SDIRK class for the calculations
-   * but will have its own BDF class for compatibility.
-   */
-
+  /// First order BDF time stepper, also known as Implicit Euler
   template<typename Real>
   class StepperBDF<1, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> : public StepperBase<Real>
   {
@@ -430,22 +341,11 @@ namespace ODE
    * =============================================================================================================
    */
 
-  /********************************** SDIRK **********************************/
-
-  /*
-   * FIXME: this is not L-stable, but there is a L-stable, two-stage, 2nd order SDIRK method -- use that instead?
-   * The second order SDIRK method used has Butcher tableau
-   *    1/4 | 1/4   0
-   *    3/4 | 1/2   1/4
-   *    -----------------
-   *        | 1/2   1/2
-   * which translates to
-   *    k1 = f(t + h*1/4, x0 + h*1/4*k1)
-   *    k2 = f(t + h*3/4, x0 + h*1/2*k1 + h*1/4*k2)
-   *
-   *    FIXME: details of solution method
-   */
-
+  /// Second order SDIRK time stepper with Butcher tableau
+  /// 1/4 | 1/4   0
+  /// 3/4 | 1/2   1/4
+  /// -----------------
+  ///     | 1/2   1/2
   template<typename Real>
   class StepperSDIRK<2, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> : public StepperBase<Real>
   {
@@ -488,7 +388,6 @@ namespace ODE
   {}
 
 
-// FIXME: add comments
   template<typename Real>
   Eigen::Matrix<Real, Eigen::Dynamic, 1>
   StepperSDIRK<2, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::NewtonFunction::value(
@@ -508,7 +407,6 @@ namespace ODE
 
 
 
-// FIXME: add comments
   template<typename Real>
   Eigen::Matrix<Real, Eigen::Dynamic, 1>
   StepperSDIRK<2, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::step_forward(
@@ -550,15 +448,8 @@ namespace ODE
 
 
 
-  /*********************************** BDF ***********************************/
-
-  /*
-   * The second order BDF method is defined
-   *    y_{n+2} - 4/3 * y_{n+1} + 1/3 * y_n = 2/3 * h * f(t_{n+2}, y_{n+2})
-   * so y_{n+2} is solved for using Newton's method to find the root of
-   *    y_{n+2} - 4/3 * y_{n+1} + 1/3 * y_n - 2/3 * h * f(t_{n+2}, y_{n+2}) = 0
-   */
-
+  /// Second order BDF time stepper defined by
+  /// y_{n+2} - 4/3 * y_{n+1} + 1/3 * y_n = 2/3 * h * f(t_{n+2}, y_{n+2})
   template<typename Real>
   class StepperBDF<2, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> : public StepperBase<Real>
   {
@@ -690,16 +581,13 @@ namespace ODE
 
   /********************************** SDIRK **********************************/
 
-  /*
-   * The third order SDIRK method used has Butcher Tableau
-   *          x | x                     0                     0
-   *    (1+x)/2 | (1-x)/2               x                     0
-   *          1 | -3x^2/2 + 4x - 1/4    3x^2/2 - 5x + 5/4     x
-   *    ---------------------------------------------------------
-   *            | -3x^2/2 + 4x - 1/4    3x^2/2 - 5x + 5/4     x
-   * with x = 0.4358665215
-   */
-
+  /// Third order SDIRK time stepper with Butcher Tableau
+  ///         x | x                     0                     0
+  ///   (1+x)/2 | (1-x)/2               x                     0
+  ///         1 | -3x^2/2 + 4x - 1/4    3x^2/2 - 5x + 5/4     x
+  /// ---------------------------------------------------------
+  ///           | -3x^2/2 + 4x - 1/4    3x^2/2 - 5x + 5/4     x
+  /// with x = 0.4358665215
   template<typename Real>
   class StepperSDIRK<3, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> : public StepperBase<Real>
   {
@@ -744,7 +632,6 @@ namespace ODE
 
 
 
-// FIXME: add comments
   template<typename Real>
   Eigen::Matrix<Real, Eigen::Dynamic, 1>
   StepperSDIRK<3, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::NewtonFunction::value(
@@ -764,7 +651,6 @@ namespace ODE
 
 
 
-// FIXME: add comments
   template<typename Real>
   Eigen::Matrix<Real, Eigen::Dynamic, 1>
   StepperSDIRK<3, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::step_forward(
@@ -821,15 +707,8 @@ namespace ODE
 
 
 
-  /*********************************** BDF ***********************************/
-
-  /*
-   * The third order BDF method is defined
-   *    y_{n+3} - 18/11 * y_{n+2} + 9/11 * y_{n+1} - 2/11 * y_n = 6/11 * h * f(t_{n+3}, y_{n+3})
-   * so y_{n+3} is solved for using Newton's method to find the root of
-   *    y_{n+3} - 18/11 * y_{n+2} + 9/11 * y_{n+1} - 2/11 * y_n - 6/11 * h * f(t_{n+3}, y_{n+3}) = 0
-   */
-
+  /// Third order BDF time stepper defined as
+  /// y_{n+3} - 18/11 * y_{n+2} + 9/11 * y_{n+1} - 2/11 * y_n = 6/11 * h * f(t_{n+3}, y_{n+3})
   template<typename Real>
   class StepperBDF<3, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> : public StepperBase<Real>
   {
@@ -960,24 +839,19 @@ namespace ODE
    * =============================================================================================================
    */
 
-  /********************************** SDIRK **********************************/
-
-  /*
-   * The fourth order SDIRK method used has Butcher Tableau
-   *        x | x                 0                             0
-   *      1/2 | 1/2 - x           x                             0
-   *    1 - x | 2x                1 - 4x                        x
-   *    -----------------------------------------------------------------------------
-   *          | 1/[6*(1-2x)^2]    [3*(1-2x)^2-1]/[2*(1-2x)^2]   1/[6*(1-2x)^2]
-   * with x a solution to the cubic equation
-   *    x^3 - 3x^2/2 + x/2 - 1/24 = 0
-   * The three roots are
-   *    x1 ~= 0.128886400515720
-   *    x2 ~= 0.302534578182651
-   *    x3 ~= 1.06857902130163
-   * x3 gives the best stability properties, so that one is used.
-   */
-
+   /// The fourth order SDIRK method used has Butcher Tableau
+   ///        x | x                 0                             0
+   ///      1/2 | 1/2 - x           x                             0
+   ///    1 - x | 2x                1 - 4x                        x
+   ///    -----------------------------------------------------------------------------
+   ///          | 1/[6*(1-2x)^2]    [3*(1-2x)^2-1]/[2*(1-2x)^2]   1/[6*(1-2x)^2]
+   /// with x a solution to the cubic equation
+   ///    x^3 - 3x^2/2 + x/2 - 1/24 = 0
+   /// The three roots are
+   ///    x1 ~= 0.128886400515720
+   ///    x2 ~= 0.302534578182651
+   ///    x3 ~= 1.06857902130163
+   /// x3 gives the best stability properties, so that one is used.
   template<typename Real>
   class StepperSDIRK<4, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> : public StepperBase<Real>
   {
@@ -1021,7 +895,6 @@ namespace ODE
   {}
 
 
-// FIXME: add comments
   template<typename Real>
   Eigen::Matrix<Real, Eigen::Dynamic, 1>
   StepperSDIRK<4, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::NewtonFunction::value(
@@ -1041,7 +914,6 @@ namespace ODE
 
 
 
-// FIXME: add comments
   template<typename Real>
   Eigen::Matrix<Real, Eigen::Dynamic, 1>
   StepperSDIRK<4, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::step_forward(
@@ -1098,15 +970,10 @@ namespace ODE
     return x0 + dt * k1_weight * k1 + dt * k2_weight * k2 + dt * k3_weight * k3;
   }
 
-  /*********************************** BDF ***********************************/
 
-  /*
-   * The fourth order BDF method is defined
-   *    y_{n+4} - 48/25 * y_{n+3} + 36/25 * y_{n+2} - 16/25 * y_{n+1} + 3/25 * y_n = 12/25 * h * f(t_{n+4}, y_{n+4})
-   * so y_{n+4} is solved for using Newton's method to find the root of
-   *    y_{n+4} - 48/25 * y_{n+3} + 36/25 * y_{n+2} - 16/25 * y_{n+1} + 3/25 * y_n - 12/25 * h * f(t_{n+4}, y_{n+4}) = 0
-   */
 
+  /// The fourth order BDF method is defined
+  ///    y_{n+4} - 48/25 * y_{n+3} + 36/25 * y_{n+2} - 16/25 * y_{n+1} + 3/25 * y_n = 12/25 * h * f(t_{n+4}, y_{n+4})
   template<typename Real>
   class StepperBDF<4, Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>> : public StepperBase<Real>
   {
@@ -1248,21 +1115,8 @@ namespace ODE
    * =============================================================================================================
    */
 
-  /********************************** SDIRK **********************************/
 
-  /*
-   * The first order SDIRK method used is Implicit Euler. This has Butcher tableau
-   *    1 | 1
-   *    -------
-   *      | 1
-   * which translates to
-   *    k = f(t + h, x0 + h*k)
-   *    x1 = x0 + h*k
-   * To solve for x1 all that really needs to be done is
-   *    k - f(t + h, x0 + h*k) = 0 --> solve for k using newton's method
-   *    FIXME: add more details
-   */
-
+  /// First order SDIRK time stepper, also known as Implicit Euler
   template<typename Real>
   class StepperSDIRK<1, Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>> : public StepperBase<Real>
   {
@@ -1364,14 +1218,7 @@ namespace ODE
 
 
 
-  /*********************************** BDF ***********************************/
-
-  /*
-   * The first order BDF is Implicit Euler, just like the first order SDIRK method. Since
-   * SDIRK is already implemented, this class will just use the SDIRK class for the calculations
-   * but will have its own BDF class for compatibility.
-   */
-
+  /// First order BDF time stepper, also known as Implicit Euler
   template<typename Real>
   class StepperBDF<1, Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>> : public StepperBase<Real>
   {
@@ -1411,22 +1258,11 @@ namespace ODE
    * =============================================================================================================
    */
 
-  /********************************** SDIRK **********************************/
-
-  /*
-   * FIXME: this is not L-stable, but there is a L-stable, two-stage, 2nd order SDIRK method -- use that instead?
-   * The second order SDIRK method used has Butcher tableau
-   *    1/4 | 1/4   0
-   *    3/4 | 1/2   1/4
-   *    -----------------
-   *        | 1/2   1/2
-   * which translates to
-   *    k1 = f(t + h*1/4, x0 + h*1/4*k1)
-   *    k2 = f(t + h*3/4, x0 + h*1/2*k1 + h*1/4*k2)
-   *
-   *    FIXME: details of solution method
-   */
-
+  /// Second order SDIRK time stepper with Butcher tableau
+  /// 1/4 | 1/4   0
+  /// 3/4 | 1/2   1/4
+  /// -----------------
+  ///     | 1/2   1/2
   template<typename Real>
   class StepperSDIRK<2, Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>> : public StepperBase<Real>
   {
@@ -1470,7 +1306,6 @@ namespace ODE
   {}
 
 
-// FIXME: add comments
   template<typename Real>
   Eigen::Matrix<Real, Eigen::Dynamic, 1>
   StepperSDIRK<2, Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::NewtonFunction::value(
@@ -1490,7 +1325,6 @@ namespace ODE
 
 
 
-// FIXME: add comments
   template<typename Real>
   Eigen::Matrix<Real, Eigen::Dynamic, 1>
   StepperSDIRK<2, Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::step_forward(
@@ -1534,15 +1368,8 @@ namespace ODE
 
 
 
-  /*********************************** BDF ***********************************/
-
-  /*
-   * The second order BDF method is defined
-   *    y_{n+2} - 4/3 * y_{n+1} + 1/3 * y_n = 2/3 * h * f(t_{n+2}, y_{n+2})
-   * so y_{n+2} is solved for using Newton's method to find the root of
-   *    y_{n+2} - 4/3 * y_{n+1} + 1/3 * y_n - 2/3 * h * f(t_{n+2}, y_{n+2}) = 0
-   */
-
+  /// Second order BDF time stepper defined by
+  /// y_{n+2} - 4/3 * y_{n+1} + 1/3 * y_n = 2/3 * h * f(t_{n+2}, y_{n+2})
   template<typename Real>
   class StepperBDF<2, Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>> : public StepperBase<Real>
   {
@@ -1676,18 +1503,13 @@ namespace ODE
    * =============================================================================================================
    */
 
-  /********************************** SDIRK **********************************/
-
-  /*
-   * The third order SDIRK method used has Butcher Tableau
-   *          x | x                     0                     0
-   *    (1+x)/2 | (1-x)/2               x                     0
-   *          1 | -3x^2/2 + 4x - 1/4    3x^2/2 - 5x + 5/4     x
-   *    ---------------------------------------------------------
-   *            | -3x^2/2 + 4x - 1/4    3x^2/2 - 5x + 5/4     x
-   * with x = 0.4358665215
-   */
-
+  /// Third order SDIRK time stepper with Butcher Tableau
+  ///         x | x                     0                     0
+  ///   (1+x)/2 | (1-x)/2               x                     0
+  ///         1 | -3x^2/2 + 4x - 1/4    3x^2/2 - 5x + 5/4     x
+  /// ---------------------------------------------------------
+  ///           | -3x^2/2 + 4x - 1/4    3x^2/2 - 5x + 5/4     x
+  /// with x = 0.4358665215
   template<typename Real>
   class StepperSDIRK<3, Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>> : public StepperBase<Real>
   {
@@ -1733,7 +1555,6 @@ namespace ODE
 
 
 
-// FIXME: add comments
   template<typename Real>
   Eigen::Matrix<Real, Eigen::Dynamic, 1>
   StepperSDIRK<3, Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::NewtonFunction::value(
@@ -1753,7 +1574,6 @@ namespace ODE
 
 
 
-// FIXME: add comments
   template<typename Real>
   Eigen::Matrix<Real, Eigen::Dynamic, 1>
   StepperSDIRK<3, Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::step_forward(
@@ -1813,15 +1633,8 @@ namespace ODE
 
 
 
-  /*********************************** BDF ***********************************/
-
-  /*
-   * The third order BDF method is defined
-   *    y_{n+3} - 18/11 * y_{n+2} + 9/11 * y_{n+1} - 2/11 * y_n = 6/11 * h * f(t_{n+3}, y_{n+3})
-   * so y_{n+3} is solved for using Newton's method to find the root of
-   *    y_{n+3} - 18/11 * y_{n+2} + 9/11 * y_{n+1} - 2/11 * y_n - 6/11 * h * f(t_{n+3}, y_{n+3}) = 0
-   */
-
+  /// Third order BDF time stepper defined as
+  /// y_{n+3} - 18/11 * y_{n+2} + 9/11 * y_{n+1} - 2/11 * y_n = 6/11 * h * f(t_{n+3}, y_{n+3})
   template<typename Real>
   class StepperBDF<3, Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>> : public StepperBase<Real>
   {
@@ -1956,24 +1769,19 @@ namespace ODE
    * =============================================================================================================
    */
 
-  /********************************** SDIRK **********************************/
-
-  /*
-   * The fourth order SDIRK method used has Butcher Tableau
-   *        x | x                 0                             0
-   *      1/2 | 1/2 - x           x                             0
-   *    1 - x | 2x                1 - 4x                        x
-   *    -----------------------------------------------------------------------------
-   *          | 1/[6*(1-2x)^2]    [3*(1-2x)^2-1]/[2*(1-2x)^2]   1/[6*(1-2x)^2]
-   * with x a solution to the cubic equation
-   *    x^3 - 3x^2/2 + x/2 - 1/24 = 0
-   * The three roots are
-   *    x1 ~= 0.128886400515720
-   *    x2 ~= 0.302534578182651
-   *    x3 ~= 1.06857902130163
-   * x3 gives the best stability properties, so that one is used.
-   */
-
+  /// The fourth order SDIRK method used has Butcher Tableau
+  ///        x | x                 0                             0
+  ///      1/2 | 1/2 - x           x                             0
+  ///    1 - x | 2x                1 - 4x                        x
+  ///    -----------------------------------------------------------------------------
+  ///          | 1/[6*(1-2x)^2]    [3*(1-2x)^2-1]/[2*(1-2x)^2]   1/[6*(1-2x)^2]
+  /// with x a solution to the cubic equation
+  ///    x^3 - 3x^2/2 + x/2 - 1/24 = 0
+  /// The three roots are
+  ///    x1 ~= 0.128886400515720
+  ///    x2 ~= 0.302534578182651
+  ///    x3 ~= 1.06857902130163
+  /// x3 gives the best stability properties, so that one is used.
   template<typename Real>
   class StepperSDIRK<4, Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>> : public StepperBase<Real>
   {
@@ -2018,7 +1826,7 @@ namespace ODE
   {}
 
 
-// FIXME: add comments
+
   template<typename Real>
   Eigen::Matrix<Real, Eigen::Dynamic, 1>
   StepperSDIRK<4, Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::NewtonFunction::value(
@@ -2038,7 +1846,7 @@ namespace ODE
 
 
 
-// FIXME: add comments
+
   template<typename Real>
   Eigen::Matrix<Real, Eigen::Dynamic, 1>
   StepperSDIRK<4, Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::step_forward(
@@ -2097,15 +1905,10 @@ namespace ODE
     return x0 + dt * k1_weight * k1 + dt * k2_weight * k2 + dt * k3_weight * k3;
   }
 
-  /*********************************** BDF ***********************************/
 
-  /*
-   * The fourth order BDF method is defined
-   *    y_{n+4} - 48/25 * y_{n+3} + 36/25 * y_{n+2} - 16/25 * y_{n+1} + 3/25 * y_n = 12/25 * h * f(t_{n+4}, y_{n+4})
-   * so y_{n+4} is solved for using Newton's method to find the root of
-   *    y_{n+4} - 48/25 * y_{n+3} + 36/25 * y_{n+2} - 16/25 * y_{n+1} + 3/25 * y_n - 12/25 * h * f(t_{n+4}, y_{n+4}) = 0
-   */
 
+  /// The fourth order BDF method is defined
+  ///    y_{n+4} - 48/25 * y_{n+3} + 36/25 * y_{n+2} - 16/25 * y_{n+1} + 3/25 * y_n = 12/25 * h * f(t_{n+4}, y_{n+4})
   template<typename Real>
   class StepperBDF<4, Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>> : public StepperBase<Real>
   {
