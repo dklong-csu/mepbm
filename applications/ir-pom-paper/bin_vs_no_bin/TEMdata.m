@@ -1,5 +1,4 @@
-% Reproduced with permission from Derek Handwerk
-% Original can be found at: https://github.com/drhandwerk/pbm
+% Adapted from code at: https://github.com/drhandwerk/pbm
 CH = [0	1.65
 0.042	1.65
 0.083	1.65
