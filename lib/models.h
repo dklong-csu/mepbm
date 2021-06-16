@@ -54,6 +54,9 @@ namespace Model
  * If the molecule being tracked is a dimer (two atoms) then: size = 2 * number of molecules.
  * If the molecule being tracked is m-atoms large then: size = m * number of molecules.
  */
+  ///
+  /// A function that converts the diameter of a particle as measured using TEM to the number of atoms present in the particle
+  ///
   template<typename Real>
   Real atoms(unsigned int &size, unsigned int conserved_size);
 
@@ -67,54 +70,37 @@ namespace Model
 
 
 
-  /*
- * A base class for describing the effects nucleation, growth, and agglomeration have on the
- * system of ODEs.
- */
+  ///
+  /// A base class for describing the effects of nucleation, growth, and agglomeration
+  ///
   template<typename Real, typename Matrix>
   class RightHandSideContribution
   {
   public:
+    /// Function for adding the effects of this object to the right-hand side vector of the system of ODEs
     virtual void add_contribution_to_rhs(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
                                          Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs) = 0;
 
+    /// Function for adding the effects of this object ot the Jacobian of the system of ODEs
     virtual void add_contribution_to_jacobian(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
                                               Matrix &J) = 0;
 
+    /// Helper function for determining the sparsity pattern when using sparse matrices for the Jacobian
     virtual void add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list) = 0;
 
+    /// Helper function for estimating how many nonzero elements are in the Jacobian when using sparse matrices
     virtual void update_num_nonzero(unsigned int &num_nonzero) = 0;
 
   };
 
 
 
-  /*
- * A class which describes the effect of termolecular nucleation on the right hand side of the ODE system.
- * This chemical process is described as
- *        A + 2S <-> A_s + Ligand   (1)
- *        2A_s + A -> B + Ligand    (2)
- * (1) is called the dissapative step.
- * (2) is called nucleation.
- *
- * A = precursor particle
- * S = solvent -- assumed to be a much larger concentration than the other components, and thus constant
- * A_s = disassociated precursor
- * Ligand = ligand (interferes with the precursor)
- * B = particle -- this represents that 2A_s + A describes nucleation, so the smallest possible particle is formed
- *
- * In order to fully define a growth process, this class requires:
- * A_index -- in order to know the location of the precursor within the state vector.
- * As_index -- in order to know the location of the disassociated precursor within the state vector.
- * ligand_index -- in order to know the location of the ligand within the state vector.
- * particle_index -- in order to know the location of the nucleated particle within the state vector.
- * rate_forward -- the rate at which the forward direction of (1) occurs.
- * rate_backward -- the rate at which the backward direction of (1) occurs.
- * rate_nucleation -- the rate at which (2) occurs.
- * solvent -- the amount of solvent present during the entire reaction.
- *
- * This information is housed in the Parameters class and is passed to the right-hand side function.
- */
+
+  ///
+  /// An object describing the effect of termolecular nucleation as described by the reactions
+  /// A + 2S <-> A_s + L
+  /// 2A_s + A -> B + L
+  ///
   template<typename Real, typename Matrix>
   class TermolecularNucleation : public Model::RightHandSideContribution<Real, Matrix>
   {
@@ -123,9 +109,10 @@ namespace Model
     const Real rate_forward, rate_backward, rate_nucleation;
     const Real solvent;
 
-    // default constructor creates an invalid object
+    /// Constructor -- creates an invalid object by default
     TermolecularNucleation();
 
+    /// Constructor
     TermolecularNucleation(unsigned int A_index, unsigned int As_index, unsigned int ligand_index,
                            unsigned int particle_index,
                            Real rate_forward, Real rate_backward, Real rate_nucleation,
@@ -142,12 +129,9 @@ namespace Model
     void update_num_nonzero(unsigned int &num_nonzero) override;
   };
 
-  /*
-   * ==================================================================================================================
-   * Specialization for a dense matrix
-   * ==================================================================================================================
-   */
 
+
+  /// Partial specialization for a dense matrix
   template<typename Real>
   class TermolecularNucleation<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>
       : public Model::RightHandSideContribution<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>
@@ -157,7 +141,7 @@ namespace Model
     const Real rate_forward, rate_backward, rate_nucleation;
     const Real solvent;
 
-    // default constructor creates an invalid object
+
     TermolecularNucleation();
 
     TermolecularNucleation(unsigned int A_index, unsigned int As_index, unsigned int ligand_index,
@@ -257,11 +241,7 @@ namespace Model
 
 
 
-  /*
-   * ==================================================================================================================
-   * Specialization for a sparse matrix
-   * ==================================================================================================================
-   */
+  /// Partial specialization for a sparse matrix
   template<typename Real>
   class TermolecularNucleation<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>
       : public Model::RightHandSideContribution<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>
@@ -271,7 +251,6 @@ namespace Model
     const Real rate_forward, rate_backward, rate_nucleation;
     const Real solvent;
 
-    // default constructor creates an invalid object
     TermolecularNucleation();
 
     TermolecularNucleation(unsigned int A_index, unsigned int As_index, unsigned int ligand_index,
@@ -386,26 +365,10 @@ namespace Model
 
 
 
-  /*
- * A class which describes the effect of particle growth on the right hand side of the ODE system.
- * This chemical process is described as
- *        A + B -> C + Ligand
- * A = precursor -- think of this as the building block of a particle, but not yet an actual particle
- * B = particle -- these particles are only within some defined range
- * C = larger particle -- this simply symbolizes that a B particle gets bigger when it binds with an A
- * Ligand = a ligand -- this is a molecule which interferes with precursors
- *
- * In order to fully define a growth process, this class requires:
- * A_index -- in order to know the location of the precursor within the state vector.
- * smallest_size -- this is the smallest particle size that B can take.
- * largest_size -- this is the largest particle size that B can take.
- * max_size -- this is the largest particle size we track, particles can grow beyond this size, but are untracked.
- * ligand_index -- in order to know the location of the ligand within the state vector.
- * conserved_size -- the size of the tracked molecule (e.g. dimer -> conserved_size = 2).
- * rate -- the rate constant which describes the speed at which this reaction occurs.
- *
- * This information is housed in the Parameters class and is passed to the right-hand side function.
- */
+  ///
+  /// An object describing the growth of particles (B) via the reaction
+  /// A + B -> C + L
+  ///
   template<typename Real, typename Matrix>
   class Growth : public RightHandSideContribution<Real, Matrix>
   {
@@ -413,7 +376,6 @@ namespace Model
     const unsigned int A_index, smallest_size, largest_size, max_size, ligand_index, conserved_size;
     const Real rate;
 
-    // default constructor creates an invalid object
     Growth();
 
     Growth(unsigned int A_index, unsigned int smallest_size, unsigned int largest_size,
@@ -433,12 +395,7 @@ namespace Model
 
 
 
-  /*
-   * ==================================================================================================================
-   * Specialization for a dense matrix
-   * ==================================================================================================================
-   */
-
+  /// Partial specialization for a dense matrix
   template<typename Real>
   class Growth<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>
       : public RightHandSideContribution<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>
@@ -447,7 +404,6 @@ namespace Model
     const unsigned int A_index, smallest_size, largest_size, max_size, ligand_index, conserved_size;
     const Real rate;
 
-    // default constructor creates an invalid object
     Growth();
 
     Growth(unsigned int A_index, unsigned int smallest_size, unsigned int largest_size,
@@ -505,7 +461,6 @@ namespace Model
       const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
       Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs)
   {
-    // FIXME: turn these into error messages?
     assert(smallest_size < largest_size);
     assert(largest_size <= max_size);
     // FIXME: I should pass some size_to_index function as an argument as this only works if
@@ -559,11 +514,7 @@ namespace Model
 
 
 
-  /*
-   * ==================================================================================================================
-   * Specialization for a sparse matrix
-   * ==================================================================================================================
-   */
+  /// Partial specialization for a sparse matrix
   template<typename Real>
   class Growth<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>
       : public RightHandSideContribution<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>
@@ -572,7 +523,6 @@ namespace Model
     const unsigned int A_index, smallest_size, largest_size, max_size, ligand_index, conserved_size;
     const Real rate;
 
-    // default constructor creates an invalid object
     Growth();
 
     Growth(unsigned int A_index, unsigned int smallest_size, unsigned int largest_size,
@@ -629,7 +579,6 @@ namespace Model
       const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
       Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs)
   {
-    // FIXME: turn these into error messages?
     assert(smallest_size < largest_size);
     assert(largest_size <= max_size);
     // FIXME: I should pass some size_to_index function as an argument as this only works if
@@ -720,25 +669,10 @@ namespace Model
 
 
 
-  /*
- * A class which describes the effect of particle agglomeration on the right hand side of the ODE system.
- * This chemical process is described as
- *        B + C -> D
- * B = particle within some size range
- * C = particle within some (possibly different than B) size range
- * D = larger particle -- this simply symbolizes that a B particle gets bigger when it binds with a C
- *
- * In order to fully define a growth process, this class requires:
- * B_smallest_size -- the smallest particle size a B particle can be.
- * B_largest_size -- the largest particle size a B particle can be.
- * C_smallest_size -- the smallest particle size a C particle can be.
- * C_largest_size -- the largest particle size a C particle can be.
- * max_size -- this is the largest particle size we track, particles can grow beyond this size, but are untracked.
- * conserved_size -- the size of the tracked molecule (e.g. dimer -> conserved_size = 2).
- * rate -- the rate constant which describes the speed at which this reaction occurs.
- *
- * This information is housed in the Parameters class and is passed to the right-hand side function.
- */
+  ///
+  /// An object describing particle agglomeration via the reaction
+  /// B + C -> D
+  ///
   template<typename Real, typename Matrix>
   class Agglomeration : public RightHandSideContribution<Real, Matrix>
   {
@@ -749,7 +683,6 @@ namespace Model
     const unsigned int conserved_size;
     const Real rate;
 
-    // default constructor creates an invalid object
     Agglomeration();
 
     Agglomeration(unsigned int B_smallest_size, unsigned int B_largest_size,
@@ -769,12 +702,7 @@ namespace Model
 
 
 
-  /*
-   * ==================================================================================================================
-   * Specialization for a dense matrix
-   * ==================================================================================================================
-   */
-
+  /// Partial specialization for a dense matrix
   template<typename Real>
   class Agglomeration<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>
       : public RightHandSideContribution<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>
@@ -786,7 +714,6 @@ namespace Model
     const unsigned int conserved_size;
     const Real rate;
 
-    // default constructor creates an invalid object
     Agglomeration();
 
     Agglomeration(unsigned int B_smallest_size, unsigned int B_largest_size,
@@ -842,7 +769,6 @@ namespace Model
       const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
       Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs)
   {
-    // FIXME: turn these into error messages?
     assert(B_smallest_size < B_largest_size);
     assert(C_smallest_size < C_largest_size);
     assert(B_largest_size <= max_size);
@@ -859,8 +785,6 @@ namespace Model
       rxn_factors[i] = atoms<Real>(i, conserved_size) * x(i);
     }
 
-    // FIXME: is this even necessary to do? It might be simpler to just calculate from
-    // FIXME: min(B_smallest_size, C_smallest_size) to max(B_largest_size, C_largest_size)
     if (B_smallest_size != C_smallest_size || B_largest_size != C_smallest_size)
     {
       for (unsigned int i=C_smallest_size; i<=C_largest_size; ++i)
@@ -911,8 +835,6 @@ namespace Model
       rxn_factors_dn[i] = atoms<Real>(i, conserved_size);
     }
 
-    // FIXME: is this even necessary to do? It might be simpler to just calculate from
-    // FIXME: min(B_smallest_size, C_smallest_size) to max(B_largest_size, C_largest_size)
     if (B_smallest_size != C_smallest_size || B_largest_size != C_smallest_size)
     {
       for (unsigned int i=C_smallest_size; i<=C_largest_size; ++i)
@@ -948,12 +870,7 @@ namespace Model
 
 
 
-  /*
-   * ==================================================================================================================
-   * Specialization for a sparse matrix
-   * ==================================================================================================================
-   */
-
+  /// Partial specialization for a sparse matrix
   template<typename Real>
   class Agglomeration<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>
       : public RightHandSideContribution<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>
@@ -965,7 +882,6 @@ namespace Model
     const unsigned int conserved_size;
     const Real rate;
 
-    // default constructor creates an invalid object
     Agglomeration();
 
     Agglomeration(unsigned int B_smallest_size, unsigned int B_largest_size,
@@ -1021,7 +937,6 @@ namespace Model
       const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
       Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs)
   {
-    // FIXME: turn these into error messages?
     assert(B_smallest_size < B_largest_size);
     assert(C_smallest_size < C_largest_size);
     assert(B_largest_size <= max_size);
@@ -1038,8 +953,6 @@ namespace Model
       rxn_factors[i] = atoms<Real>(i, conserved_size) * x(i);
     }
 
-    // FIXME: is this even necessary to do? It might be simpler to just calculate from
-    // FIXME: min(B_smallest_size, C_smallest_size) to max(B_largest_size, C_largest_size)
     if (B_smallest_size != C_smallest_size || B_largest_size != C_smallest_size)
     {
       for (unsigned int i=C_smallest_size; i<=C_largest_size; ++i)
@@ -1090,8 +1003,6 @@ namespace Model
       rxn_factors_dn[i] = atoms<Real>(i, conserved_size);
     }
 
-    // FIXME: is this even necessary to do? It might be simpler to just calculate from
-    // FIXME: min(B_smallest_size, C_smallest_size) to max(B_largest_size, C_largest_size)
     if (B_smallest_size != C_smallest_size || B_largest_size != C_smallest_size)
     {
       for (unsigned int i=C_smallest_size; i<=C_largest_size; ++i)
@@ -1167,6 +1078,10 @@ namespace Model
   // A model is a representation of the system of ODEs that's being solved. It needs to know
   // the smallest and largest particle size (nucleation_order, max_size). The model also needs
   // a way to evaluate the right-hand side and the Jacobian of the system of ODEs.
+  ///
+  /// A representation of the system of ODEs that describes the nanoparticle formation. A combination of objects
+  /// derived from RightHandSideContribution together form a "mechanism" with some chemical interpretation
+  ///
   template<typename Real, typename Matrix>
   class Model
   {
@@ -1185,12 +1100,8 @@ namespace Model
   };
 
 
-  /*
-   * ==================================================================================================================
-   * Specialization for a dense matrix
-   * ==================================================================================================================
-   */
 
+  /// Partial specialization for a dense matrix
   template<typename Real>
   class Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>
   {
@@ -1269,12 +1180,7 @@ namespace Model
 
 
 
-  /*
-   * ==================================================================================================================
-   * Specialization for a sparse matrix
-   * ==================================================================================================================
-   */
-
+  /// Partial specialization for a sparse matrix
   template<typename Real>
   class Model<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>
   {

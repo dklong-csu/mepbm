@@ -1,13 +1,12 @@
 #ifndef DATA_H_
 #define DATA_H_
 
-#include <boost/numeric/odeint.hpp>
-
-
 
 namespace Data
 {
-  // This class holds the data for the Ir-POM system
+  ///
+  /// A class holding the collected data for the Ir-POM system
+  ///
   template <typename Real = double>
   class PomData
   {
