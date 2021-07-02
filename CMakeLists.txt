@@ -48,6 +48,23 @@ ENDIF()
 
 
 #########################################
+### Find the SUNDIALS library
+FIND_PATH(_sundials_include_dir
+        NAMES cvode/cvode.h
+        HINTS ${SUNDIALS_DIR}/include)
+IF ("${_sundials_include_dir}" STREQUAL "_sundials_include_dir-NOTFOUND")
+  MESSAGE(FATAL_ERROR
+          "The SUNDIALS library was not found. You have to specify a path "
+          "to that library by setting the SUNDIALS_DIR environment variable, "
+          "or passing '-DSUNDIALS_DIR=...' as an argument to 'cmake'.")
+ELSE()
+  MESSAGE(STATUS "Found SUNDIALS headers at ${_sundials_include_dir}")
+  INCLUDE_DIRECTORIES(${_sundials_include_dir})
+ENDIF()
+
+
+
+#########################################
 # Find include files in the current directory
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/lib)
 
@@ -63,7 +80,8 @@ ADD_LIBRARY(libmepbm
             lib/models.h
             lib/statistics.h
             lib/data.h
-            lib/ode_solver.h)
+            lib/ode_solver.h
+            lib/sundials_solvers.h)
 
 
 #########################################
