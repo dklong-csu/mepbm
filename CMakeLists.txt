@@ -49,17 +49,48 @@ ENDIF()
 
 #########################################
 ### Find the SUNDIALS library
+FIND_PACKAGE (
+        _sundials
+        NAMES SUNDIALS
+        HINTS ${SUNDIALS_DIR} 
+        REQUIRED
+)
+IF ("${_sundials}" STREQUAL "_sundials-NOTFOUND")
+  MESSAGE(FATAL_ERROR
+          "The SUNDIALS library was not found. You have to specify a path "
+          "to that library by setting the SUNDIALS_DIR environment variable, "
+          "or by passing '-DSUNDIALS_DIR=...' as an argument to 'cmake'.")
+ELSE()
+  MESSAGE(STATUS "Found SUNDIALS")
+ENDIF()
+
+
 FIND_PATH(_sundials_include_dir
         NAMES cvode/cvode.h
         HINTS ${SUNDIALS_DIR}/include)
 IF ("${_sundials_include_dir}" STREQUAL "_sundials_include_dir-NOTFOUND")
   MESSAGE(FATAL_ERROR
-          "The SUNDIALS library was not found. You have to specify a path "
+          "The SUNDIALS headers were not found. You have to specify a path "
           "to that library by setting the SUNDIALS_DIR environment variable, "
-          "or passing '-DSUNDIALS_DIR=...' as an argument to 'cmake'.")
+          "or by passing '-DSUNDIALS_DIR=...' as an argument to 'cmake'.")
 ELSE()
   MESSAGE(STATUS "Found SUNDIALS headers at ${_sundials_include_dir}")
   INCLUDE_DIRECTORIES(${_sundials_include_dir})
+ENDIF()
+
+
+FIND_LIBRARY(_sundials_arkode_lib
+        NAMES sundials_arkode
+        HINTS ${SUNDIALS_DIR}/lib)
+IF ("${_sundials_arkode_lib}" STREQUAL "_sundials_arkode_lib-NOTFOUND")
+  MESSAGE(FATAL_ERROR
+          "The SUNDIALS ARKODE library was not found. You have to specify a path "
+          "to that library by setting the SUNDIALS_DIR environment variable, "
+          "or by passing '-DSUNDIALS_DIR=...' as an argument to 'cmake'.")
+ELSE()
+  MESSAGE(STATUS "Found SUNDIALS ARKODE library at ${_sundials_arkode_lib}")
+  INCLUDE_DIRECTORIES(${_sundials_include_dir})
+  LINK_DIRECTORIES(${SUNDIALS_DIR}/lib)
 ENDIF()
 
 
@@ -74,14 +105,22 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/lib)
 # Describe what files should go into the library that contains all of
 # the functionality that is used by the main executable, as well as by
 # the tests.
-ADD_LIBRARY(libmepbm
-            OBJECT
-            lib/histogram.h
-            lib/models.h
-            lib/statistics.h
-            lib/data.h
-            lib/ode_solver.h
-            lib/sundials_solvers.h)
+#
+# There is, at the moment, no such library because everything is in header
+# files. So the only thing we can do is define an "interface" library
+# that collects what everything depends upon.
+ADD_LIBRARY(libmepbm INTERFACE)
+TARGET_INCLUDE_DIRECTORIES(libmepbm
+                           INTERFACE
+                           $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+                           $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+TARGET_LINK_LIBRARIES(libmepbm
+                      INTERFACE
+                      Threads::Threads)
+TARGET_LINK_LIBRARIES(libmepbm
+                      INTERFACE
+                      ${_sundials_arkode_lib})
+
 
 
 #########################################

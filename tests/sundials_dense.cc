@@ -8,6 +8,8 @@
 #include "sundials_solvers.h"
 #include <nvector/nvector_serial.h>
 
+#include "limits"
+
 
 using Real = double;
 using Vector = Eigen::Matrix<Real, Eigen::Dynamic, 1>;
@@ -53,10 +55,11 @@ int main()
   Model::Model<Real, Matrix> ode_system(0, 0);
   ode_system.add_rhs_contribution(my_ode);
 
-  const sundials::CVodeParameters<Real> cvode_settings(start_time, end_time,
-                                                       false, true,
-                                                       true, 1e-6, 1e-6);
-  sundials::CVodeSolver<sundials::DENSE, Matrix, Real> cvode_solver(cvode_settings, ode_system, ic);
+  const sundials::CVodeParameters<Real> cvode_settings(sundials::DENSE, sundials::DIRECTSOLVE,
+                                                       start_time, end_time, false, true,
+                                                       true, 1e-6, 1e-6,
+                                                       std::numeric_limits<Real>::epsilon(), CSC_MAT);
+  sundials::CVodeSolver<Matrix, Real> cvode_solver(cvode_settings, ode_system, ic);
 
   N_Vector solution = N_VNew_Serial(1);
   cvode_solver.solve_ode(solution, end_time);
