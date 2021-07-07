@@ -277,11 +277,11 @@ namespace sundials
   CVodeSolver<Matrix, Real>::solve_ode_incrementally(std::vector< N_Vector > &solutions,
                                                      const std::vector< Real > &times)
   {
-    N_Vector solution;
     Real t;
     // Loop through each time
     for (const auto & tout : times)
     {
+      N_Vector solution = N_VClone(sun_solution_vector);
       solve_ode(solution, tout);
       solutions.push_back(solution);
     }
