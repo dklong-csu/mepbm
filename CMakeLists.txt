@@ -79,16 +79,16 @@ ELSE()
 ENDIF()
 
 
-FIND_LIBRARY(_sundials_arkode_lib
-        NAMES sundials_arkode
+FIND_LIBRARY(_sundials_cvode_lib
+        NAMES sundials_cvode
         HINTS ${SUNDIALS_DIR}/lib)
-IF ("${_sundials_arkode_lib}" STREQUAL "_sundials_arkode_lib-NOTFOUND")
+IF ("${_sundials_cvode_lib}" STREQUAL "_sundials_cvode_lib-NOTFOUND")
   MESSAGE(FATAL_ERROR
-          "The SUNDIALS ARKODE library was not found. You have to specify a path "
+          "The SUNDIALS CVODE library was not found. You have to specify a path "
           "to that library by setting the SUNDIALS_DIR environment variable, "
           "or by passing '-DSUNDIALS_DIR=...' as an argument to 'cmake'.")
 ELSE()
-  MESSAGE(STATUS "Found SUNDIALS ARKODE library at ${_sundials_arkode_lib}")
+  MESSAGE(STATUS "Found SUNDIALS CVODE library at ${_sundials_CVode_lib}")
   INCLUDE_DIRECTORIES(${_sundials_include_dir})
   LINK_DIRECTORIES(${SUNDIALS_DIR}/lib)
 ENDIF()
@@ -119,7 +119,7 @@ TARGET_LINK_LIBRARIES(libmepbm
                       Threads::Threads)
 TARGET_LINK_LIBRARIES(libmepbm
                       INTERFACE
-                      ${_sundials_arkode_lib})
+                      ${_sundials_cvode_lib})
 
 
 
