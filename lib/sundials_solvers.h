@@ -297,6 +297,8 @@ namespace sundials
     // TODO see if sun_matrix needs additional setup
     if (return_solver_type() == DENSE)
     {
+      // Allocate memory for the matrix if using a dense solve. The sparse solvers are matrix-free.
+      sun_matrix = SUNDenseMatrix(N_VGetLength(sun_solution_vector), N_VGetLength(sun_solution_vector));
       sun_linear_solver = SUNLinSol_Dense(sun_solution_vector, sun_matrix);
       check_flag( (void *)sun_linear_solver, "SUNLinSol_Dense", MEMORY);
     }
