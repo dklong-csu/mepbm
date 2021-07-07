@@ -20,14 +20,20 @@ jobs:
         doxygen --version
         git clone https://github.com/bangerth/SampleFlow.git
         git clone https://gitlab.com/libeigen/eigen.git
+        git clone https://github.com/LLNL/sundials.git
         mkdir ./eigen/build
         mkdir ./eigen/install
         cd ./eigen/build
         cmake ../ -DCMAKE_INSTALL_PREFIX=../install
         make install
-        cd ../../
+        cd ../../sundials
+        mkdir ./build
+        mkdir ./install
+        cd ./build
+        cmake ../ -DCMAKE_INSTALL_PREFIX=../install
+        make install
     - name: cmake
-      run: cmake -DSAMPLEFLOW_DIR="$PWD/SampleFlow" -DEIGEN_DIR="$PWD/eigen/install" -DCMAKE_BUILD_TYPE=release .
+      run: cmake -DSAMPLEFLOW_DIR="$PWD/SampleFlow" -DEIGEN_DIR="$PWD/eigen/install" -DSUNDIALS_DIR="$PWD/sundials/install" -DCMAKE_BUILD_TYPE=release .
     - name: build
       run: make
     - name: ctest
