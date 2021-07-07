@@ -308,7 +308,7 @@ namespace sundials
       // TODO the third argument below is the max number of non zeros. Just using the full matrix right now, but this
       // TODO can probably be inferred for an actual MEPBM problem. I don't know if it actually matters.
       sun_matrix = SUNSparseMatrix(N_VGetLength(sun_solution_vector), N_VGetLength(sun_solution_vector),
-                                   N_VGetLength(sun_solution_vector)*N_VGetLength(sun_solution_vector),
+                                   7*N_VGetLength(sun_solution_vector),
                                    data.sparse_type);
       // TODO preconditioner
       if (return_iterative_algorithm() == SPGMR)
