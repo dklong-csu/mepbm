@@ -29,7 +29,7 @@ jobs:
         mkdir sundials
         cd ./sundials
         wget https://github.com/LLNL/sundials/releases/download/v5.7.0/sundials-5.7.0.tar.gz
-        tar zxf sundials-5.7.0
+        tar zxf sundials-5.7.0.tar.gz
         cd sundials-5.7.0
         mkdir ./build
         mkdir ./install
