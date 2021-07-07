@@ -55,7 +55,7 @@ int main()
   Model::Model<Real, Matrix> ode_system(0, 0);
   ode_system.add_rhs_contribution(my_ode);
 
-  const sundials::CVodeParameters<Real> cvode_settings(sundials::DENSE, sundials::DIRECTSOLVE,
+  const sundials::CVodeParameters<Real> cvode_settings(sundials::SPARSE, sundials::SPBCGS,
                                                        start_time, end_time, false, true,
                                                        true, 1e-7, 1e-7,
                                                        std::numeric_limits<Real>::epsilon(), CSC_MAT);

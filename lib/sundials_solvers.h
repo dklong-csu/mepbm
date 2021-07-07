@@ -297,13 +297,19 @@ namespace sundials
     // TODO see if sun_matrix needs additional setup
     if (return_solver_type() == DENSE)
     {
-      // Allocate memory for the matrix if using a dense solve. The sparse solvers are matrix-free.
+      // Allocate memory for the matrix if using a dense solver.
       sun_matrix = SUNDenseMatrix(N_VGetLength(sun_solution_vector), N_VGetLength(sun_solution_vector));
       sun_linear_solver = SUNLinSol_Dense(sun_solution_vector, sun_matrix);
       check_flag( (void *)sun_linear_solver, "SUNLinSol_Dense", MEMORY);
     }
     else if(return_solver_type() == SPARSE)
     {
+      // Allocate memory for the matrix if using a sparse solver.
+      // TODO the third argument below is the max number of non zeros. Just using the full matrix right now, but this
+      // TODO can probably be inferred for an actual MEPBM problem. I don't know if it actually matters.
+      sun_matrix = SUNSparseMatrix(N_VGetLength(sun_solution_vector), N_VGetLength(sun_solution_vector),
+                                   N_VGetLength(sun_solution_vector)*N_VGetLength(sun_solution_vector),
+                                   data.sparse_type);
       // TODO preconditioner
       if (return_iterative_algorithm() == SPGMR)
       {
@@ -323,14 +329,14 @@ namespace sundials
       {
         // preconditioner = PREC_NONE, PREC_LEFT, PREC_RIGHT, PREC_BOTH
         // maxl = number of linear iterations to allow TODO optimize better
-        sun_linear_solver = SUNLinSol_SPBCGS(sun_solution_vector, PREC_NONE, 20);
+        sun_linear_solver = SUNLinSol_SPBCGS(sun_solution_vector, PREC_NONE, 100);
         check_flag( (void *)sun_linear_solver, "SUNLinSol_SPBCGS", MEMORY);
       }
       else if (return_iterative_algorithm() == SPTFQMR)
       {
         // preconditioner = PREC_NONE, PREC_LEFT, PREC_RIGHT, PREC_BOTH
         // maxl = number of linear iterations to allow TODO optimize better
-        sun_linear_solver = SUNLinSol_SPTFQMR(sun_solution_vector, PREC_NONE, 20);
+        sun_linear_solver = SUNLinSol_SPTFQMR(sun_solution_vector, PREC_NONE, 100);
         check_flag( (void *)sun_linear_solver, "SUNLinSol_SPTFQMR", MEMORY);
       }
       else
@@ -586,7 +592,7 @@ namespace sundials
     auto Jacobian_eigen = ode_system.jacobian(y_eigen);
 
     // Create a dense matrix to build the Jacobian
-    auto Jacobian_build = SUNDenseMatrix( SUNDenseMatrix_Rows(Jacobian), SUNDenseMatrix_Columns(Jacobian));
+    auto Jacobian_build = SUNDenseMatrix( vector_length, vector_length);
 
     // Convert the Eigen matrix into a SUNDIALS matrix
     auto Jacobian_data = SUNDenseMatrix_Data(Jacobian_build);
