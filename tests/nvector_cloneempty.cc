@@ -6,8 +6,7 @@ using Vector = Eigen::Matrix<realtype, Eigen::Dynamic, 1>;
 
 int main ()
 {
-  Vector w(2);
-  N_Vector v = create_eigen_nvector<Vector>(&w);
+  N_Vector v = create_eigen_nvector<Vector>(2);
 
   N_Vector x = v->ops->nvcloneempty(v);
   // FIXME I'm not sure how to test this
