@@ -8,16 +8,17 @@ int main ()
 {
   realtype a = 2;
   realtype b = 3;
-  Vector v(2);
-  v << 1, 2;
-  Vector w(2);
-  w << 3, 4;
-  Vector t(2);
 
 
-  N_Vector x = create_eigen_nvector<Vector>(&v);
-  N_Vector y = create_eigen_nvector<Vector>(&w);
-  N_Vector z = create_eigen_nvector<Vector>(&t);
+  N_Vector x = create_eigen_nvector<Vector>(2);
+  auto x_vec = static_cast<Vector*>(x->content);
+  *x_vec << 1, 2;
+
+  N_Vector y = create_eigen_nvector<Vector>(2);
+  auto y_vec = static_cast<Vector*>(y->content);
+  *y_vec << 3, 4;
+
+  N_Vector z = create_eigen_nvector<Vector>(2);
 
   // z = ax + by
   // z = 2*(1,2) + 3*(3,4) = (11, 16)

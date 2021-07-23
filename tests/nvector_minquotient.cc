@@ -6,17 +6,19 @@ using Vector = Eigen::Matrix<realtype, Eigen::Dynamic, 1>;
 
 int main ()
 {
-  Vector w(3);
-  w << 1, 2, 4;
-  N_Vector num = create_eigen_nvector<Vector>(&w);
+  N_Vector num = create_eigen_nvector<Vector>(3);
+  auto num_vec = static_cast<Vector*>(num->content);
+  *num_vec << 1, 2, 4;
 
-  Vector u(3);
-  u << 4, 2, 1;
-  N_Vector denom1 = create_eigen_nvector<Vector>(&u);
 
-  Vector v(3);
-  v << 0, 0, 0;
-  N_Vector denom2 = create_eigen_nvector<Vector>(&v);
+  N_Vector denom1 = create_eigen_nvector<Vector>(3);
+  auto denom1_vec = static_cast<Vector*>(denom1->content);
+  *denom1_vec << 4, 2, 1;
+
+
+  N_Vector denom2 = create_eigen_nvector<Vector>(3);
+  auto denom2_vec = static_cast<Vector*>(denom2->content);
+  *denom2_vec << 0, 0, 0;
 
 
   auto mq1 = num->ops->nvminquotient(num, denom1);

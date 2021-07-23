@@ -6,14 +6,13 @@ using Vector = Eigen::Matrix<realtype, Eigen::Dynamic, 1>;
 
 int main ()
 {
-  Vector w(2);
-  w << 2, 3;
-  N_Vector x = create_eigen_nvector<Vector>(&w);
+  N_Vector x = create_eigen_nvector<Vector>(2);
+  auto x_vec = static_cast<Vector*>(x->content);
+  *x_vec << 2, 3;
 
   realtype c = 5;
 
-  Vector v(2);
-  N_Vector y = create_eigen_nvector<Vector>(&v);
+  N_Vector y = create_eigen_nvector<Vector>(2);
 
   x->ops->nvscale(c, x, y);
   auto y_vec = static_cast<Vector*>(y->content);

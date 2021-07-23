@@ -6,12 +6,12 @@ using Vector = Eigen::Matrix<realtype, Eigen::Dynamic, 1>;
 
 int main ()
 {
-  Vector w(2);
-  w << 2, 4;
-  N_Vector x = create_eigen_nvector<Vector>(&w);
+  N_Vector x = create_eigen_nvector<Vector>(2);
+  auto x_vec = static_cast<Vector*>(x->content);
+  *x_vec << 2, 4;
 
-  Vector v(2);
-  N_Vector y = create_eigen_nvector<Vector>(&v);
+
+  N_Vector y = create_eigen_nvector<Vector>(2);
 
   x->ops->nvinv(x,y);
 

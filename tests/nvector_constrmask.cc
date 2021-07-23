@@ -6,51 +6,53 @@ using Vector = Eigen::Matrix<realtype, Eigen::Dynamic, 1>;
 
 int main ()
 {
-  Vector w(4);
-  w << 2, 1, -1, -2;
-  N_Vector c = create_eigen_nvector<Vector>(&w);
+  N_Vector c = create_eigen_nvector<Vector>(4);
+  auto c_vec = static_cast<Vector*>(c->content);
+  *c_vec << 2, 1, -1, -2;
 
-  Vector v(4);
-  N_Vector x = create_eigen_nvector<Vector>(&v);
 
-  Vector u(4);
-  N_Vector m = create_eigen_nvector<Vector>(&u);
+  N_Vector x = create_eigen_nvector<Vector>(4);
+  auto x_vec = static_cast<Vector*>(x->content);
+
+  
+  N_Vector m = create_eigen_nvector<Vector>(4);
+  auto m_vec = static_cast<Vector*>(m->content);
 
   // we expect all to pass
-  v << 1, 0, 0, -1;
+  *x_vec << 1, 0, 0, -1;
   booleantype result = c->ops->nvconstrmask(c,x,m);
   std::cout << result << std::endl;
-  std::cout << u << std::endl;
+  std::cout << *m_vec << std::endl;
 
   // we expect c=2 to fail
-  v << 0, 0, 0, -1;
+  *x_vec << 0, 0, 0, -1;
   result = c->ops->nvconstrmask(c,x,m);
   std::cout << result << std::endl;
-  std::cout << u << std::endl;
+  std::cout << *m_vec << std::endl;
 
   // we expect c=1 to fail
-  v << 1, -1, 0, -1;
+  *x_vec << 1, -1, 0, -1;
   result = c->ops->nvconstrmask(c,x,m);
   std::cout << result << std::endl;
-  std::cout << u << std::endl;
+  std::cout << *m_vec << std::endl;
 
   // we expect c=-1 to fail
-  v << 1, 0, 1, -1;
+  *x_vec << 1, 0, 1, -1;
   result = c->ops->nvconstrmask(c,x,m);
   std::cout << result << std::endl;
-  std::cout << u << std::endl;
+  std::cout << *m_vec << std::endl;
 
   // we expect c=-2 to fail
-  v << 1, 0, 0, 0;
+  *x_vec << 1, 0, 0, 0;
   result = c->ops->nvconstrmask(c,x,m);
   std::cout << result << std::endl;
-  std::cout << u << std::endl;
+  std::cout << *m_vec << std::endl;
 
   // we expect all to fail
-  v << 0, -1, 1, 0;
+  *x_vec << 0, -1, 1, 0;
   result = c->ops->nvconstrmask(c,x,m);
   std::cout << result << std::endl;
-  std::cout << u << std::endl;
+  std::cout << *m_vec << std::endl;
 
 
 }

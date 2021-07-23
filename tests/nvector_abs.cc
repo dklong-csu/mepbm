@@ -6,9 +6,12 @@ using Vector = Eigen::Matrix<realtype, Eigen::Dynamic, 1>;
 
 int main ()
 {
-  Vector w(2);
-  w << -1, 2;
-  N_Vector v = create_eigen_nvector<Vector>(&w);
+  N_Vector v = create_eigen_nvector<Vector>(2);
+  auto v_vec = static_cast<Vector*>(v->content);
+  *v_vec << -1, 2;
+
+
+
   N_Vector x = v->ops->nvclone(v);
   v->ops->nvabs(v, x);
 

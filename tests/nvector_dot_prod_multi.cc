@@ -7,18 +7,18 @@ using Vector = Eigen::Matrix<realtype, Eigen::Dynamic, 1>;
 int main ()
 {
   // vector to dot with others
-  Vector w(2);
-  w << 1,2;
-  N_Vector x = create_eigen_nvector<Vector>(&w);
+  N_Vector x = create_eigen_nvector<Vector>(2);
+  auto x_vec = static_cast<Vector*>(x->content);
+  *x_vec << 1, 2;
 
   // vectors to be dotted with
-  Vector v(2);
-  v << 2,3;
-  N_Vector y = create_eigen_nvector<Vector>(&v);
+  N_Vector y = create_eigen_nvector<Vector>(2);
+  auto y_vec = static_cast<Vector*>(y->content);
+  *y_vec << 2, 3;
 
-  Vector u(2);
-  u << 3,4;
-  N_Vector z = create_eigen_nvector<Vector>(&u);
+  N_Vector z = create_eigen_nvector<Vector>(2);
+  auto z_vec = static_cast<Vector*>(z->content);
+  *z_vec << 3, 4;
 
   N_Vector X [2] = {y,z};
 

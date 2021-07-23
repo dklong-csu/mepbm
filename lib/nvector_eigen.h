@@ -63,7 +63,7 @@ namespace NVectorOperations
   {
     if (v->content != nullptr)
     {
-      auto *content = reinterpret_cast<VectorType *>(v->content);
+      auto *content = static_cast<VectorType *>(v->content);
       delete content;
       v->content = nullptr;
     }
@@ -513,10 +513,12 @@ create_empty_eigen_nvector()
 /// Function to create an N_Vector using Eigen for the backend linear algebra
 template<typename VectorType>
 N_Vector
-create_eigen_nvector(VectorType *content)
+create_eigen_nvector(unsigned int dim)
 {
+  // FIXME: I think I need to allocate the VectorType on the heap here so the delete is guaranteed
   N_Vector v = create_empty_eigen_nvector<VectorType>();
-  v->content = (void*)content;
+  VectorType* vec = new VectorType(dim);
+  v->content = (void*)vec;
 
   return v;
 

@@ -6,9 +6,9 @@ using Vector = Eigen::Matrix<realtype, Eigen::Dynamic, 1>;
 
 int main ()
 {
-  Vector w(2);
-  N_Vector v = create_eigen_nvector<Vector>(&w);
+  N_Vector v = create_eigen_nvector<Vector>(2);
 
+  // FIXME: This test seems silly
   auto eigen_vec = static_cast<Vector *>(v->content);
   auto eigen_ptr = eigen_vec->data();
   auto fcn_result = v->ops->nvgetarraypointer(v);

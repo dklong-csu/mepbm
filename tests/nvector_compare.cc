@@ -8,13 +8,12 @@ int main ()
 {
   realtype c = 1;
 
-  Vector w(3);
-  w << 0, 1, 2;
-  N_Vector x = create_eigen_nvector<Vector>(&w);
+  N_Vector x = create_eigen_nvector<Vector>(3);
+  auto x_vec = static_cast<Vector*>(x->content);
+  *x_vec << 0, 1, 2;
 
-  Vector u(3);
-  N_Vector y = create_eigen_nvector<Vector>(&u);
+  N_Vector y = create_eigen_nvector<Vector>(3);
 
   x->ops->nvcompare(c,x,y);
-  std::cout << u;
+  std::cout << *static_cast<Vector*>(y->content);
 }

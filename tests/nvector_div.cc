@@ -6,16 +6,16 @@ using Vector = Eigen::Matrix<realtype, Eigen::Dynamic, 1>;
 
 int main ()
 {
-  Vector w(2);
-  w << 4, 16;
-  N_Vector x = create_eigen_nvector<Vector>(&w);
+  N_Vector x = create_eigen_nvector<Vector>(2);
+  auto x_vec = static_cast<Vector*>(x->content);
+  *x_vec << 4, 16;
 
-  Vector v(2);
-  v << 2, 4;
-  N_Vector y = create_eigen_nvector<Vector>(&v);
 
-  Vector t(2);
-  N_Vector z = create_eigen_nvector<Vector>(&t);
+  N_Vector y = create_eigen_nvector<Vector>(2);
+  auto y_vec = static_cast<Vector*>(y->content);
+  *y_vec << 2, 4;
+
+  N_Vector z = create_eigen_nvector<Vector>(2);
 
   // z = x ./ y = (4/2, 16/4) = (2, 4)
   x->ops->nvdiv(x,y,z);

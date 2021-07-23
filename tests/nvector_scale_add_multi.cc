@@ -9,43 +9,44 @@ int main ()
   realtype coeff[] {2, 3, 4};
 
   // vector to scale
-  Vector s(2);
-  s << 1, 2;
-  N_Vector scale = create_eigen_nvector<Vector>(&s);
+  N_Vector scale = create_eigen_nvector<Vector>(2);
+  auto scale_vec = static_cast<Vector*>(scale->content);
+  *scale_vec << 1, 2;
+
 
   // vectors to be added to
-  Vector w(2);
-  w << 1, 2;
-  N_Vector x = create_eigen_nvector<Vector>(&w);
+  N_Vector x = create_eigen_nvector<Vector>(2);
+  auto x_vec = static_cast<Vector*>(x->content);
+  *x_vec << 1,2;
 
-  Vector v(2);
-  v << 2, 3;
-  N_Vector y = create_eigen_nvector<Vector>(&v);
 
-  Vector u(2);
-  u << 3, 4;
-  N_Vector z = create_eigen_nvector<Vector>(&u);
+  N_Vector y = create_eigen_nvector<Vector>(2);
+  auto y_vec = static_cast<Vector*>(y->content);
+  *y_vec << 2,3;
+
+
+  N_Vector z = create_eigen_nvector<Vector>(2);
+  auto z_vec = static_cast<Vector*>(z->content);
+  *z_vec << 3, 4;
+
 
   N_Vector X [3] = {x, y, z};
 
   // vectors to store results
-  Vector a(2);
-  N_Vector d = create_eigen_nvector<Vector>(&a);
+  N_Vector a = create_eigen_nvector<Vector>(2);
 
-  Vector b(2);
-  N_Vector e = create_eigen_nvector<Vector>(&b);
+  N_Vector b = create_eigen_nvector<Vector>(2);
 
-  Vector c(2);
-  N_Vector f = create_eigen_nvector<Vector>(&c);
+  N_Vector c = create_eigen_nvector<Vector>(2);
 
-  N_Vector Y [3] = {d, e, f};
+  N_Vector Y [3] = {a, b, c};
 
   // test
   auto result = x->ops->nvscaleaddmulti(3, coeff, scale, X, Y);
   std::cout << result << std::endl;
-  std::cout << a << std::endl;
-  std::cout << b << std::endl;
-  std::cout << c << std::endl;
+  std::cout << *(static_cast<Vector*>(a->content)) << std::endl;
+  std::cout << *(static_cast<Vector*>(b->content)) << std::endl;
+  std::cout << *(static_cast<Vector*>(c->content)) << std::endl;
 
   result = x->ops->nvscaleaddmulti(0, coeff, scale, X, Y);
   std::cout << result;

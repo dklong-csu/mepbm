@@ -6,20 +6,20 @@ using Vector = Eigen::Matrix<realtype, Eigen::Dynamic, 1>;
 
 int main ()
 {
-  Vector w(2);
-  w << 2, 4;
-  N_Vector x = create_eigen_nvector<Vector>(&w);
+  N_Vector x = create_eigen_nvector<Vector>(2);
+  auto x_vec = static_cast<Vector*>(x->content);
+  *x_vec << 2, 4;
 
-  Vector u(2);
-  N_Vector y = create_eigen_nvector<Vector>(&u);
+
+  N_Vector y = create_eigen_nvector<Vector>(2);
 
   // pass the test
   auto result = x->ops->nvinvtest(x,y);
   std::cout << result << std::endl;
-  std::cout << u << std::endl;
+  std::cout << *static_cast<Vector*>(y->content) << std::endl;
 
   // fail the test
-  w << 0, 4;
+  *x_vec << 0, 4;
   result = x->ops->nvinvtest(x,y);
   std::cout << result;
 
