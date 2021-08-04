@@ -16,5 +16,5 @@ int main ()
   v->ops->nvabs(v, x);
 
   auto vec = *(static_cast<Vector *>(x->content));
-  std::cout << vec;
+  std::cout << vec << std::endl;
 }
