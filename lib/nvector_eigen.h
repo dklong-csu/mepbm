@@ -26,6 +26,41 @@ namespace NVectorOperations
 
 
 
+  /// Function to copy all ops fields from vector y to vector x.
+  void
+  copy_ops_pointers(N_Vector x, N_Vector y)
+  {
+    // Pointers are either NULL or point to functions, so there is not a concern about ownership.
+    x->ops->nvgetlength         = y->ops->nvgetlength;
+    x->ops->nvclone             = y->ops->nvclone;
+    x->ops->nvcloneempty        = y->ops->nvcloneempty;
+    x->ops->nvdestroy           = y->ops->nvdestroy;
+    x->ops->nvspace             = y->ops->nvspace;
+    x->ops->nvgetarraypointer   = y->ops->nvgetarraypointer;
+    x->ops->nvsetarraypointer   = y->ops->nvsetarraypointer;
+    x->ops->nvlinearsum         = y->ops->nvlinearsum;
+    x->ops->nvconst             = y->ops->nvconst;
+    x->ops->nvprod              = y->ops->nvprod;
+    x->ops->nvdiv               = y->ops->nvdiv;
+    x->ops->nvscale             = y->ops->nvscale;
+    x->ops->nvabs               = y->ops->nvabs;
+    x->ops->nvinv               = y->ops->nvinv;
+    x->ops->nvaddconst          = y->ops->nvaddconst;
+    x->ops->nvmaxnorm           = y->ops->nvmaxnorm;
+    x->ops->nvwrmsnorm          = y->ops->nvwrmsnorm;
+    x->ops->nvmin               = y->ops->nvmin;
+    x->ops->nvminquotient       = y->ops->nvminquotient;
+    x->ops->nvconstrmask        = y->ops->nvconstrmask;
+    x->ops->nvcompare           = y->ops->nvcompare;
+    x->ops->nvinvtest           = y->ops->nvinvtest;
+    x->ops->nvlinearcombination = y->ops->nvlinearcombination;
+    x->ops->nvscaleaddmulti     = y->ops->nvscaleaddmulti;
+    x->ops->nvdotprodmulti      = y->ops->nvdotprodmulti;
+    x->ops->nvscalevectorarray  = y->ops->nvscalevectorarray;
+  }
+
+
+
   /// Creates a new N_Vector with the same ops field as an existing N_Vector. Allocates storage for the vector.
   template <typename VectorType>
   N_Vector
@@ -48,8 +83,8 @@ namespace NVectorOperations
   {
     N_Vector v = N_VNewEmpty();
 
-    // copy pointers to functions from existing vector
-    v->ops = w->ops;
+    copy_ops_pointers(v, w);
+    v->content = nullptr;
 
     return v;
   }
@@ -65,9 +100,11 @@ namespace NVectorOperations
     {
       auto *content = static_cast<VectorType *>(v->content);
       delete content;
-      v->content = nullptr;
     }
+
     N_VFreeEmpty(v);
+    v->content = nullptr;
+    v->ops = nullptr;
   }
 
 
@@ -91,13 +128,11 @@ namespace NVectorOperations
 
 
   /// Overwrites the pointer to the data in an N_Vector.
-  // FIXME: I'm having trouble with this but I don't think it's necessary so maybe just skip it
   template<typename VectorType>
   void
   N_VSetArrayPointer(realtype *v_data, N_Vector v)
   {
-    auto* v_ptr = N_VGetArrayPointer<VectorType>(v);
-    v_ptr = v_data;
+    assert(false);
   }
 
 
@@ -470,13 +505,11 @@ namespace NVectorOperations
 
 
 
-/// Function to create an N_Vector without allocating memory for the vector.
+/// Function to set all ops fields to the correct function pointer
 template<typename VectorType>
-N_Vector
-create_empty_eigen_nvector()
+void
+set_ops_pointers(N_Vector v)
 {
-  N_Vector v = N_VNewEmpty();
-
   v->ops->nvgetlength         = NVectorOperations::N_VGetLength<VectorType>;
   v->ops->nvclone             = NVectorOperations::N_VClone<VectorType>;
   v->ops->nvcloneempty        = NVectorOperations::N_VCloneEmpty;
@@ -503,9 +536,20 @@ create_empty_eigen_nvector()
   v->ops->nvscaleaddmulti     = NVectorOperations::N_VScaleAddMulti<VectorType>;
   v->ops->nvdotprodmulti      = NVectorOperations::N_VDotProdMulti<VectorType>;
   v->ops->nvscalevectorarray  = NVectorOperations::N_VScaleVectorArray<VectorType>;
+}
+
+
+
+/// Function to create an N_Vector without allocating memory for the vector.
+template<typename VectorType>
+N_Vector
+create_empty_eigen_nvector()
+{
+  N_Vector v = N_VNewEmpty();
+
+  set_ops_pointers<VectorType>(v);
 
   return v;
-
 }
 
 
@@ -515,7 +559,6 @@ template<typename VectorType>
 N_Vector
 create_eigen_nvector(unsigned int dim)
 {
-  // FIXME: I think I need to allocate the VectorType on the heap here so the delete is guaranteed
   N_Vector v = create_empty_eigen_nvector<VectorType>();
   VectorType* vec = new VectorType(dim);
   v->content = (void*)vec;

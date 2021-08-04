@@ -9,6 +9,7 @@ int main ()
   N_Vector v = create_eigen_nvector<Vector>(2);
 
   N_Vector x = v->ops->nvclone(v);
-  // FIXME I'm not sure how to test this
-  std::cout << "help plz";
+  // nvclone is only supposed to allocate storage, not modify the values. So the output should be a vector of zeros
+  // since Eigen will default those values to zero.
+  std::cout << *static_cast<Vector*>(x->content) << std::endl;
 }
