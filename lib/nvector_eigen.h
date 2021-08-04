@@ -122,7 +122,7 @@ namespace NVectorOperations
   N_VConst(realtype c, N_Vector z)
   {
     auto z_vec = static_cast<VectorType*>(z->content);
-    z_vec->setConstant(N_VGetLength<VectorType>(z), c);
+    z_vec->setConstant(z_vec->size(), c);
   }
 
 
