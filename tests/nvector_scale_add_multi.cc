@@ -49,5 +49,5 @@ int main ()
   std::cout << *(static_cast<Vector*>(c->content)) << std::endl;
 
   result = x->ops->nvscaleaddmulti(0, coeff, scale, X, Y);
-  std::cout << result;
+  std::cout << result << std::endl;
 }

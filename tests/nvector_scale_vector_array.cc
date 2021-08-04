@@ -38,5 +38,5 @@ int main ()
   std::cout << *(static_cast<Vector*>(b->content)) << std::endl;
 
   result = y->ops->nvscalevectorarray(0, c, X, C);
-  std::cout << result;
+  std::cout << result << std::endl;
 }

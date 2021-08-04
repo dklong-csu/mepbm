@@ -24,6 +24,6 @@ int main ()
   // z = 2*(1,2) + 3*(3,4) = (11, 16)
   x->ops->nvlinearsum(a,x,b,y,z);
   auto z_vec = static_cast<Vector*>(z->content);
-  std::cout << *z_vec;
+  std::cout << *z_vec << std::endl;
 
 }

@@ -12,6 +12,6 @@ int main ()
 
   v->ops->nvconst(3, v);
 
-  std::cout << *v_vec;
+  std::cout << *v_vec << std::endl;
 
 }

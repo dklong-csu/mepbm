@@ -16,5 +16,5 @@ int main ()
 
   x->ops->nvaddconst(x, c, y);
   auto y_vec = static_cast<Vector*>(y->content);
-  std::cout << *y_vec;
+  std::cout << *y_vec << std::endl;
 }

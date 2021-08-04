@@ -12,5 +12,5 @@ int main ()
   auto eigen_vec = static_cast<Vector *>(v->content);
   auto eigen_ptr = eigen_vec->data();
   auto fcn_result = v->ops->nvgetarraypointer(v);
-  std::cout << (fcn_result == eigen_ptr);
+  std::cout << (fcn_result == eigen_ptr) << std::endl;
 }

@@ -12,5 +12,5 @@ int main ()
 
 
   auto m = v->ops->nvmin(v);
-  std::cout << m;
+  std::cout << m << std::endl;
 }

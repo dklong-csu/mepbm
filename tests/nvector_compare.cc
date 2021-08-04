@@ -15,5 +15,5 @@ int main ()
   N_Vector y = create_eigen_nvector<Vector>(3);
 
   x->ops->nvcompare(c,x,y);
-  std::cout << *static_cast<Vector*>(y->content);
+  std::cout << *static_cast<Vector*>(y->content) << std::endl;
 }

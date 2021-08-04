@@ -12,5 +12,5 @@ int main ()
   v->ops->nvsetarraypointer(new_data, v);
   auto v_ptr = v->ops->nvgetarraypointer(v);
   auto result = (v_ptr == new_data);
-  std::cout << result;
+  std::cout << result << std::endl;
 }

@@ -34,5 +34,5 @@ int main ()
   std::cout << *(static_cast<Vector*>(r->content)) << std::endl;
 
   result = x->ops->nvlinearcombination(0, c, X, r);
-  std::cout << result;
+  std::cout << result << std::endl;
 }

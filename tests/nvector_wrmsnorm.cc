@@ -17,5 +17,5 @@ int main ()
 
   // Result should be 2
   auto result = x->ops->nvwrmsnorm(x,w);
-  std::cout << result;
+  std::cout << result << std::endl;
 }

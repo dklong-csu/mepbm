@@ -9,5 +9,5 @@ int main ()
   N_Vector v = create_eigen_nvector<Vector>(2);
 
   sunindextype n = v->ops->nvgetlength(v);
-  std::cout << n;
+  std::cout << n << std::endl;
 }

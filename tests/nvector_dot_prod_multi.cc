@@ -32,5 +32,5 @@ int main ()
   std::cout << d[1] << std::endl;
 
   result = x->ops->nvdotprodmulti(0, x, X, d);
-  std::cout << result;
+  std::cout << result << std::endl;
 }

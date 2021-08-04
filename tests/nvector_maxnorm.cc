@@ -12,5 +12,5 @@ int main ()
 
 
   realtype m = x->ops->nvmaxnorm(x);
-  std::cout << m;
+  std::cout << m << std::endl;
 }

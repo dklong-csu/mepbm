@@ -20,5 +20,5 @@ int main ()
   x->ops->nvprod(x,y,z);
 
   auto z_vec = static_cast<Vector*>(z->content);
-  std::cout << *z_vec;
+  std::cout << *z_vec << std::endl;
 }

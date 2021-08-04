@@ -21,6 +21,6 @@ int main ()
   // fail the test
   *x_vec << 0, 4;
   result = x->ops->nvinvtest(x,y);
-  std::cout << result;
+  std::cout << result << std::endl;
 
 }
