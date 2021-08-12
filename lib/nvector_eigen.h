@@ -112,7 +112,10 @@ namespace NVectorOperations
   /// Returns storage requirements for one N_Vector. This is a dummy function because it is not of interest.
   void
   N_VSpace(N_Vector v, sunindextype* lrw, sunindextype* liw)
-  {}
+  {
+    *lrw = 0;
+    *liw = 0;
+  }
 
 
 
