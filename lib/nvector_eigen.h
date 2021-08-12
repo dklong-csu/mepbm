@@ -113,7 +113,7 @@ namespace NVectorOperations
   void
   N_VSpace(N_Vector v, sunindextype* lrw, sunindextype* liw)
   {
-    *lrw = 0;
+    *lrw = v->ops->nvgetlength(v);
     *liw = 0;
   }
 
