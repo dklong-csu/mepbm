@@ -31,7 +31,7 @@ int main()
   const unsigned int POM_index = 2;
   const unsigned int nucleation_index = 3;
 
-  const Real kf = 3.6e-2;
+  const Real kf = 3.3e-3;
   const Real kb = 6.67e3;
   const Real k1 = 1.26e5;
   const Real k2 = 2.57e5;
@@ -128,7 +128,7 @@ int main()
    ********************************/
 
   // Problem constants
-  const realtype abs_tol = 1e-10;
+  const realtype abs_tol = 1e-12;
   const realtype rel_tol = 1e-6;
   const unsigned int dim = ic.size();
 
