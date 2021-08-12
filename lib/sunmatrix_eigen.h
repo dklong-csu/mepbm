@@ -95,8 +95,6 @@ namespace SUNMatrixOperations
     auto B_ptr = static_cast<MatrixType*>(B->content);
 
     *B_ptr = *A_ptr;
-    if (!B_ptr->isCompressed())
-      B_ptr->makeCompressed();
 
     return SUNMAT_SUCCESS;
   }
@@ -116,8 +114,6 @@ namespace SUNMatrixOperations
     {
       A_ptr->coeffRef(i,i) += 1.;
     }
-    if (!A_ptr->isCompressed())
-      A_ptr->makeCompressed();
 
     return SUNMAT_SUCCESS;
   }
