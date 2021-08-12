@@ -2,9 +2,8 @@
 #define MEPBM_SUNDIALS_SOLVERS_H
 
 #include <cvode/cvode.h>
-#include <nvector/nvector_serial.h>
-#include <sunmatrix/sunmatrix_dense.h>
-#include <sunmatrix/sunmatrix_sparse.h>
+#include "nvector_eigen.h"
+#include "sunmatrix_eigen.h"
 #include <sunlinsol/sunlinsol_dense.h>
 
 #include <sunlinsol/sunlinsol_spgmr.h>
@@ -27,6 +26,8 @@ namespace sundials
   /// Enumeration defining template options
   enum SolverType {DENSE, SPARSE};
 
+
+
   /// Enumeration defining iterative solvers for sparse matrices
   /// SPGMR = Scaled, Preconditioned, Generalized Minimum Residual
   /// SPFGMR = Scaled, Preconditioned, Flexible, Generalized Minimum Residual
@@ -34,11 +35,21 @@ namespace sundials
   /// SPTFQMR = Scaled, Preconditioned, Transpose-Free Quasi-Minimum Residua
   enum IterativeSolver {DIRECTSOLVE, SPGMR, SPFGMR, SPBCGS, SPTFQMR};
 
+
+
   /// Enumeration to make checking of SUNDIALS C functions easier
   enum SuccessDefinition {MEMORY, RETURNZERO, RETURNNONNEGATIVE};
 
+
+
+  /// Enumeration defining nonlinear algorithm option
+  enum NonlinearAlgorithm {FIXEDPOINT, NEWTON};
+
+
+
   /// Function to check if the C-style SUNDIALS functions are successful
   int check_flag(void *flag_value, const std::string &function_name, SuccessDefinition success_type);
+
 
 
   /// Function to be passed to SUNDIALS to compute the right-hand side
@@ -63,6 +74,22 @@ namespace sundials
                           N_Vector tmp3);
 
 
+
+  /// Function to create a linear solver object
+  template <typename Matrix, typename Real>
+  SUNLinearSolver
+  setup_linear_solver(IterativeSolver solver_type,
+                      N_Vector v,
+                      SUNMatrix M);
+
+
+
+  SUNNonlinearSolver
+  create_nonlinear_solver(NonlinearAlgorithm algorithm,
+                          N_Vector v);
+
+
+
   /// Initialization parameters for CVode
   template <typename Real>
   class CVodeParameters
@@ -70,42 +97,20 @@ namespace sundials
   public:
     /// Constructor
     explicit CVodeParameters(
-        // The kind of solver being used
-        const SolverType solver_type = DENSE,
-        const IterativeSolver iterative_solver = DIRECTSOLVE, // irrelevant for DENSE
         // Initial parameters
         const Real initial_time = 0.0,
         const Real final_time = 1.0,
-        // Settings for linear solver
-        const bool use_preconditioner = false,
-        const bool problem_is_stiff   = false,
-        // Settings for nonlinear solver
-        const bool use_newton_iteration = false,
         // Integrator settings
         const Real absolute_tolerance = 1e-6,
         const Real relative_tolerance = 1e-6,
-        // Sparse matrix settings (can be ignored if using dense matrices)
-        const Real drop_tolerance = std::numeric_limits<Real>::epsilon(),
-        const int sparse_type = CSC_MAT
+        const int solver_type = CV_ADAMS
         )
-        : solver_type(solver_type),
-          iterative_solver(iterative_solver),
-          initial_time(initial_time),
+        : initial_time(initial_time),
           final_time(final_time),
-          use_preconditioner(use_preconditioner),
-          problem_is_stiff(problem_is_stiff),
-          use_newton_iteration(use_newton_iteration),
           absolute_tolerance(absolute_tolerance),
           relative_tolerance(relative_tolerance),
-          drop_tolerance(drop_tolerance),
-          sparse_type(sparse_type)
+          solver_type(solver_type)
     {}
-
-    /// The type of solver being used
-    const SolverType solver_type;
-
-    /// The iterative algorithm used (only relevant for sparse matrices)
-    const IterativeSolver iterative_solver;
 
     /// Initial time for the initial value problem
     const Real initial_time;
@@ -113,26 +118,14 @@ namespace sundials
     /// Final time for the initial value problem
     const Real final_time;
 
-    /// Whether or not you want to use a preconditioner in the linear solve
-    const bool use_preconditioner;
-
-    /// Whether or not the initial value problem is stiff
-    const bool problem_is_stiff;
-
-    /// Whether or not a Newton iteration is used for the nonlinear solve (fixed point iteration is used otherwise)
-    const bool use_newton_iteration;
-
     /// Absolute tolerance for CVode
     const Real absolute_tolerance;
 
     /// Relative tolerance for CVode
     const Real relative_tolerance;
 
-    /// Tolerance for marking a matrix entry as zero when converting from dense to sparse
-    const Real drop_tolerance;
-
-    /// Storage type for sparse matrices (column or row storage)
-    const int sparse_type;
+    /// ODE solver algorithm. CV_ADAMS == 1 (for nonstiff only), CV_BDF == 2
+    const int solver_type;
   };
 
   /// Interface to SUNDIALS CVODE solver which is suitable for stiff and nonstiff
@@ -146,7 +139,10 @@ namespace sundials
     /// Initialization parameters for CVode
     CVodeSolver(const CVodeParameters<Real> &data,
                 const Model::Model<Real, Matrix> &ode_system,
-                N_Vector initial_condition);
+                N_Vector initial_condition,
+                N_Vector sun_solution_vector,
+                SUNMatrix sun_matrix,
+                SUNLinearSolver linear_solver);
 
     /// Destructor
     ~CVodeSolver();
@@ -168,14 +164,6 @@ namespace sundials
     CVodeParameters<Real>
     return_cvode_settings();
 
-    /// Returns the type of solver being used
-    SolverType
-    return_solver_type();
-
-    /// Returns the iterative algorithm used to solve linear systems
-    IterativeSolver
-    return_iterative_algorithm();
-
   private:
     /*
      * Member variables
@@ -189,9 +177,6 @@ namespace sundials
 
     /// Linear solver memory structure
     SUNLinearSolver sun_linear_solver;
-
-    /// Nonlinear solver memory structure
-    SUNNonlinearSolver sun_nonlinear_solver;
 
     /// Vector for storing the solution
     N_Vector sun_solution_vector;
@@ -213,14 +198,6 @@ namespace sundials
      * Private member functions
      */
 
-    /// Setup the linear solver
-    void
-    setup_linear_solver();
-
-    /// Setup the nonlinear solver
-    void
-    setup_nonlinear_solver();
-
     /// Setup CVode solver
     void
     setup_cvode_solver();
@@ -235,16 +212,18 @@ namespace sundials
   template <typename Matrix, typename Real>
   CVodeSolver<Matrix, Real>::CVodeSolver(const CVodeParameters<Real> &data,
                                          const Model::Model<Real, Matrix > &ode_system,
-                                         const N_Vector initial_condition)
-  : data(data), ode_system(ode_system), initial_condition(initial_condition)
+                                         const N_Vector initial_condition,
+                                         const N_Vector sun_solution_vector,
+                                         const SUNMatrix sun_matrix,
+                                         const SUNLinearSolver linear_solver)
+  : data(data), ode_system(ode_system),
+    initial_condition(initial_condition),
+    sun_linear_solver(linear_solver),
+    cvode_mem(nullptr),
+    sun_solution_vector(sun_solution_vector),
+    sun_matrix(sun_matrix),
+    flag(-1)
   {
-    sun_solution_vector = N_VNew_Serial( N_VGetLength(initial_condition) );
-    check_flag((void *)sun_solution_vector, "N_VNewSerial", MEMORY);
-
-    setup_linear_solver();
-
-    setup_nonlinear_solver();
-
     setup_cvode_solver();
   }
 
@@ -253,7 +232,6 @@ namespace sundials
   CVodeSolver<Matrix, Real>::~CVodeSolver()
   {
     CVodeFree(&cvode_mem);
-    SUNNonlinSolFree(sun_nonlinear_solver);
     SUNLinSolFree(sun_linear_solver);
     SUNMatDestroy(sun_matrix);
     N_VDestroy(sun_solution_vector);
@@ -291,90 +269,10 @@ namespace sundials
 
   template <typename Matrix, typename Real>
   void
-  CVodeSolver<Matrix, Real>::setup_linear_solver()
-  {
-    // TODO logic for either dense or sparse solver
-    // TODO see if sun_matrix needs additional setup
-    if (return_solver_type() == DENSE)
-    {
-      // Allocate memory for the matrix if using a dense solver.
-      sun_matrix = SUNDenseMatrix(N_VGetLength(sun_solution_vector), N_VGetLength(sun_solution_vector));
-      sun_linear_solver = SUNLinSol_Dense(sun_solution_vector, sun_matrix);
-      check_flag( (void *)sun_linear_solver, "SUNLinSol_Dense", MEMORY);
-    }
-    else if(return_solver_type() == SPARSE)
-    {
-      // Allocate memory for the matrix if using a sparse solver.
-      // TODO the third argument below is the max number of non zeros. Just using the full matrix right now, but this
-      // TODO can probably be inferred for an actual MEPBM problem. I don't know if it actually matters.
-      sun_matrix = SUNSparseMatrix(N_VGetLength(sun_solution_vector), N_VGetLength(sun_solution_vector),
-                                   7*N_VGetLength(sun_solution_vector),
-                                   data.sparse_type);
-      // TODO preconditioner
-      if (return_iterative_algorithm() == SPGMR)
-      {
-        // preconditioner = PREC_NONE, PREC_LEFT, PREC_RIGHT, PREC_BOTH
-        // maxl = number of Krylov basis vectors to use TODO optimize better
-        sun_linear_solver = SUNLinSol_SPGMR(sun_solution_vector, PREC_NONE, 20);
-        check_flag( (void *)sun_linear_solver, "SUNLinSol_SPGMR", MEMORY);
-      }
-      else if (return_iterative_algorithm() == SPFGMR)
-      {
-        // preconditioner = PREC_NONE, PREC_LEFT, PREC_RIGHT, PREC_BOTH
-        // maxl = number of Krylov basis vectors to use TODO optimize better
-        sun_linear_solver = SUNLinSol_SPFGMR(sun_solution_vector, PREC_NONE, 20);
-        check_flag( (void *)sun_linear_solver, "SUNLinSol_SPFGMR", MEMORY);
-      }
-      else if (return_iterative_algorithm() == SPBCGS)
-      {
-        // preconditioner = PREC_NONE, PREC_LEFT, PREC_RIGHT, PREC_BOTH
-        // maxl = number of linear iterations to allow TODO optimize better
-        sun_linear_solver = SUNLinSol_SPBCGS(sun_solution_vector, PREC_NONE, 100);
-        check_flag( (void *)sun_linear_solver, "SUNLinSol_SPBCGS", MEMORY);
-      }
-      else if (return_iterative_algorithm() == SPTFQMR)
-      {
-        // preconditioner = PREC_NONE, PREC_LEFT, PREC_RIGHT, PREC_BOTH
-        // maxl = number of linear iterations to allow TODO optimize better
-        sun_linear_solver = SUNLinSol_SPTFQMR(sun_solution_vector, PREC_NONE, 100);
-        check_flag( (void *)sun_linear_solver, "SUNLinSol_SPTFQMR", MEMORY);
-      }
-      else
-      {
-        check_flag( (void *)sun_linear_solver, "SUNLinSol_***", MEMORY);
-      }
-    }
-    else
-    {
-      check_flag( (void *)sun_linear_solver, "SUNLinSol_***", MEMORY);
-    }
-  }
-
-
-  template <typename Matrix, typename Real>
-  void
-  CVodeSolver<Matrix, Real>::setup_nonlinear_solver()
-  {
-    if (data.use_newton_iteration)
-    {
-      sun_nonlinear_solver = SUNNonlinSol_Newton(sun_solution_vector);
-      check_flag( (void *) sun_nonlinear_solver, "SUNNonlinSol_Newton", MEMORY);
-    }
-    else
-    {
-      sun_nonlinear_solver = SUNNonlinSol_FixedPoint(sun_solution_vector, 0);
-      check_flag( (void *) sun_nonlinear_solver, "SUNNonlinSol_FixedPoint", MEMORY);
-    }
-  }
-
-
-  template <typename Matrix, typename Real>
-  void
   CVodeSolver<Matrix, Real>::setup_cvode_solver()
   {
     // Setup integrator
-    auto multistep_algorithm = (data.problem_is_stiff) ? CV_BDF : CV_ADAMS;
-    cvode_mem = CVodeCreate(multistep_algorithm);
+    cvode_mem = CVodeCreate(data.solver_type);
     check_flag( (void *) cvode_mem, "CVodeCreate", MEMORY);
 
 
@@ -385,7 +283,7 @@ namespace sundials
 
     // Specify tolerances
     flag = CVodeSStolerances(cvode_mem, data.relative_tolerance, data.absolute_tolerance);
-    check_flag(&flag, "CVodeSetLinearSolver",RETURNNONNEGATIVE);
+    check_flag(&flag, "CVodeSStolerances",RETURNNONNEGATIVE);
 
 
     // Attach user data
@@ -394,7 +292,6 @@ namespace sundials
 
 
     // Attach linear solver
-    // TODO see if sum_matrix needs anything special
     flag = CVodeSetLinearSolver(cvode_mem, sun_linear_solver, sun_matrix);
     check_flag(&flag, "CVodeSetLinearSolver", RETURNNONNEGATIVE);
 
@@ -427,26 +324,6 @@ namespace sundials
   CVodeSolver<Matrix, Real >::return_cvode_settings()
   {
     return data;
-  }
-
-
-
-  /// Returns the type of solver being used
-  template< typename Matrix, typename Real >
-  SolverType
-  CVodeSolver<Matrix, Real >::return_solver_type()
-  {
-    return return_cvode_settings().solver_type;
-  }
-
-
-
-  /// Returns the iterative algorithm used to solve linear systems
-  template< typename Matrix, typename Real >
-  IterativeSolver
-  CVodeSolver<Matrix, Real >::return_iterative_algorithm()
-  {
-    return return_cvode_settings().iterative_solver;
   }
 
 
@@ -535,24 +412,10 @@ namespace sundials
 
     Model::Model<Real, Matrix> ode_system = cvode_system.return_ode_model();
 
-    // Convert N_Vector to Eigen vector for compatability with Model::Model
-    const auto vector_length = N_VGetLength(y);
-    Eigen::Matrix<Real, Eigen::Dynamic, 1> y_eigen(vector_length);
-    auto y_data = N_VGetArrayPointer(y);
-    for (unsigned int i = 0; i < vector_length; ++i)
-    {
-      y_eigen(i) = y_data[i];
-    }
+    auto y_vec = static_cast< Eigen::Matrix<Real, Eigen::Dynamic, 1> *>(y->content);
+    auto y_dot_vec = static_cast< Eigen::Matrix<Real, Eigen::Dynamic, 1> *>(y_dot->content);
 
-    // Calculate the right-hand side
-    auto y_dot_eigen = ode_system.rhs(y_eigen);
-
-    // Convert the Eigen vector to an N_Vector for output
-    auto y_dot_data = N_VGetArrayPointer(y_dot);
-    for (unsigned int i = 0; i < vector_length; ++i)
-    {
-      y_dot_data[i] = y_dot_eigen(i);
-    }
+    *y_dot_vec = ode_system.rhs(*y_vec);
 
     // Return success
     return 0;
@@ -579,53 +442,14 @@ namespace sundials
 
     const auto ode_system = cvode_solver.return_ode_model();
 
-    // Convert N_Vector to Eigen vector for compatability with Model::Model
-    const auto vector_length = N_VGetLength(y);
-    Eigen::Matrix<Real, Eigen::Dynamic, 1> y_eigen(vector_length);
-    auto y_data = N_VGetArrayPointer(y);
-    for (unsigned int i = 0; i < vector_length; ++i)
-    {
-      y_eigen(i) = y_data[i];
-    }
+    auto J_mat = static_cast<Matrix*>(Jacobian->content);
+    auto y_vec = static_cast< Eigen::Matrix<Real, Eigen::Dynamic, 1>* >(y->content);
 
-    // Calculate the Jacobian
-    auto Jacobian_eigen = ode_system.jacobian(y_eigen);
-
-    // Create a dense matrix to build the Jacobian
-    auto Jacobian_build = SUNDenseMatrix( vector_length, vector_length);
-
-    // Convert the Eigen matrix into a SUNDIALS matrix
-    auto Jacobian_data = SUNDenseMatrix_Data(Jacobian_build);
-    for (unsigned int i=0; i < vector_length; ++i)
-    {
-      for (unsigned int j=0; j < vector_length; ++j)
-      {
-        // Jacobian(i,j) = data[j*M+i] where M=number of rows
-        // coeffRef works with both sparse and dense Eigen matrix types
-        Jacobian_data[j*vector_length + i] = Jacobian_eigen.coeffRef(i,j);
-      }
-    }
-
-    // Convert to the appropriate matrix type
-    if (cvode_solver.return_solver_type() == DENSE)
-    {
-      // The build Jacobian is already a dense matrix, so just use that.
-      Jacobian = Jacobian_build;
-    }
-    else
-    {
-      // Need to convert to a SUNMatrix_Sparse object
-      Jacobian = SUNSparseFromDenseMatrix(Jacobian_build,
-                                          cvode_settings.drop_tolerance,
-                                          cvode_settings.sparse_type);
-    }
+    *J_mat = ode_system.jacobian(*y_vec);
 
     // Return success
     return 0;
   }
-
-
-
 }
 
 #endif //MEPBM_SUNDIALS_SOLVERS_H

@@ -1,5 +1,8 @@
 # Executables
 mepbm
+*
+!/**/
+!*.*
 *.exe
 *.out
 *.app
@@ -16,6 +19,9 @@ Makefile
 build.ninja
 rules.ninja
 
+# CLion project files
+*.cbp
+
 # Cmake files generated during in-source builds
 CMakeCache.txt
 CMakeFiles
@@ -28,3 +34,10 @@ tests/*
 !tests/*cc
 !tests/*output
 
+# Images
+*.png
+*.jpg
+*.pdf
+
+# Convenience scripts
+*.sh
