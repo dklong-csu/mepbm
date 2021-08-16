@@ -139,7 +139,7 @@ int main()
    ********************************/
 
   // Problem constants
-  const realtype abs_tol = 1e-13;
+  const realtype abs_tol = 1e-14;
   const realtype rel_tol = 1e-6;
   const unsigned int dim = ic.size();
 
