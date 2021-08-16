@@ -78,10 +78,10 @@ int main()
   /*******************************************
    * Solve using Eigen as an accuracy baseline
    ******************************************/
-  ODE::StepperBDF<4, Real, Matrix> stepper(three_step_alt);
+  ODE::StepperBDF<4, Real, Matrix> stepper_acc(three_step_alt);
   auto begin = std::chrono::steady_clock::now();
 
-  auto eigen_accurate_solution = ODE::solve_ode(stepper, ic, start_time, end_time, 5e-5);
+  auto eigen_accurate_solution = ODE::solve_ode(stepper_acc, ic, start_time, end_time, 5e-5);
 
   auto end = std::chrono::steady_clock::now();
   std::cout << "Accurate Eigen sparse solve: "
@@ -102,9 +102,10 @@ int main()
   /*******************************************
    * Solve using Eigen as a time baseline
    ******************************************/
+  ODE::StepperBDF<4, Real, Matrix> stepper_fast(three_step_alt);
   begin = std::chrono::steady_clock::now();
 
-  auto eigen_fast_solution = ODE::solve_ode(stepper, ic, start_time, end_time, 5e-3);
+  auto eigen_fast_solution = ODE::solve_ode(stepper_fast, ic, start_time, end_time, 5e-3);
 
   end = std::chrono::steady_clock::now();
   std::cout << "Fast Eigen sparse solve: "
@@ -128,7 +129,7 @@ int main()
    ********************************/
 
   // Problem constants
-  const realtype abs_tol = 1e-12;
+  const realtype abs_tol = 1e-13;
   const realtype rel_tol = 1e-6;
   const unsigned int dim = ic.size();
 

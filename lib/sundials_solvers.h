@@ -286,6 +286,11 @@ namespace sundials
     check_flag(&flag, "CVodeSStolerances",RETURNNONNEGATIVE);
 
 
+    // Set maximum number of steps
+    flag = CVodeSetMaxNumSteps(cvode_mem, initial_condition->ops->nvgetlength(initial_condition)*10);
+    check_flag(&flag, "CVodeSetMaxNumSteps", RETURNNONNEGATIVE);
+
+
     // Attach user data
     flag = CVodeSetUserData(cvode_mem, this);
     check_flag(&flag, "CVodeSetUserData", RETURNNONNEGATIVE);
