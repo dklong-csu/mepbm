@@ -20,6 +20,7 @@
 
 #include <iostream>
 #include <limits>
+#include <algorithm>
 
 namespace sundials
 {
@@ -284,6 +285,12 @@ namespace sundials
     // Specify tolerances
     flag = CVodeSStolerances(cvode_mem, data.relative_tolerance, data.absolute_tolerance);
     check_flag(&flag, "CVodeSStolerances",RETURNNONNEGATIVE);
+
+
+    // Set maximum number of steps
+    sunindextype max_steps = std::max((sunindextype) 500, initial_condition->ops->nvgetlength(initial_condition)*10);
+    flag = CVodeSetMaxNumSteps(cvode_mem, max_steps);
+    check_flag(&flag, "CVodeSetMaxNumSteps", RETURNNONNEGATIVE);
 
 
     // Attach user data
