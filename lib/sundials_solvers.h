@@ -287,9 +287,8 @@ namespace sundials
     check_flag(&flag, "CVodeSStolerances",RETURNNONNEGATIVE);
 
 
-    // Set maximum number of steps
-    sunindextype max_steps = std::max((sunindextype) 500, initial_condition->ops->nvgetlength(initial_condition)*10);
-    flag = CVodeSetMaxNumSteps(cvode_mem, max_steps);
+    // Set maximum number of steps -- a negative value disables the test, which is desired
+    flag = CVodeSetMaxNumSteps(cvode_mem, -1);
     check_flag(&flag, "CVodeSetMaxNumSteps", RETURNNONNEGATIVE);
 
 
