@@ -14,13 +14,12 @@
 % For this paper, 232 chains of 20,000 samples were run for each, so there
 % are files samples.0.txt, ... , samples.231.txt.
 root_folder = '../mcmc/';
-data_3step_t1 = import_data(strcat(root_folder, 'three_step_time1/samples/samples.'),0:231);
-data_3step_t2 = import_data(strcat(root_folder, 'three_step_time2/samples/samples.'),0:231);
-data_3step_t3 = import_data(strcat(root_folder, 'three_step_time3/samples/samples.'),0:231);
-data_3step_t4 = import_data(strcat(root_folder, 'three_step_time4/samples/samples.'),0:231);
-data_3step_all = import_data(strcat(root_folder, 'three_step_all_times/samples/samples.'),0:231);
-data_4step_all = import_data(strcat(root_folder, 'four_step_all_times/samples/samples.'),0:231);
-
+data_3step_t1 = import_data(strcat(root_folder, 'three_step_time1/samples/samples.'),0:231,1000);
+data_3step_t2 = import_data(strcat(root_folder, 'three_step_time2/samples/samples.'),0:231,1000);
+data_3step_t3 = import_data(strcat(root_folder, 'three_step_time3/samples/samples.'),0:231,1000);
+data_3step_t4 = import_data(strcat(root_folder, 'three_step_time4/samples/half_dt/samples.'),0:231,1000);
+data_3step_all = import_data(strcat(root_folder, 'three_step_all_times/samples/samples.'),0:231,1000);
+data_4step_all = import_data(strcat(root_folder, 'four_step_all_times/samples/samples.'),0:231,1000);
 
 
 %% Create marginal distributions
@@ -195,7 +194,7 @@ for s=1:length(scenarios)
                        
         % Export as a vector graphic since this is a relatively small
         % figure and a vector graphic ensures high resolution.
-        exportgraphics(f, strcat(folder,'/',file_names{i},'.pdf'),'ContentType','vector')
+        exportgraphics(f, strcat('./',folder,'_',file_names{i},'.pdf'),'ContentType','vector')
     end
 
     % Create the plot for the integer-valued parameter M.
@@ -209,7 +208,7 @@ for s=1:length(scenarios)
     f = figure; 
     create_histogram1D_integer(data_model(:,nvars), plot_labels{nvars}, integer_bin_width, ...
                            font_size, limits(nvars,:), ticks, tick_labels)
-    exportgraphics(f, strcat(folder,'/',file_names{nvars},'.pdf'),'ContentType','vector')
+    exportgraphics(f, strcat('./',folder,'_',file_names{nvars},'.pdf'),'ContentType','vector')
 
     % Close all of the figures before moving to the next set of samples.
     close all

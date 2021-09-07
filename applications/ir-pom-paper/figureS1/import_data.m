@@ -23,9 +23,17 @@
 % file_numbering_labels --> a vector containing every numeric label that
 %                           needs to be appended to the end of the file
 %                           prefix in order to uniquely identify a file.
-function data = import_data(file_prefix, file_numbering_labels)
+function data = import_data(file_prefix, file_numbering_labels, burn_in)
     data = [];
+    n = length(file_numbering_labels);
+    index = 0;
     for i=file_numbering_labels
-        data = [data; readmatrix(strcat(file_prefix,num2str(i),'.txt'))];
+        A = readmatrix(strcat(file_prefix, num2str(i),'.txt'));
+        if i == file_numbering_labels(1)
+            chain_length = size(A(burn_in+1:end,:),1);
+            data = zeros(n*chain_length, size(A,2));
+        end
+        data(index*chain_length+1:(index+1)*chain_length, :) = A(burn_in+1:end, :);
+        index = index+1;
     end
 end

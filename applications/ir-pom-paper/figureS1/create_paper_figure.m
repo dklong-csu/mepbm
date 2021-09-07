@@ -1,6 +1,6 @@
 %%
 root_folder = '../mcmc/';
-data = import_data(strcat(root_folder, 'three_step_all_times/samples/samples.'),0:231);
+data = import_data(strcat(root_folder, 'three_step_all_times/samples/samples.'),0:231, 1000);
 
 %%
 n_rows = size(data,1);
@@ -9,6 +9,8 @@ n = [1e5 5e5 1e6 2e6 size(data,1)];
 for i=1:length(data_subset)
     data_subset{i} = data(1:n(i),4);
 end
+
+file_names = {'convergence_100k', 'convergence_500k', 'convergence_1M', 'convergence_2M', 'convergence_all'};
 
 %%
 
@@ -37,5 +39,5 @@ for i=1:length(data_subset)
 
     % Export as a vector graphic since this is a relatively small
     % figure and a vector graphic ensures high resolution.
-    %exportgraphics(f, strcat(folder,'/',file_names{i},'.pdf'),'ContentType','vector')
+    exportgraphics(f, strcat('./',file_names{i},'.pdf'),'ContentType','vector')
 end
