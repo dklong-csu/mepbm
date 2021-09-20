@@ -3,7 +3,7 @@
 
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Sparse>
-#include "eigen3/unsupported/Eigen/src/IterativeSolvers/GMRES.h"
+#include <eigen3/unsupported/Eigen/IterativeSolvers>
 #include <cmath>
 #include <deque>
 #include <vector>
