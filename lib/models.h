@@ -1086,14 +1086,16 @@ namespace Model
   class Model
   {
   public:
+    Model();
+
     Model(unsigned int nucleation_order, unsigned int max_size);
 
     void add_rhs_contribution(std::shared_ptr<RightHandSideContribution<Real, Matrix>> &rhs);
     Eigen::Matrix<Real, Eigen::Dynamic, 1> rhs(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const;
     Matrix jacobian(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const;
 
-    const unsigned int nucleation_order;
-    const unsigned int max_size;
+    unsigned int nucleation_order;
+    unsigned int max_size;
 
   private:
     std::vector<std::shared_ptr<RightHandSideContribution<Real, Matrix>>> rhs_contributions;
@@ -1106,6 +1108,8 @@ namespace Model
   class Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>
   {
   public:
+    Model();
+
     Model(unsigned int nucleation_order, unsigned int max_size);
 
     void add_rhs_contribution(
@@ -1114,13 +1118,20 @@ namespace Model
     Eigen::Matrix<Real, Eigen::Dynamic, 1> rhs(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const;
     Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> jacobian(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const;
 
-    const unsigned int nucleation_order;
-    const unsigned int max_size;
+    unsigned int nucleation_order;
+    unsigned int max_size;
 
   private:
     std::vector<std::shared_ptr<
         RightHandSideContribution<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>>> rhs_contributions;
   };
+
+
+
+  template<typename Real>
+  Model<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::Model()
+    : Model(std::numeric_limits<unsigned int>::signaling_NaN(), std::numeric_limits<unsigned int>::signaling_NaN())
+  {}
 
 
 
@@ -1185,6 +1196,8 @@ namespace Model
   class Model<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>
   {
   public:
+    Model();
+
     Model(unsigned int nucleation_order, unsigned int max_size);
 
     void add_rhs_contribution(
@@ -1193,13 +1206,20 @@ namespace Model
     Eigen::Matrix<Real, Eigen::Dynamic, 1> rhs(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const;
     Eigen::SparseMatrix<Real, Eigen::RowMajor> jacobian(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const;
 
-    const unsigned int nucleation_order;
-    const unsigned int max_size;
+    unsigned int nucleation_order;
+    unsigned int max_size;
 
   private:
     std::vector<std::shared_ptr<
         RightHandSideContribution<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>>> rhs_contributions;
   };
+
+
+
+  template<typename Real>
+  Model<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::Model()
+      : Model(std::numeric_limits<unsigned int>::signaling_NaN(), std::numeric_limits<unsigned int>::signaling_NaN())
+  {}
 
 
 
