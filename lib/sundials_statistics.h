@@ -10,6 +10,9 @@
 #include "histogram.h"
 #include <iostream>
 #include <stdexcept>
+#include "sampling_parameters.h"
+
+
 
 namespace SUNDIALS_Statistics {
   namespace Internal
@@ -19,31 +22,34 @@ namespace SUNDIALS_Statistics {
      */
     template<typename RealType, typename Matrix>
     std::vector<N_Vector>
-    solve_ODE_from_sample(Sampling::Sample<RealType, Matrix> &sample)
+    solve_ODE_from_sample(const Sampling::Sample<RealType> &sample,
+                          const Sampling::ModelingParameters<RealType, Matrix> &user_data)
     {
       // Create ODE solver
-      auto vector_template = sample.user_data.initial_condition->ops->nvclone(sample.user_data.initial_condition);
-      auto N = sample.user_data.initial_condition->ops->nvgetlength(sample.user_data.initial_condition);
+      auto vector_template = user_data.initial_condition->ops->nvclone(user_data.initial_condition);
+      auto N = user_data.initial_condition->ops->nvgetlength(user_data.initial_condition);
       auto matrix_template = create_eigen_sunmatrix<Matrix>(N,N);
 
       auto linear_solver = create_eigen_linear_solver<Matrix, realtype>();
 
-      sundials::CVodeParameters<RealType> param(sample.user_data.start_time,
-                                                sample.user_data.end_time,
-                                                sample.user_data.abs_tol,
-                                                sample.user_data.rel_tol,
+      sundials::CVodeParameters<RealType> param(user_data.start_time,
+                                                user_data.end_time,
+                                                user_data.abs_tol,
+                                                user_data.rel_tol,
                                                 CV_BDF);
 
+      auto ode_system = user_data.create_model(sample.real_valued_parameters, sample.integer_valued_parameters);
+
       sundials::CVodeSolver<Matrix, RealType> ode_solver(param,
-                                                         sample.ode_system,
-                                                         sample.user_data.initial_condition,
+                                                         ode_system,
+                                                         user_data.initial_condition,
                                                          vector_template,
                                                          matrix_template,
                                                          linear_solver);
 
       // Solve the ODE
       std::vector<N_Vector> solutions;
-      ode_solver.solve_ode_incrementally(solutions, sample.user_data.times);
+      ode_solver.solve_ode_incrementally(solutions, user_data.times);
 
       return solutions;
     }
@@ -239,29 +245,30 @@ namespace SUNDIALS_Statistics {
    * output is of type RealType.
    */
   template<typename RealType, typename Matrix>
-  RealType compute_likelihood_TEM_only(Sampling::Sample<RealType, Matrix> &sample)
+  RealType compute_likelihood_TEM_only(const Sampling::Sample<RealType> &sample,
+                                       const Sampling::ModelingParameters<RealType, Matrix> &user_data)
   {
     // Solve the ODE
-    std::vector<N_Vector> solutions = Internal::solve_ODE_from_sample<RealType, Matrix>(sample);
+    std::vector<N_Vector> solutions = Internal::solve_ODE_from_sample<RealType, Matrix>(sample, user_data);
 
     // Turn ODE solution(s) into a distribution
     std::vector< Histograms::Histogram<RealType> > probabilities;
 
-    std::vector<RealType> particle_diameters(sample.user_data.last_particle_index - sample.user_data.first_particle_index + 1);
+    std::vector<RealType> particle_diameters(user_data.last_particle_index - user_data.first_particle_index + 1);
     for (unsigned int i=0; i<particle_diameters.size(); ++i)
     {
       particle_diameters[i]
-          = Internal::convert_particle_size_to_diameter<RealType>(sample.user_data.first_particle_size + i*sample.user_data.particle_size_increase);
+          = Internal::convert_particle_size_to_diameter<RealType>(user_data.first_particle_size + i*user_data.particle_size_increase);
     }
 
     for (unsigned int i=0; i<solutions.size(); ++i)
     {
       auto sol = Internal::convert_solution_to_vector<RealType>(solutions[i]);
       auto concentrations = Internal::strip_nanoparticles_from_vector<RealType>(sol,
-                                                                                sample.user_data.first_particle_index,
-                                                                                sample.user_data.last_particle_index);
+                                                                                user_data.first_particle_index,
+                                                                                user_data.last_particle_index);
       auto p = Internal::convert_concentrations_to_pmf(concentrations,
-                                                       sample.user_data.binning_parameters,
+                                                       user_data.binning_parameters,
                                                        particle_diameters);
       probabilities.push_back(p);
     }
@@ -270,7 +277,7 @@ namespace SUNDIALS_Statistics {
     std::vector< Histograms::Histogram<RealType> > measurements;
     for (unsigned int i=0; i<solutions.size(); ++i)
     {
-      auto m = Internal::TEMData::bin_TEM_data(sample.user_data.data[i], sample.user_data.binning_parameters);
+      auto m = Internal::TEMData::bin_TEM_data(user_data.data[i], user_data.binning_parameters);
       measurements.push_back(m);
     }
 
