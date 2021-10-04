@@ -136,6 +136,7 @@ namespace Sampling
       : real_parameter_bounds(real_prm_bounds),
         integer_parameter_bounds(int_prm_bounds),
         create_model(create_model_fcn),
+        initial_condition(nullptr),
         start_time(start_time),
         end_time(end_time),
         abs_tol(abs_tol),
@@ -149,10 +150,13 @@ namespace Sampling
         data(data)
   {
     initial_condition = ic->ops->nvclone(ic);
-    auto ic_vec_ptr = static_cast<Eigen::Matrix<RealType, Eigen::Dynamic, 1>*>(initial_condition->content);
+    auto new_ic_ptr = static_cast<Eigen::Matrix<RealType, Eigen::Dynamic, 1>*>(initial_condition->content);
+    auto old_ic_ptr = static_cast<Eigen::Matrix<RealType, Eigen::Dynamic, 1>*>(ic->content);
+    assert(new_ic_ptr->size() == old_ic_ptr->size());
+    assert(new_ic_ptr->size() == initial_condition->ops->nvgetlength(initial_condition));
     for (unsigned int i=0; i<initial_condition->ops->nvgetlength(initial_condition);++i)
     {
-      (*ic_vec_ptr)(i) = (*static_cast<Eigen::Matrix<RealType, Eigen::Dynamic, 1>*>(ic->content))(i);
+      (*new_ic_ptr)(i) = (*old_ic_ptr)(i);
     }
   }
 
@@ -200,9 +204,14 @@ namespace Sampling
     data = old_prm.data;
 
     // N_Vector member needs to be created specially
+    initial_condition->ops->nvdestroy(initial_condition);
     initial_condition = old_prm.initial_condition->ops->nvclone(old_prm.initial_condition);
     auto new_ic_ptr = static_cast<Eigen::Matrix<RealType, Eigen::Dynamic, 1>*>(initial_condition->content);
     auto old_ic_ptr = static_cast<Eigen::Matrix<RealType, Eigen::Dynamic, 1>*>(old_prm.initial_condition->content);
+    // assert both Eigen vectors have same length
+    abort();
+    assert(new_ic_ptr->size() == old_ic_ptr->size());
+    assert(new_ic_ptr->size() == initial_condition->ops->nvgetlength(initial_condition)+1);
     for (unsigned int i=0; i<initial_condition->ops->nvgetlength(initial_condition); ++i)
     {
       (*new_ic_ptr)(i) = (*old_ic_ptr)(i);
