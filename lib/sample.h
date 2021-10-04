@@ -26,11 +26,21 @@ namespace Sampling
   class Sample
   {
   public:
-    /**
-     * A constructor taking in the necessary arguments to fully define a sample in the desired parameter space.
-     */
+    /// Default constructor
+    Sample() = default;
+
+    /// A constructor taking in the necessary arguments to fully define a sample in the desired parameter space.
     Sample(std::vector<RealType> real_prm,
            std::vector<int> int_prm);
+
+    /// Copy constructor
+    Sample(const Sample& old_prm);
+
+    /// Copy assignment
+    Sample & operator=(const Sample& old_prm);
+
+    /// Destructor
+    ~Sample() = default;
 
     /// The values of all the real-valued parameters.
     std::vector<RealType> real_valued_parameters;
@@ -44,9 +54,6 @@ namespace Sampling
     /// What it means to output a Sample
     template<typename R>
     friend std::ostream & operator<< (std::ostream &out, const Sample<R> &sample);
-
-    /// Sample assignment
-    Sample<RealType>& operator = (const Sample<RealType> &sample);
   };
 
 
@@ -57,6 +64,26 @@ namespace Sampling
    : real_valued_parameters(real_prm),
      integer_valued_parameters(std::move(int_prm))
   {}
+
+
+
+  template<typename RealType>
+  Sample<RealType>::Sample(const Sample & old_prm)
+  {
+    real_valued_parameters = old_prm.real_valued_parameters;
+    integer_valued_parameters = old_prm.integer_valued_parameters;
+  }
+
+
+
+  template<typename RealType>
+  Sample<RealType> &
+  Sample<RealType>::operator=(const Sample & old_prm)
+  {
+    real_valued_parameters = old_prm.real_valued_parameters;
+    integer_valued_parameters = old_prm.integer_valued_parameters;
+    return *this;
+  }
 
 
 
@@ -111,17 +138,6 @@ namespace Sampling
     }
 
     return out;
-  }
-
-
-
-  template<typename RealType>
-  Sample<RealType>& Sample<RealType>::operator=(const Sample<RealType> &sample)
-  {
-    real_valued_parameters = sample.real_valued_parameters;
-    integer_valued_parameters = sample.integer_valued_parameters;
-
-    return *this;
   }
 
 
