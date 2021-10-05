@@ -111,11 +111,11 @@ int main ()
 
   std::vector<double> real_prm = {10};
   std::vector<int> int_prm = {-1};
-  Sampling::Sample<double, Matrix> s(real_prm, int_prm, model_prm);
+  Sampling::Sample<double> s(real_prm, int_prm);
 
 
   // Solve ODE
-  auto solutions = SUNDIALS_Statistics::Internal::solve_ODE_from_sample(s);
+  auto solutions = SUNDIALS_Statistics::Internal::solve_ODE_from_sample(s, model_prm);
 
   // Convert ODE solution to std::vector and output results
   for (auto v : solutions)
@@ -123,7 +123,7 @@ int main ()
     const auto y = SUNDIALS_Statistics::Internal::convert_solution_to_vector<double>(v);
     for (const auto & val : y)
     {
-      std::cout << std::setprecision(20) << val << std::endl;
+      std::cout << std::fixed << std::setprecision(40) << val << std::endl;
     }
   }
 
