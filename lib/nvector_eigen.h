@@ -104,6 +104,7 @@ namespace NVectorOperations
     }
 
     N_VFreeEmpty(v);
+    v = nullptr;
   }
 
 
