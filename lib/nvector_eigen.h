@@ -100,11 +100,10 @@ namespace NVectorOperations
     {
       auto *content = static_cast<VectorType *>(v->content);
       delete content;
+      v->content = nullptr;
     }
 
     N_VFreeEmpty(v);
-    v->content = nullptr;
-    v->ops = nullptr;
   }
 
 

@@ -64,7 +64,13 @@ int main ()
 
   N_Vector initial_condition = create_eigen_nvector<Vector>(2501);
   auto ic_vec = static_cast<Vector*>(initial_condition->content);
-  (*ic_vec)(0) = 0.0012;
+  for (unsigned int i=0; i<ic_vec->size();++i)
+  {
+    if (i==0)
+      (*ic_vec)(i) = 0.0012;
+    else
+      (*ic_vec)(i) = 0.;
+  }
   RealType start_time = 0;
   RealType end_time = 4.838;
   RealType abs_tol = 1e-13;
