@@ -46,16 +46,6 @@ namespace Sampling
                                perturbed_int_parameters);
 
    // since the uniform distribution is symmetric, the proposal ratio is always 1.
-   std::cout << "New sample: ";
-   for (auto val : new_sample.real_valued_parameters)
-   {
-     std::cout << val << "     ";
-   }
-   for (auto val : new_sample.integer_valued_parameters)
-   {
-     std::cout << val << "     ";
-   }
-   std::cout << std::endl;
    std::pair< Sample<RealType>, RealType > sample_and_ratio(new_sample, 1.);
    return sample_and_ratio;
  }
