@@ -291,7 +291,7 @@ namespace SUNDIALS_Statistics {
       if (likelihood == -std::numeric_limits<RealType>::max())
         return likelihood;
     }
-    std::cout << likelihood << std::endl;
+
     return likelihood;
   }
 }
