@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <eigen3/Eigen/Dense>
 #include "models.h"
 #include "histogram.h"
@@ -74,5 +75,5 @@ int main()
   const Real likelihood = Statistics::log_likelihood<4, Real>(data, times, three_step_alt, ic, hist_prm);
 
   // print result
-  std::cout << "log likelihood: " << likelihood;
+  std::cout << std::setprecision(20) <<"log likelihood: " << likelihood;
 }
