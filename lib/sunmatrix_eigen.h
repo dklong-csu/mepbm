@@ -58,11 +58,10 @@ namespace SUNMatrixOperations
     {
       auto content = static_cast<MatrixType *>(A->content);
       delete content;
+      A->content = nullptr;
     }
 
     SUNMatFreeEmpty(A);
-    A->content = nullptr;
-    A->ops = nullptr;
   }
 
 

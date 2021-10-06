@@ -111,11 +111,11 @@ int main ()
 
   std::vector<double> real_prm = {10};
   std::vector<int> int_prm = {-1};
-  Sampling::Sample<double, Matrix> s(real_prm, int_prm, model_prm);
+  Sampling::Sample<double> s(real_prm, int_prm);
 
 
   // compute likelihood
-  auto likelihood = SUNDIALS_Statistics::compute_likelihood_TEM_only(s);
+  double likelihood = SUNDIALS_Statistics::compute_likelihood_TEM_only(s, model_prm);
 
   std::cout << std::setprecision(20) << likelihood << std::endl;
 

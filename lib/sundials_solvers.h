@@ -4,6 +4,7 @@
 #include <cvode/cvode.h>
 #include "nvector_eigen.h"
 #include "sunmatrix_eigen.h"
+#include "linear_solver_eigen.h"
 #include <sunlinsol/sunlinsol_dense.h>
 
 #include <sunlinsol/sunlinsol_spgmr.h>
@@ -189,7 +190,7 @@ namespace sundials
     int flag;
 
     /// Initial condition for the initial value problem
-    const N_Vector initial_condition;
+    N_Vector initial_condition;
 
     /// Model object describing the system of ODEs
     const Model::Model< Real, Matrix > ode_system;
@@ -213,18 +214,42 @@ namespace sundials
   template <typename Matrix, typename Real>
   CVodeSolver<Matrix, Real>::CVodeSolver(const CVodeParameters<Real> &data,
                                          const Model::Model<Real, Matrix > &ode_system,
-                                         const N_Vector initial_condition,
-                                         const N_Vector sun_solution_vector,
-                                         const SUNMatrix sun_matrix,
+                                         const N_Vector ic,
+                                         const N_Vector nvector_template,
+                                         const SUNMatrix sunmatrix_template,
                                          const SUNLinearSolver linear_solver)
   : data(data), ode_system(ode_system),
-    initial_condition(initial_condition),
-    sun_linear_solver(linear_solver),
+    initial_condition(nullptr),
+    sun_linear_solver(nullptr),
     cvode_mem(nullptr),
-    sun_solution_vector(sun_solution_vector),
-    sun_matrix(sun_matrix),
+    sun_solution_vector(nullptr),
+    sun_matrix(nullptr),
     flag(-1)
   {
+    // Clone the initial condition argument and fill the vector
+    initial_condition = ic->ops->nvclone(ic);
+    auto new_ic_ptr = static_cast<Eigen::Matrix<Real, Eigen::Dynamic, 1>*>(initial_condition->content);
+    auto old_ic_ptr = static_cast<Eigen::Matrix<Real, Eigen::Dynamic, 1>*>(ic->content);
+    assert(new_ic_ptr->size() == old_ic_ptr->size());
+    for (unsigned int i=0;i<new_ic_ptr->size();++i)
+    {
+      (*new_ic_ptr)(i) = (*old_ic_ptr)(i);
+    }
+
+    // Clone the vector template -- SUNDIALS is fine with the underlying vector being uninitialized.
+    sun_solution_vector = nvector_template->ops->nvclone(nvector_template);
+
+    // Clone the matrix template -- SUNDIALS is fine with the underlying matrix being uninitialized.
+    sun_matrix = sunmatrix_template->ops->clone(sunmatrix_template);
+
+    // Clone the linear solver
+    sun_linear_solver = create_eigen_linear_solver<Matrix, Real>();
+    sun_linear_solver->ops->gettype = linear_solver->ops->gettype;
+    sun_linear_solver->ops->setup = linear_solver->ops->setup;
+    sun_linear_solver->ops->solve = linear_solver->ops->solve;
+    sun_linear_solver->ops->free = linear_solver->ops->free;
+
+
     setup_cvode_solver();
   }
 
@@ -233,10 +258,10 @@ namespace sundials
   CVodeSolver<Matrix, Real>::~CVodeSolver()
   {
     CVodeFree(&cvode_mem);
-    SUNLinSolFree(sun_linear_solver);
-    SUNMatDestroy(sun_matrix);
-    N_VDestroy(sun_solution_vector);
-    N_VDestroy(initial_condition);
+    sun_linear_solver->ops->free(sun_linear_solver);
+    sun_matrix->ops->destroy(sun_matrix);
+    sun_solution_vector->ops->nvdestroy(sun_solution_vector);
+    initial_condition->ops->nvdestroy(initial_condition);
   }
 
 
@@ -261,6 +286,11 @@ namespace sundials
     for (const auto & tout : times)
     {
       N_Vector solution = N_VClone(sun_solution_vector);
+      auto sol_vec_ptr = static_cast<Eigen::Matrix<Real, Eigen::Dynamic, 1>*>(solution->content);
+      for (unsigned int i=0; i<sol_vec_ptr->size();++i)
+      {
+        (*sol_vec_ptr)(i) = 0.;
+      }
       solve_ode(solution, tout);
       solutions.push_back(solution);
     }
