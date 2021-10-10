@@ -58,14 +58,13 @@ namespace Model
   /// A function that converts the diameter of a particle as measured using TEM to the number of atoms present in the particle
   ///
   template<typename Real>
-  Real atoms(unsigned int &size, unsigned int conserved_size);
+  Real atoms(unsigned int size);
 
 
   template<typename Real>
-  Real atoms(unsigned int &size,
-             unsigned int conserved_size)
+  Real atoms(unsigned int size)
   {
-    return 2.677 * size * std::pow(1.*conserved_size*size, -0.28);
+    return 2.677 * size * std::pow(1.*size, -0.28);
   }
 
 
@@ -375,12 +374,13 @@ namespace Model
   public:
     const unsigned int A_index, smallest_size, largest_size, max_size, ligand_index, conserved_size;
     const Real rate;
+    const unsigned int smallest_size_index;
 
     Growth();
 
     Growth(unsigned int A_index, unsigned int smallest_size, unsigned int largest_size,
            unsigned int max_size, unsigned int ligand_index, unsigned int conserved_size,
-           Real rate);
+           Real rate, unsigned int smallest_size_index);
 
     void add_contribution_to_rhs(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
                                  Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs) override;
@@ -391,6 +391,11 @@ namespace Model
     void add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list) override;
 
     void update_num_nonzero(unsigned int &num_nonzero) override;
+
+  private:
+    unsigned int index_to_size(unsigned int size);
+
+    unsigned int size_to_index(unsigned int index);
   };
 
 
@@ -403,12 +408,13 @@ namespace Model
   public:
     const unsigned int A_index, smallest_size, largest_size, max_size, ligand_index, conserved_size;
     const Real rate;
+    const unsigned int smallest_size_index;
 
     Growth();
 
     Growth(unsigned int A_index, unsigned int smallest_size, unsigned int largest_size,
            unsigned int max_size, unsigned int ligand_index, unsigned int conserved_size,
-           Real rate);
+           Real rate, unsigned int smallest_size_index);
 
     void add_contribution_to_rhs(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
                                  Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs) override;
@@ -419,7 +425,30 @@ namespace Model
     void add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list) {}
 
     void update_num_nonzero(unsigned int &num_nonzero) {}
+
+  private:
+    unsigned int index_to_size(unsigned int size);
+
+    unsigned int size_to_index(unsigned int index);
   };
+
+
+
+  template<typename Real>
+  unsigned int
+  Growth<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::index_to_size(unsigned int index)
+  {
+    return (index - smallest_size_index)*conserved_size + smallest_size;
+  }
+
+
+
+  template<typename Real>
+  unsigned int
+  Growth<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::size_to_index(unsigned int size)
+  {
+    return (size - smallest_size)/conserved_size + smallest_size_index;
+  }
 
 
 
@@ -431,7 +460,8 @@ namespace Model
                std::numeric_limits<unsigned int>::signaling_NaN(),
                std::numeric_limits<unsigned int>::signaling_NaN(),
                std::numeric_limits<unsigned int>::signaling_NaN(),
-               std::numeric_limits<Real>::signaling_NaN())
+               std::numeric_limits<Real>::signaling_NaN(),
+               std::numeric_limits<unsigned int>::signaling_NaN())
   {}
 
 
@@ -444,7 +474,8 @@ namespace Model
       const unsigned int max_size,
       const unsigned int ligand_index,
       const unsigned int conserved_size,
-      const Real rate)
+      const Real rate,
+      const unsigned int smallest_index)
       : A_index(A_index)
       , smallest_size(smallest_size)
       , largest_size(largest_size)
@@ -452,6 +483,7 @@ namespace Model
       , ligand_index(ligand_index)
       , conserved_size(conserved_size)
       , rate(rate)
+      , smallest_size_index(smallest_index)
   {}
 
 
@@ -463,18 +495,25 @@ namespace Model
   {
     assert(smallest_size < largest_size);
     assert(largest_size <= max_size);
-    // FIXME: I should pass some size_to_index function as an argument as this only works if
-    // FIXME: the nucleation order is 3 at the moment
-    for (unsigned int size = smallest_size; size <= largest_size; ++size)
+    auto first_index = size_to_index(smallest_size);
+    auto last_index = size_to_index(largest_size);
+    assert(first_index <= last_index);
+    assert(first_index != A_index);
+    assert(first_index != ligand_index);
+    assert(last_index != A_index);
+    assert(last_index != ligand_index);
+    assert(!(first_index < A_index && A_index < last_index));
+    assert(!(first_index < ligand_index && ligand_index < last_index));
+    for (unsigned int index = first_index; index <= last_index; ++index)
     {
-      const Real rxn_factor = rate *  x(A_index) * atoms<Real>(size, conserved_size) * x(size);
-      rhs(size) -= rxn_factor;
+      const Real rxn_factor = rate *  x(A_index) * atoms<Real>(index_to_size(index)) * x(index_to_size(index));
+      rhs(index) -= rxn_factor;
       rhs(ligand_index) += rxn_factor;
       rhs(A_index) -= rxn_factor;
 
-      if (size < max_size)
+      if (index_to_size(index) < max_size)
       {
-        rhs(size + 1) += rxn_factor;
+        rhs(index + 1) += rxn_factor;
       }
     }
   }
@@ -489,25 +528,34 @@ namespace Model
   {
     assert(smallest_size < largest_size);
     assert(largest_size <= max_size);
+    auto first_index = size_to_index(smallest_size);
+    auto last_index = size_to_index(largest_size);
+    assert(first_index <= last_index);
+    assert(first_index != A_index);
+    assert(first_index != ligand_index);
+    assert(last_index != A_index);
+    assert(last_index != ligand_index);
+    assert(!(first_index < A_index && A_index < last_index));
+    assert(!(first_index < ligand_index && ligand_index < last_index));
 
-    for (unsigned int size = smallest_size; size <= largest_size; ++size)
+    for (unsigned int index = first_index; index <= last_index; ++index)
     {
-      const Real rxn_factor_dA = rate * atoms<Real>(size, conserved_size) * x(size);
-      const Real rxn_factor_dn = rate * x(A_index) * atoms<Real>(size, conserved_size);
+      const Real rxn_factor_dA = rate * atoms<Real>(index_to_size(index)) * x(index);
+      const Real rxn_factor_dn = rate * x(A_index) * atoms<Real>(index_to_size(index));
 
-      jacobi(size, A_index) -= rxn_factor_dA;
-      jacobi(size, size) -= rxn_factor_dn;
+      jacobi(index, A_index) -= rxn_factor_dA;
+      jacobi(index, index) -= rxn_factor_dn;
 
       jacobi(ligand_index, A_index) += rxn_factor_dA;
-      jacobi(ligand_index, size) += rxn_factor_dn;
+      jacobi(ligand_index, index) += rxn_factor_dn;
 
       jacobi(A_index, A_index) -= rxn_factor_dA;
-      jacobi(A_index, size) -= rxn_factor_dn;
+      jacobi(A_index, index) -= rxn_factor_dn;
 
-      if (size < max_size)
+      if (index_to_size(index) < max_size)
       {
-        jacobi(size + 1, A_index) += rxn_factor_dA;
-        jacobi(size + 1, size) += rxn_factor_dn;
+        jacobi(index + 1, A_index) += rxn_factor_dA;
+        jacobi(index + 1, index) += rxn_factor_dn;
       }
     }
   }
@@ -522,12 +570,13 @@ namespace Model
   public:
     const unsigned int A_index, smallest_size, largest_size, max_size, ligand_index, conserved_size;
     const Real rate;
+    const unsigned int smallest_size_index;
 
     Growth();
 
     Growth(unsigned int A_index, unsigned int smallest_size, unsigned int largest_size,
            unsigned int max_size, unsigned int ligand_index, unsigned int conserved_size,
-           Real rate);
+           Real rate, unsigned int smallest_size_index);
 
     void add_contribution_to_rhs(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
                                  Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs) override;
@@ -538,7 +587,30 @@ namespace Model
     void add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list) override;
 
     void update_num_nonzero(unsigned int &num_nonzero) override;
+
+  private:
+    unsigned int index_to_size(unsigned int size);
+
+    unsigned int size_to_index(unsigned int index);
   };
+
+
+
+  template<typename Real>
+  unsigned int
+  Growth<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::index_to_size(unsigned int index)
+  {
+    return (index - smallest_size_index)*conserved_size + smallest_size;
+  }
+
+
+
+  template<typename Real>
+  unsigned int
+  Growth<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::size_to_index(unsigned int size)
+  {
+    return (size - smallest_size)/conserved_size + smallest_size_index;
+  }
 
 
 
@@ -550,7 +622,8 @@ namespace Model
                std::numeric_limits<unsigned int>::signaling_NaN(),
                std::numeric_limits<unsigned int>::signaling_NaN(),
                std::numeric_limits<unsigned int>::signaling_NaN(),
-               std::numeric_limits<Real>::signaling_NaN())
+               std::numeric_limits<Real>::signaling_NaN(),
+               std::numeric_limits<unsigned int>::signaling_NaN())
   {}
 
 
@@ -562,7 +635,8 @@ namespace Model
                                                   const unsigned int max_size,
                                                   const unsigned int ligand_index,
                                                   const unsigned int conserved_size,
-                                                  const Real rate)
+                                                  const Real rate,
+                                                  const unsigned int smallest_index)
       : A_index(A_index)
       , smallest_size(smallest_size)
       , largest_size(largest_size)
@@ -570,6 +644,7 @@ namespace Model
       , ligand_index(ligand_index)
       , conserved_size(conserved_size)
       , rate(rate)
+      , smallest_size_index(smallest_index)
   {}
 
 
@@ -581,18 +656,25 @@ namespace Model
   {
     assert(smallest_size < largest_size);
     assert(largest_size <= max_size);
-    // FIXME: I should pass some size_to_index function as an argument as this only works if
-    // FIXME: the nucleation order is 3 at the moment
-    for (unsigned int size = smallest_size; size <= largest_size; ++size)
+    auto first_index = size_to_index(smallest_size);
+    auto last_index = size_to_index(largest_size);
+    assert(first_index <= last_index);
+    assert(first_index != A_index);
+    assert(first_index != ligand_index);
+    assert(last_index != A_index);
+    assert(last_index != ligand_index);
+    assert(!(first_index < A_index && A_index < last_index));
+    assert(!(first_index < ligand_index && ligand_index < last_index));
+    for (unsigned int index = first_index; index <= last_index; ++index)
     {
-      const Real rxn_factor = rate *  x(A_index) * atoms<Real>(size, conserved_size) * x(size);
-      rhs(size) -= rxn_factor;
+      const Real rxn_factor = rate *  x(A_index) * atoms<Real>(index_to_size(index)) * x(index);
+      rhs(index) -= rxn_factor;
       rhs(ligand_index) += rxn_factor;
       rhs(A_index) -= rxn_factor;
 
-      if (size < max_size)
+      if (index_to_size(index) < max_size)
       {
-        rhs(size + 1) += rxn_factor;
+        rhs(index + 1) += rxn_factor;
       }
     }
   }
@@ -607,25 +689,34 @@ namespace Model
   {
     assert(smallest_size < largest_size);
     assert(largest_size <= max_size);
+    auto first_index = size_to_index(smallest_size);
+    auto last_index = size_to_index(largest_size);
+    assert(first_index <= last_index);
+    assert(first_index != A_index);
+    assert(first_index != ligand_index);
+    assert(last_index != A_index);
+    assert(last_index != ligand_index);
+    assert(!(first_index < A_index && A_index < last_index));
+    assert(!(first_index < ligand_index && ligand_index < last_index));
 
-    for (unsigned int size = smallest_size; size <= largest_size; ++size)
+    for (unsigned int index = first_index; index <= last_index; ++index)
     {
-      const Real rxn_factor_dA = rate * atoms<Real>(size, conserved_size) * x(size);
-      const Real rxn_factor_dn = rate * x(A_index) * atoms<Real>(size, conserved_size);
+      const Real rxn_factor_dA = rate * atoms<Real>(index_to_size(index)) * x(index);
+      const Real rxn_factor_dn = rate * x(A_index) * atoms<Real>(index_to_size(index));
 
-      jacobi.coeffRef(size, A_index) -= rxn_factor_dA;
-      jacobi.coeffRef(size, size) -= rxn_factor_dn;
+      jacobi.coeffRef(index, A_index) -= rxn_factor_dA;
+      jacobi.coeffRef(index, index) -= rxn_factor_dn;
 
       jacobi.coeffRef(ligand_index, A_index) += rxn_factor_dA;
-      jacobi.coeffRef(ligand_index, size) += rxn_factor_dn;
+      jacobi.coeffRef(ligand_index, index) += rxn_factor_dn;
 
       jacobi.coeffRef(A_index, A_index) -= rxn_factor_dA;
-      jacobi.coeffRef(A_index, size) -= rxn_factor_dn;
+      jacobi.coeffRef(A_index, index) -= rxn_factor_dn;
 
-      if (size < max_size)
+      if (index_to_size(index) < max_size)
       {
-        jacobi.coeffRef(size + 1, A_index) += rxn_factor_dA;
-        jacobi.coeffRef(size + 1, size) += rxn_factor_dn;
+        jacobi.coeffRef(index + 1, A_index) += rxn_factor_dA;
+        jacobi.coeffRef(index + 1, index) += rxn_factor_dn;
       }
     }
   }
@@ -682,12 +773,14 @@ namespace Model
     const unsigned int max_size;
     const unsigned int conserved_size;
     const Real rate;
+    const unsigned int first_B_index;
 
     Agglomeration();
 
     Agglomeration(unsigned int B_smallest_size, unsigned int B_largest_size,
                   unsigned int C_smallest_size, unsigned int C_largest_size,
-                  unsigned int max_size, unsigned int conserved_size, Real rate);
+                  unsigned int max_size, unsigned int conserved_size, Real rate,
+                  unsigned int B_smallest_index);
 
     void add_contribution_to_rhs(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
                                  Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs) override;
@@ -698,6 +791,11 @@ namespace Model
     void add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list) override;
 
     void update_num_nonzero(unsigned int &num_nonzero) override;
+
+  private:
+    unsigned int index_to_size(unsigned int size);
+
+    unsigned int size_to_index(unsigned int index);
   };
 
 
@@ -713,12 +811,14 @@ namespace Model
     const unsigned int max_size;
     const unsigned int conserved_size;
     const Real rate;
+    const unsigned int first_B_index;
 
     Agglomeration();
 
     Agglomeration(unsigned int B_smallest_size, unsigned int B_largest_size,
                   unsigned int C_smallest_size, unsigned int C_largest_size,
-                  unsigned int max_size, unsigned int conserved_size, Real rate);
+                  unsigned int max_size, unsigned int conserved_size, Real rate,
+                  unsigned int smallest_particle_index);
 
     void add_contribution_to_rhs(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
                                  Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs) override;
@@ -729,7 +829,30 @@ namespace Model
     void add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list) {}
 
     void update_num_nonzero(unsigned int &num_nonzero) {}
+
+  private:
+    unsigned int index_to_size(unsigned int size);
+
+    unsigned int size_to_index(unsigned int index);
   };
+
+
+
+  template<typename Real>
+  unsigned int
+  Agglomeration<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::index_to_size(unsigned int index)
+  {
+    return (index - first_B_index)*conserved_size + B_smallest_size;
+  }
+
+
+
+  template<typename Real>
+  unsigned int
+  Agglomeration<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::size_to_index(unsigned int size)
+  {
+    return (size - B_smallest_size)/conserved_size + first_B_index;
+  }
 
 
 
@@ -741,7 +864,8 @@ namespace Model
                       std::numeric_limits<unsigned int>::signaling_NaN(),
                       std::numeric_limits<unsigned int>::signaling_NaN(),
                       std::numeric_limits<unsigned int>::signaling_NaN(),
-                      std::numeric_limits<Real>::signaling_NaN())
+                      std::numeric_limits<Real>::signaling_NaN(),
+                      std::numeric_limits<unsigned int>::signaling_NaN())
   {}
 
 
@@ -754,12 +878,14 @@ namespace Model
       const unsigned int C_largest_size,
       const unsigned int max_size,
       const unsigned int conserved_size,
-      const Real rate)
+      const Real rate,
+      const unsigned int smallest_B_index)
       : B_smallest_size(B_smallest_size), B_largest_size(B_largest_size)
       , C_smallest_size(C_smallest_size), C_largest_size(C_largest_size)
       , max_size(max_size)
       , conserved_size(conserved_size)
       , rate(rate)
+      , first_B_index(smallest_B_index)
   {}
 
 
@@ -769,10 +895,19 @@ namespace Model
       const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
       Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs)
   {
+    assert(x.size() == rhs.size());
     assert(B_smallest_size < B_largest_size);
     assert(C_smallest_size < C_largest_size);
     assert(B_largest_size <= max_size);
     assert(C_largest_size <= max_size);
+    auto index0_B = size_to_index(B_smallest_size);
+    auto index1_B = size_to_index(B_largest_size);
+    auto index0_C = size_to_index(C_smallest_size);
+    auto index1_C = size_to_index(C_largest_size);
+    assert(index0_B < index1_B);
+    assert(index0_C < index1_C);
+    assert(index1_B < x.size());
+    assert(index1_C < x.size());
 
     // Pre-calculate terms of the derivative that will be used since we require an expensive double loop.
     // Many of the terms will be calculated more than once if they are not pre-calculated, which adds
@@ -780,16 +915,16 @@ namespace Model
     //
     // The factor is calculated to be the number of binding sites * current concentration
     std::vector<Real> rxn_factors(x.size(), 0.);
-    for (unsigned int i=B_smallest_size; i<=B_largest_size; ++i)
+    for (unsigned int i=index0_B; i<=index1_B; ++i)
     {
-      rxn_factors[i] = atoms<Real>(i, conserved_size) * x(i);
+      rxn_factors[i] = atoms<Real>(index_to_size(i)) * x(i);
     }
 
     if (B_smallest_size != C_smallest_size || B_largest_size != C_smallest_size)
     {
-      for (unsigned int i=C_smallest_size; i<=C_largest_size; ++i)
+      for (unsigned int i=index0_C; i<=index1_C; ++i)
       {
-        rxn_factors[i] = atoms<Real>(i, conserved_size) * x(i);
+        rxn_factors[i] = atoms<Real>(index_to_size(i)) * x(i);
       }
     }
 
@@ -804,17 +939,20 @@ namespace Model
     // size is larger than we track. For example, if the max particle size tracked is 10 and agglomeration
     // occurs between a particle of size 6 and 7, then the loss of size 6 and 7 particles will be calculated
     // but the gain of size 13 particles will not because only particles up to size 10 are tracked.
-    for (unsigned int i = B_smallest_size; i <= B_largest_size; ++i)
+    for (unsigned int i = index0_B; i <= index1_B; ++i)
     {
       // If the B and C size ranges overlap, then we end up double counting some contributions.
       // Taking the max between the B-size and the smallest C-size ensures this double counting does not occur.
-      for (unsigned int j = std::max(C_smallest_size, i); j <= C_largest_size; ++j)
+      for (unsigned int j = std::max(index0_C, i); j <= index1_C; ++j)
       {
         const auto rxn_deriv = rate * rxn_factors[i] * rxn_factors[j];
         rhs(i) -= rxn_deriv;
         rhs(j) -= rxn_deriv;
-        if (i+j <= max_size)
-          rhs(i+j) += rxn_deriv;
+        if (index_to_size(i)+ index_to_size(j) <= max_size)
+        {
+          auto k = size_to_index(index_to_size(i) + index_to_size(j));
+          rhs(k) += rxn_deriv;
+        }
       }
     }
   }
@@ -827,28 +965,41 @@ namespace Model
       const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
       Eigen::Matrix<Real,Eigen::Dynamic, Eigen::Dynamic> &jacobi)
   {
+    assert(B_smallest_size < B_largest_size);
+    assert(C_smallest_size < C_largest_size);
+    assert(B_largest_size <= max_size);
+    assert(C_largest_size <= max_size);
+    auto index0_B = size_to_index(B_smallest_size);
+    auto index1_B = size_to_index(B_largest_size);
+    auto index0_C = size_to_index(C_smallest_size);
+    auto index1_C = size_to_index(C_largest_size);
+    assert(index0_B < index1_B);
+    assert(index0_C < index1_C);
+    assert(index1_B < x.size());
+    assert(index1_C < x.size());
+
     std::vector<Real> rxn_factors(x.size(), 0.);
     std::vector<Real> rxn_factors_dn(x.size(), 0.);
-    for (unsigned int i=B_smallest_size; i<=B_largest_size; ++i)
+    for (unsigned int i=index0_B; i<=index1_B; ++i)
     {
-      rxn_factors[i] = atoms<Real>(i, conserved_size) * x(i);
-      rxn_factors_dn[i] = atoms<Real>(i, conserved_size);
+      rxn_factors[i] = atoms<Real>(index_to_size(i)) * x(i);
+      rxn_factors_dn[i] = atoms<Real>(index_to_size(i));
     }
 
     if (B_smallest_size != C_smallest_size || B_largest_size != C_smallest_size)
     {
-      for (unsigned int i=C_smallest_size; i<=C_largest_size; ++i)
+      for (unsigned int i=index0_C; i<=index1_C; ++i)
       {
-        rxn_factors[i] = atoms<Real>(i, conserved_size) * x(i);
-        rxn_factors_dn[i] = atoms<Real>(i, conserved_size);
+        rxn_factors[i] = atoms<Real>(index_to_size(i)) * x(i);
+        rxn_factors_dn[i] = atoms<Real>(index_to_size(i));
       }
     }
 
-    for (unsigned int i = B_smallest_size; i <= B_largest_size; ++i)
+    for (unsigned int i = index0_B; i <= index1_B; ++i)
     {
       // If the B and C size ranges overlap, then we end up double counting some contributions.
       // Taking the max between the B-size and the smallest C-size ensures this double counting does not occur.
-      for (unsigned int j = std::max(C_smallest_size, i); j <= C_largest_size; ++j)
+      for (unsigned int j = std::max(index0_C, i); j <= index1_C; ++j)
       {
         const auto rxn_deriv_i = rate * rxn_factors_dn[i] * rxn_factors[j];
         const auto rxn_deriv_j = rate * rxn_factors[i] * rxn_factors_dn[j];
@@ -859,10 +1010,11 @@ namespace Model
         jacobi(j, i) -= rxn_deriv_i;
         jacobi(j, j) -= rxn_deriv_j;
 
-        if (i+j <= max_size)
+        if (index_to_size(i) + index_to_size(j) <= max_size)
         {
-          jacobi(i+j, i) += rxn_deriv_i;
-          jacobi(i+j, j) += rxn_deriv_j;
+          auto k = size_to_index(index_to_size(i) + index_to_size(j));
+          jacobi(k, i) += rxn_deriv_i;
+          jacobi(k, j) += rxn_deriv_j;
         }
       }
     }
@@ -881,12 +1033,14 @@ namespace Model
     const unsigned int max_size;
     const unsigned int conserved_size;
     const Real rate;
+    const unsigned int first_B_index;
 
     Agglomeration();
 
     Agglomeration(unsigned int B_smallest_size, unsigned int B_largest_size,
                   unsigned int C_smallest_size, unsigned int C_largest_size,
-                  unsigned int max_size, unsigned int conserved_size, Real rate);
+                  unsigned int max_size, unsigned int conserved_size, Real rate,
+                  unsigned int smallest_particle_index);
 
     void add_contribution_to_rhs(const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
                                  Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs) override;
@@ -897,7 +1051,30 @@ namespace Model
     void add_nonzero_to_jacobian(std::vector<Eigen::Triplet<Real>> &triplet_list) override;
 
     void update_num_nonzero(unsigned int &num_nonzero) override;
+
+  private:
+    unsigned int index_to_size(unsigned int size);
+
+    unsigned int size_to_index(unsigned int index);
   };
+
+
+
+  template<typename Real>
+  unsigned int
+  Agglomeration<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::index_to_size(unsigned int index)
+  {
+    return (index - first_B_index)*conserved_size + B_smallest_size;
+  }
+
+
+
+  template<typename Real>
+  unsigned int
+  Agglomeration<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::size_to_index(unsigned int size)
+  {
+    return (size - B_smallest_size)/conserved_size + first_B_index;
+  }
 
 
 
@@ -909,7 +1086,8 @@ namespace Model
                       std::numeric_limits<unsigned int>::signaling_NaN(),
                       std::numeric_limits<unsigned int>::signaling_NaN(),
                       std::numeric_limits<unsigned int>::signaling_NaN(),
-                      std::numeric_limits<Real>::signaling_NaN())
+                      std::numeric_limits<Real>::signaling_NaN(),
+                      std::numeric_limits<unsigned int>::signaling_NaN())
   {}
 
 
@@ -922,12 +1100,14 @@ namespace Model
       const unsigned int C_largest_size,
       const unsigned int max_size,
       const unsigned int conserved_size,
-      const Real rate)
+      const Real rate,
+      const unsigned int smallest_B_index)
       : B_smallest_size(B_smallest_size), B_largest_size(B_largest_size)
       , C_smallest_size(C_smallest_size), C_largest_size(C_largest_size)
       , max_size(max_size)
       , conserved_size(conserved_size)
       , rate(rate)
+      , first_B_index(smallest_B_index)
   {}
 
 
@@ -937,10 +1117,19 @@ namespace Model
       const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
       Eigen::Matrix<Real, Eigen::Dynamic, 1> &rhs)
   {
+    assert(x.size() == rhs.size());
     assert(B_smallest_size < B_largest_size);
     assert(C_smallest_size < C_largest_size);
     assert(B_largest_size <= max_size);
     assert(C_largest_size <= max_size);
+    auto index0_B = size_to_index(B_smallest_size);
+    auto index1_B = size_to_index(B_largest_size);
+    auto index0_C = size_to_index(C_smallest_size);
+    auto index1_C = size_to_index(C_largest_size);
+    assert(index0_B < index1_B);
+    assert(index0_C < index1_C);
+    assert(index1_B < x.size());
+    assert(index1_C < x.size());
 
     // Pre-calculate terms of the derivative that will be used since we require an expensive double loop.
     // Many of the terms will be calculated more than once if they are not pre-calculated, which adds
@@ -948,16 +1137,16 @@ namespace Model
     //
     // The factor is calculated to be the number of binding sites * current concentration
     std::vector<Real> rxn_factors(x.size(), 0.);
-    for (unsigned int i=B_smallest_size; i<=B_largest_size; ++i)
+    for (unsigned int i=index0_B; i<=index1_B; ++i)
     {
-      rxn_factors[i] = atoms<Real>(i, conserved_size) * x(i);
+      rxn_factors[i] = atoms<Real>(index_to_size(i)) * x(i);
     }
 
     if (B_smallest_size != C_smallest_size || B_largest_size != C_smallest_size)
     {
-      for (unsigned int i=C_smallest_size; i<=C_largest_size; ++i)
+      for (unsigned int i=index0_C; i<=index1_C; ++i)
       {
-        rxn_factors[i] = atoms<Real>(i, conserved_size) * x(i);
+        rxn_factors[i] = atoms<Real>(index_to_size(i)) * x(i);
       }
     }
 
@@ -972,17 +1161,20 @@ namespace Model
     // size is larger than we track. For example, if the max particle size tracked is 10 and agglomeration
     // occurs between a particle of size 6 and 7, then the loss of size 6 and 7 particles will be calculated
     // but the gain of size 13 particles will not because only particles up to size 10 are tracked.
-    for (unsigned int i = B_smallest_size; i <= B_largest_size; ++i)
+    for (unsigned int i = index0_B; i <= index1_B; ++i)
     {
       // If the B and C size ranges overlap, then we end up double counting some contributions.
       // Taking the max between the B-size and the smallest C-size ensures this double counting does not occur.
-      for (unsigned int j = std::max(C_smallest_size, i); j <= C_largest_size; ++j)
+      for (unsigned int j = std::max(index0_C, i); j <= index1_C; ++j)
       {
         const auto rxn_deriv = rate * rxn_factors[i] * rxn_factors[j];
         rhs(i) -= rxn_deriv;
         rhs(j) -= rxn_deriv;
-        if (i+j <= max_size)
-          rhs(i+j) += rxn_deriv;
+        if (index_to_size(i) + index_to_size(j) <= max_size)
+        {
+          auto k = size_to_index(index_to_size(i) + index_to_size(j));
+          rhs(k) += rxn_deriv;
+        }
       }
     }
   }
@@ -995,28 +1187,41 @@ namespace Model
       const Eigen::Matrix<Real, Eigen::Dynamic, 1> &x,
       Eigen::SparseMatrix<Real, Eigen::RowMajor> &jacobi)
   {
+    assert(B_smallest_size < B_largest_size);
+    assert(C_smallest_size < C_largest_size);
+    assert(B_largest_size <= max_size);
+    assert(C_largest_size <= max_size);
+    auto index0_B = size_to_index(B_smallest_size);
+    auto index1_B = size_to_index(B_largest_size);
+    auto index0_C = size_to_index(C_smallest_size);
+    auto index1_C = size_to_index(C_largest_size);
+    assert(index0_B < index1_B);
+    assert(index0_C < index1_C);
+    assert(index1_B < x.size());
+    assert(index1_C < x.size());
+
     std::vector<Real> rxn_factors(x.size(), 0.);
     std::vector<Real> rxn_factors_dn(x.size(), 0.);
-    for (unsigned int i=B_smallest_size; i<=B_largest_size; ++i)
+    for (unsigned int i=index0_B; i<=index1_B; ++i)
     {
-      rxn_factors[i] = atoms<Real>(i, conserved_size) * x(i);
-      rxn_factors_dn[i] = atoms<Real>(i, conserved_size);
+      rxn_factors[i] = atoms<Real>(index_to_size(i)) * x(i);
+      rxn_factors_dn[i] = atoms<Real>(index_to_size(i));
     }
 
     if (B_smallest_size != C_smallest_size || B_largest_size != C_smallest_size)
     {
-      for (unsigned int i=C_smallest_size; i<=C_largest_size; ++i)
+      for (unsigned int i=index0_C; i<=index1_C; ++i)
       {
-        rxn_factors[i] = atoms<Real>(i, conserved_size) * x(i);
-        rxn_factors_dn[i] = atoms<Real>(i, conserved_size);
+        rxn_factors[i] = atoms<Real>(index_to_size(i)) * x(i);
+        rxn_factors_dn[i] = atoms<Real>(index_to_size(i));
       }
     }
 
-    for (unsigned int i = B_smallest_size; i <= B_largest_size; ++i)
+    for (unsigned int i = index0_B; i <= index1_B; ++i)
     {
       // If the B and C size ranges overlap, then we end up double counting some contributions.
       // Taking the max between the B-size and the smallest C-size ensures this double counting does not occur.
-      for (unsigned int j = std::max(C_smallest_size, i); j <= C_largest_size; ++j)
+      for (unsigned int j = std::max(index0_C, i); j <= index1_C; ++j)
       {
         const auto rxn_deriv_i = rate * rxn_factors_dn[i] * rxn_factors[j];
         const auto rxn_deriv_j = rate * rxn_factors[i] * rxn_factors_dn[j];
@@ -1027,10 +1232,11 @@ namespace Model
         jacobi.coeffRef(j, i) -= rxn_deriv_i;
         jacobi.coeffRef(j, j) -= rxn_deriv_j;
 
-        if (i+j <= max_size)
+        if (index_to_size(i)+ index_to_size(j) <= max_size)
         {
-          jacobi.coeffRef(i+j, i) += rxn_deriv_i;
-          jacobi.coeffRef(i+j, j) += rxn_deriv_j;
+          auto k = size_to_index(index_to_size(i) + index_to_size(j));
+          jacobi.coeffRef(k, i) += rxn_deriv_i;
+          jacobi.coeffRef(k, j) += rxn_deriv_j;
         }
       }
     }
@@ -1043,11 +1249,22 @@ namespace Model
   Agglomeration<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::add_nonzero_to_jacobian(
       std::vector<Eigen::Triplet<Real>> &triplet_list)
   {
-    for (unsigned int i = B_smallest_size; i <= B_largest_size; ++i)
+    assert(B_smallest_size < B_largest_size);
+    assert(C_smallest_size < C_largest_size);
+    assert(B_largest_size <= max_size);
+    assert(C_largest_size <= max_size);
+    auto index0_B = size_to_index(B_smallest_size);
+    auto index1_B = size_to_index(B_largest_size);
+    auto index0_C = size_to_index(C_smallest_size);
+    auto index1_C = size_to_index(C_largest_size);
+    assert(index0_B < index1_B);
+    assert(index0_C < index1_C);
+
+    for (unsigned int i = index0_B; i <= index1_B; ++i)
     {
       // If the B and C size ranges overlap, then we end up double counting some contributions.
       // Taking the max between the B-size and the smallest C-size ensures this double counting does not occur.
-      for (unsigned int j = std::max(C_smallest_size, i); j <= C_largest_size; ++j)
+      for (unsigned int j = std::max(index0_C, i); j <= index1_C; ++j)
       {
         triplet_list.push_back(Eigen::Triplet<Real>(i,i));
         triplet_list.push_back(Eigen::Triplet<Real>(i,j));
@@ -1055,10 +1272,11 @@ namespace Model
         triplet_list.push_back(Eigen::Triplet<Real>(j,i));
         triplet_list.push_back(Eigen::Triplet<Real>(j,j));
 
-        if (i+j <= max_size)
+        if (index_to_size(i)+ index_to_size(j) <= max_size)
         {
-          triplet_list.push_back(Eigen::Triplet<Real>(i+j,i));
-          triplet_list.push_back(Eigen::Triplet<Real>(i+j,j));
+          auto k = size_to_index(index_to_size(i) + index_to_size(j));
+          triplet_list.push_back(Eigen::Triplet<Real>(k,i));
+          triplet_list.push_back(Eigen::Triplet<Real>(k,j));
         }
       }
     }
@@ -1075,9 +1293,6 @@ namespace Model
 
 
 
-  // A model is a representation of the system of ODEs that's being solved. It needs to know
-  // the smallest and largest particle size (nucleation_order, max_size). The model also needs
-  // a way to evaluate the right-hand side and the Jacobian of the system of ODEs.
   ///
   /// A representation of the system of ODEs that describes the nanoparticle formation. A combination of objects
   /// derived from RightHandSideContribution together form a "mechanism" with some chemical interpretation

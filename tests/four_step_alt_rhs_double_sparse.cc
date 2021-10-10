@@ -42,18 +42,18 @@ int main()
   // Small Growth
   std::shared_ptr<Model::RightHandSideContribution<Real, Matrix>> small_growth
     = std::make_shared<Model::Growth<Real, Matrix>>(A_index, nucleation_order, cutoff, max_size,
-                                      POM_index, conserved_size, k2);
+                                      POM_index, conserved_size, k2, nucleation_index);
 
   // Large Growth
   std::shared_ptr<Model::RightHandSideContribution<Real, Matrix>> large_growth
     = std::make_shared<Model::Growth<Real, Matrix>>(A_index, cutoff+1, max_size, max_size,
-                                      POM_index, conserved_size, k3);;
+                                      POM_index, conserved_size, k3, cutoff+1);;
 
   // Agglomeration
   std::shared_ptr<Model::RightHandSideContribution<Real, Matrix>> agglomeration
     = std::make_shared<Model::Agglomeration<Real, Matrix>>(nucleation_index, cutoff,
                                              nucleation_index, cutoff,
-                                             max_size, conserved_size, k4);
+                                             max_size, conserved_size, k4, nucleation_index);
 
   // Create Model
   Model::Model<Real, Matrix> four_step_alt(nucleation_order, max_size);

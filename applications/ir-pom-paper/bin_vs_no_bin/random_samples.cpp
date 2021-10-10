@@ -181,12 +181,12 @@ Model::Model<Real, Matrix> sample_to_model(const Sample & sample)
   std::shared_ptr<Model::RightHandSideContribution<Real, Matrix>> small_growth =
       std::make_shared<Model::Growth<Real, Matrix>>(A_index, min_size, sample.cutoff,
                                                     max_size, ligand_index,
-                                                    conserved_size, sample.k2);
+                                                    conserved_size, sample.k2, min_size);
 
   std::shared_ptr<Model::RightHandSideContribution<Real, Matrix>> large_growth =
       std::make_shared<Model::Growth<Real, Matrix>>(A_index, sample.cutoff+1, max_size,
                                                     max_size, ligand_index,
-                                                    conserved_size, sample.k3);
+                                                    conserved_size, sample.k3, sample.cutoff+1);
 
 
   Model::Model<Real, Matrix> model(min_size, max_size);
@@ -200,7 +200,7 @@ Model::Model<Real, Matrix> sample_to_model(const Sample & sample)
         std::make_shared<Model::Agglomeration<Real, Matrix>>(min_size, sample.cutoff,
                                                              min_size, sample.cutoff,
                                                              max_size, conserved_size,
-                                                             sample.k4);
+                                                             sample.k4, min_size);
     model.add_rhs_contribution(agglomeration);
   }
 
