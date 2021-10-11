@@ -7,3 +7,6 @@ ADD_EXECUTABLE(mcmc_preliminary
         mcmc_preliminary.cpp)
 TARGET_LINK_LIBRARIES(mcmc_preliminary
         libmepbm)
+
+ADD_EXECUTABLE(summarize_samples
+        summarize_samples.cpp)

@@ -2,6 +2,8 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <cassert>
+#include <sstream>
 
 
 
@@ -22,9 +24,9 @@ line_to_valarray(std::string file_line)
   double value = 0;
   std::valarray<double> parameters;
   unsigned int index = 0;
-  while (ss >> d)
+  while (ss >> value)
   {
-    parameters[index] = d;
+    parameters[index] = value;
     ++index;
   }
 
@@ -50,7 +52,7 @@ read_from_file(const std::string file_path, std::valarray<double> & mean_values,
 {
   std::ifstream new_file;
   new_file.open(file_path);
-  std::string file_line
+  std::string file_line;
   while (std::getline(new_file, file_line))
   {
     auto sample = line_to_valarray(file_line);
@@ -75,5 +77,11 @@ int main()
     read_from_file(file_path, mean_value, n_samples);
   }
 
-  std::cout << mean_value << std::endl;
+  for (unsigned int i=0; i<mean_value.size(); ++i)
+  {
+    std::cout << mean_value[i];
+    if (i < mean_value.size()-1)
+      std::cout << ", ";
+  }
+  std::cout << std::endl;
 }
