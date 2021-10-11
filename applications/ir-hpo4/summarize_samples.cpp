@@ -22,7 +22,7 @@ line_to_valarray(std::string file_line)
   // Use a string stream to move through the string and extract the numbers
   std::stringstream ss(file_line);
   double value = 0;
-  std::valarray<double> parameters;
+  std::valarray<double> parameters(7);
   unsigned int index = 0;
   while (ss >> value)
   {
@@ -66,7 +66,7 @@ read_from_file(const std::string file_path, std::valarray<double> & mean_values,
 int main()
 {
   const int first_file = 0;
-  const int last_file = 39;
+  const int last_file = 0;
 
   std::valarray<double> mean_value = {0,0,0,0,0,0,0};
   int n_samples = 0;
