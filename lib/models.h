@@ -34,6 +34,7 @@
 #include <memory>
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Sparse>
+#include <iostream>
 
 namespace Model
 {
@@ -729,22 +730,31 @@ namespace Model
   {
     assert(smallest_size < largest_size);
     assert(largest_size <= max_size);
+    auto first_index = size_to_index(smallest_size);
+    auto last_index = size_to_index(largest_size);
+    assert(first_index <= last_index);
+    assert(first_index != A_index);
+    assert(first_index != ligand_index);
+    assert(last_index != A_index);
+    assert(last_index != ligand_index);
+    assert(!(first_index < A_index && A_index < last_index));
+    assert(!(first_index < ligand_index && ligand_index < last_index));
 
-    for (unsigned int size = smallest_size; size <= largest_size; ++size)
+    for (unsigned int index = first_index; index <= last_index; ++index)
     {
-      triplet_list.push_back(Eigen::Triplet<Real>(size, A_index));
-      triplet_list.push_back(Eigen::Triplet<Real>(size, size));
+      triplet_list.push_back(Eigen::Triplet<Real>(index, A_index));
+      triplet_list.push_back(Eigen::Triplet<Real>(index, index));
 
       triplet_list.push_back(Eigen::Triplet<Real>(ligand_index, A_index));
-      triplet_list.push_back(Eigen::Triplet<Real>(ligand_index, size));
+      triplet_list.push_back(Eigen::Triplet<Real>(ligand_index, index));
 
       triplet_list.push_back(Eigen::Triplet<Real>(A_index, A_index));
-      triplet_list.push_back(Eigen::Triplet<Real>(A_index, size));
+      triplet_list.push_back(Eigen::Triplet<Real>(A_index, index));
 
-      if (size < max_size)
+      if (index_to_size(index) < max_size)
       {
-        triplet_list.push_back(Eigen::Triplet<Real>(size + 1, A_index));
-        triplet_list.push_back(Eigen::Triplet<Real>(size + 1, size));
+        triplet_list.push_back(Eigen::Triplet<Real>(index + 1, A_index));
+        triplet_list.push_back(Eigen::Triplet<Real>(index + 1, index));
       }
     }
   }
@@ -1495,6 +1505,7 @@ namespace Model
     }
 
     Eigen::SparseMatrix<Real, Eigen::RowMajor> J(x.rows(), x.rows());
+
     J.setFromTriplets(triplet_list.begin(), triplet_list.end());
 
     // Loop through every right hand side contribution added to the model and keep adding to the Jacobian.
