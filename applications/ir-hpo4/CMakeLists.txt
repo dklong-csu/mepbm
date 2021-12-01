@@ -10,3 +10,5 @@ TARGET_LINK_LIBRARIES(mcmc_preliminary
 
 ADD_EXECUTABLE(summarize_samples
         summarize_samples.cpp)
+TARGET_LINK_LIBRARIES(summarize_samples
+        libmepbm)

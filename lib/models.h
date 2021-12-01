@@ -439,7 +439,7 @@ namespace Model
   unsigned int
   Growth<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::index_to_size(unsigned int index)
   {
-    return (index - smallest_size_index)*conserved_size + smallest_size;
+    return (index - smallest_size_index) + smallest_size;
   }
 
 
@@ -448,7 +448,7 @@ namespace Model
   unsigned int
   Growth<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::size_to_index(unsigned int size)
   {
-    return (size - smallest_size)/conserved_size + smallest_size_index;
+    return (size - smallest_size) + smallest_size_index;
   }
 
 
@@ -512,9 +512,11 @@ namespace Model
       rhs(ligand_index) += rxn_factor;
       rhs(A_index) -= rxn_factor;
 
-      if (index_to_size(index) < max_size)
+      auto created_size = index_to_size(index) + conserved_size;
+      if (created_size <= max_size)
       {
-        rhs(index + 1) += rxn_factor;
+        auto created_index = size_to_index(created_size);
+        rhs(created_index) += rxn_factor;
       }
     }
   }
@@ -553,10 +555,12 @@ namespace Model
       jacobi(A_index, A_index) -= rxn_factor_dA;
       jacobi(A_index, index) -= rxn_factor_dn;
 
-      if (index_to_size(index) < max_size)
+      auto created_size = index_to_size(index) + conserved_size;
+      if (created_size <= max_size)
       {
-        jacobi(index + 1, A_index) += rxn_factor_dA;
-        jacobi(index + 1, index) += rxn_factor_dn;
+        auto created_index = size_to_index(created_size);
+        jacobi(created_index, A_index) += rxn_factor_dA;
+        jacobi(created_index, index) += rxn_factor_dn;
       }
     }
   }
@@ -601,7 +605,7 @@ namespace Model
   unsigned int
   Growth<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::index_to_size(unsigned int index)
   {
-    return (index - smallest_size_index)*conserved_size + smallest_size;
+    return (index - smallest_size_index) + smallest_size;
   }
 
 
@@ -610,7 +614,7 @@ namespace Model
   unsigned int
   Growth<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::size_to_index(unsigned int size)
   {
-    return (size - smallest_size)/conserved_size + smallest_size_index;
+    return (size - smallest_size) + smallest_size_index;
   }
 
 
@@ -673,9 +677,11 @@ namespace Model
       rhs(ligand_index) += rxn_factor;
       rhs(A_index) -= rxn_factor;
 
-      if (index_to_size(index) < max_size)
+      auto created_size = index_to_size(index) + conserved_size;
+      if (created_size <= max_size)
       {
-        rhs(index + 1) += rxn_factor;
+        auto created_index = size_to_index(created_size);
+        rhs(created_index) += rxn_factor;
       }
     }
   }
@@ -714,10 +720,12 @@ namespace Model
       jacobi.coeffRef(A_index, A_index) -= rxn_factor_dA;
       jacobi.coeffRef(A_index, index) -= rxn_factor_dn;
 
-      if (index_to_size(index) < max_size)
+      auto created_size = index_to_size(index) + conserved_size;
+      if (created_size <= max_size)
       {
-        jacobi.coeffRef(index + 1, A_index) += rxn_factor_dA;
-        jacobi.coeffRef(index + 1, index) += rxn_factor_dn;
+        auto created_index = size_to_index(created_size);
+        jacobi.coeffRef(created_index, A_index) += rxn_factor_dA;
+        jacobi.coeffRef(created_index, index) += rxn_factor_dn;
       }
     }
   }
@@ -751,10 +759,12 @@ namespace Model
       triplet_list.push_back(Eigen::Triplet<Real>(A_index, A_index));
       triplet_list.push_back(Eigen::Triplet<Real>(A_index, index));
 
-      if (index_to_size(index) < max_size)
+      auto created_size = index_to_size(index) + conserved_size;
+      if (created_size <= max_size)
       {
-        triplet_list.push_back(Eigen::Triplet<Real>(index + 1, A_index));
-        triplet_list.push_back(Eigen::Triplet<Real>(index + 1, index));
+        auto created_index = size_to_index(created_size);
+        triplet_list.push_back(Eigen::Triplet<Real>(created_index, A_index));
+        triplet_list.push_back(Eigen::Triplet<Real>(created_index, index));
       }
     }
   }
@@ -852,7 +862,7 @@ namespace Model
   unsigned int
   Agglomeration<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::index_to_size(unsigned int index)
   {
-    return (index - first_B_index)*conserved_size + B_smallest_size;
+    return (index - first_B_index) + B_smallest_size;
   }
 
 
@@ -861,7 +871,7 @@ namespace Model
   unsigned int
   Agglomeration<Real, Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>>::size_to_index(unsigned int size)
   {
-    return (size - B_smallest_size)/conserved_size + first_B_index;
+    return (size - B_smallest_size) + first_B_index;
   }
 
 
@@ -958,10 +968,12 @@ namespace Model
         const auto rxn_deriv = rate * rxn_factors[i] * rxn_factors[j];
         rhs(i) -= rxn_deriv;
         rhs(j) -= rxn_deriv;
-        if (index_to_size(i)+ index_to_size(j) <= max_size)
+
+        auto created_size = size_to_index(i) + size_to_index(j);
+        if (created_size <= max_size)
         {
-          auto k = size_to_index(index_to_size(i) + index_to_size(j));
-          rhs(k) += rxn_deriv;
+          auto created_index = size_to_index(created_size);
+          rhs(created_index) += rxn_deriv;
         }
       }
     }
@@ -1020,11 +1032,12 @@ namespace Model
         jacobi(j, i) -= rxn_deriv_i;
         jacobi(j, j) -= rxn_deriv_j;
 
-        if (index_to_size(i) + index_to_size(j) <= max_size)
+        auto created_size = index_to_size(i) + index_to_size(j);
+        if (created_size <= max_size)
         {
-          auto k = size_to_index(index_to_size(i) + index_to_size(j));
-          jacobi(k, i) += rxn_deriv_i;
-          jacobi(k, j) += rxn_deriv_j;
+          auto created_index = size_to_index(created_size);
+          jacobi(created_index, i) += rxn_deriv_i;
+          jacobi(created_index, j) += rxn_deriv_j;
         }
       }
     }
@@ -1074,7 +1087,7 @@ namespace Model
   unsigned int
   Agglomeration<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::index_to_size(unsigned int index)
   {
-    return (index - first_B_index)*conserved_size + B_smallest_size;
+    return (index - first_B_index) + B_smallest_size;
   }
 
 
@@ -1083,7 +1096,7 @@ namespace Model
   unsigned int
   Agglomeration<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>::size_to_index(unsigned int size)
   {
-    return (size - B_smallest_size)/conserved_size + first_B_index;
+    return (size - B_smallest_size) + first_B_index;
   }
 
 
@@ -1180,10 +1193,12 @@ namespace Model
         const auto rxn_deriv = rate * rxn_factors[i] * rxn_factors[j];
         rhs(i) -= rxn_deriv;
         rhs(j) -= rxn_deriv;
-        if (index_to_size(i) + index_to_size(j) <= max_size)
+
+        auto created_size = index_to_size(i) + index_to_size(j);
+        if (created_size <= max_size)
         {
-          auto k = size_to_index(index_to_size(i) + index_to_size(j));
-          rhs(k) += rxn_deriv;
+          auto created_index = size_to_index(created_size);
+          rhs(created_index) += rxn_deriv;
         }
       }
     }
@@ -1242,11 +1257,12 @@ namespace Model
         jacobi.coeffRef(j, i) -= rxn_deriv_i;
         jacobi.coeffRef(j, j) -= rxn_deriv_j;
 
-        if (index_to_size(i)+ index_to_size(j) <= max_size)
+        auto created_size = index_to_size(i) + index_to_size(j);
+        if (created_size <= max_size)
         {
-          auto k = size_to_index(index_to_size(i) + index_to_size(j));
-          jacobi.coeffRef(k, i) += rxn_deriv_i;
-          jacobi.coeffRef(k, j) += rxn_deriv_j;
+          auto created_index = size_to_index(created_size);
+          jacobi.coeffRef(created_index, i) += rxn_deriv_i;
+          jacobi.coeffRef(created_index, j) += rxn_deriv_j;
         }
       }
     }
@@ -1282,11 +1298,12 @@ namespace Model
         triplet_list.push_back(Eigen::Triplet<Real>(j,i));
         triplet_list.push_back(Eigen::Triplet<Real>(j,j));
 
-        if (index_to_size(i)+ index_to_size(j) <= max_size)
+        auto created_size = index_to_size(i) + index_to_size(j);
+        if (created_size <= max_size)
         {
-          auto k = size_to_index(index_to_size(i) + index_to_size(j));
-          triplet_list.push_back(Eigen::Triplet<Real>(k,i));
-          triplet_list.push_back(Eigen::Triplet<Real>(k,j));
+          auto created_index = size_to_index(created_size);
+          triplet_list.push_back(Eigen::Triplet<Real>(created_index,i));
+          triplet_list.push_back(Eigen::Triplet<Real>(created_index,j));
         }
       }
     }
