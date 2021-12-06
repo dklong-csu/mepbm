@@ -40,7 +40,7 @@ int main()
   // Growth
   std::shared_ptr<Model::RightHandSideContribution<Real, Matrix>> growth
     = std::make_shared<Model::Growth<Real, Matrix>>(
-        A_index, nucleation_order, max_size, max_size, POM_index, conserved_size, k2);
+        A_index, nucleation_order, max_size, max_size, POM_index, conserved_size, k2, nucleation_index);
 
   // Create Model
   Model::Model<Real, Matrix> two_step_alt(nucleation_order, max_size);

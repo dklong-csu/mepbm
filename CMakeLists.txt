@@ -5,7 +5,7 @@ PROJECT (mepbm CXX)
 ### Set up compiler flags and input paths
 
 # Compile everything with C++11
-SET (CMAKE_CXX_STANDARD 11)
+SET (CMAKE_CXX_STANDARD 14)
 SET (CMAKE_CXX_STANDARD_REQUIRED ON)
 SET (CMAKE_CXX_EXTENSIONS OFF)
 

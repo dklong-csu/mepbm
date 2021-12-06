@@ -49,12 +49,12 @@ int main()
   // Small Growth
   std::shared_ptr<Model::RightHandSideContribution<Real, Matrix>> small_growth
   = std::make_shared<Model::Growth<Real, Matrix>>(A_index, nucleation_order, cutoff, max_size,
-      POM_index, conserved_size, k2);
+      POM_index, conserved_size, k2, nucleation_order);
 
   // Large Growth
   std::shared_ptr<Model::RightHandSideContribution<Real, Matrix>> large_growth
   = std::make_shared<Model::Growth<Real, Matrix>>(A_index, cutoff+1, max_size, max_size,
-      POM_index, conserved_size, k3);
+      POM_index, conserved_size, k3, cutoff+1);
 
   // Create Model
   Model::Model<Real, Matrix> three_step_alt(nucleation_order, max_size);

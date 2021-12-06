@@ -235,12 +235,12 @@ Model::Model<Real, Matrix> Sample::return_model() const
   std::shared_ptr<Model::RightHandSideContribution<Real, Matrix>> small_growth =
       std::make_shared<Model::Growth<Real, Matrix>>(const_parameters.A_index, const_parameters.min_size, cutoff,
                                       const_parameters.max_size, const_parameters.ligand_index,
-                                      const_parameters.conserved_size, k2);
+                                      const_parameters.conserved_size, k2, const_parameters.min_size);
 
   std::shared_ptr<Model::RightHandSideContribution<Real, Matrix>> large_growth =
       std::make_shared<Model::Growth<Real, Matrix>>(const_parameters.A_index, cutoff+1, const_parameters.max_size,
                                       const_parameters.max_size, const_parameters.ligand_index,
-                                      const_parameters.conserved_size, k3);
+                                      const_parameters.conserved_size, k3, cutoff+1);
 
   Model::Model<Real, Matrix> model(const_parameters.min_size, const_parameters.max_size);
   model.add_rhs_contribution(nucleation);

@@ -24,12 +24,12 @@ three_step(const std::vector<RealType> real_prm, const std::vector<int> int_prm)
       std::make_shared<Model::TermolecularNucleation<RealType, Matrix>>(0, 1,2, 3, real_prm[0], real_prm[1], real_prm[2], 11.3);
 
   std::shared_ptr<Model::RightHandSideContribution<RealType, Matrix>> small_growth =
-      std::make_shared<Model::Growth<RealType, Matrix>>(0, 3, int_prm[0],2500, 2,1, real_prm[3]);
+      std::make_shared<Model::Growth<RealType, Matrix>>(0, 3, int_prm[0],2500, 2,1, real_prm[3], 3);
 
   std::shared_ptr<Model::RightHandSideContribution<RealType, Matrix>> large_growth =
       std::make_shared<Model::Growth<RealType, Matrix>>(0, int_prm[0]+1, 2500,
                                                     2500, 2,
-                                                    1, real_prm[4]);
+                                                    1, real_prm[4], int_prm[0]+1);
   Model::Model<RealType, Matrix> m(3,2500);
   m.add_rhs_contribution(nucleation);
   m.add_rhs_contribution(small_growth);
