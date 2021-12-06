@@ -10,6 +10,7 @@
 
 using Vector = Eigen::Matrix<double, Eigen::Dynamic, 1>;
 using Matrix = Eigen::SparseMatrix<double, Eigen::RowMajor>;
+using SolverType = Eigen::BiCGSTAB< Matrix, Eigen::IncompleteLUT<realtype> >;
 
 
 class SimpleODE : public Model::RightHandSideContribution<double, Matrix>
@@ -115,7 +116,7 @@ int main ()
 
 
   // Solve ODE
-  auto solutions = SUNDIALS_Statistics::Internal::solve_ODE_from_sample(s, model_prm);
+  auto solutions = SUNDIALS_Statistics::Internal::solve_ODE_from_sample<realtype, Matrix, SolverType, ITERATIVE>(s, model_prm);
 
   // Convert ODE solution to std::vector and output results
   for (auto v : solutions)

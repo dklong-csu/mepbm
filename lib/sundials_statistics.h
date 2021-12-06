@@ -20,7 +20,7 @@ namespace SUNDIALS_Statistics {
     /**
      * A function to solve the ODE associated with a sample
      */
-    template<typename RealType, typename Matrix>
+    template<typename RealType, typename Matrix, typename SolverType, LinearSolverClass SolverClass>
     std::vector<N_Vector>
     solve_ODE_from_sample(const Sampling::Sample<RealType> &sample,
                           const Sampling::ModelingParameters<RealType, Matrix> &user_data)
@@ -30,7 +30,7 @@ namespace SUNDIALS_Statistics {
       auto N = user_data.initial_condition->ops->nvgetlength(user_data.initial_condition);
       auto matrix_template = create_eigen_sunmatrix<Matrix>(N,N);
 
-      auto linear_solver = create_eigen_linear_solver<Matrix, realtype>();
+      auto linear_solver = create_eigen_linear_solver<Matrix, realtype, SolverType, SolverClass>();
 
       sundials::CVodeParameters<RealType> param(user_data.start_time,
                                                 user_data.end_time,
@@ -40,12 +40,12 @@ namespace SUNDIALS_Statistics {
 
       auto ode_system = user_data.create_model(sample.real_valued_parameters, sample.integer_valued_parameters);
 
-      sundials::CVodeSolver<Matrix, RealType> ode_solver(param,
-                                                         ode_system,
-                                                         user_data.initial_condition,
-                                                         vector_template,
-                                                         matrix_template,
-                                                         linear_solver);
+      sundials::CVodeSolver<Matrix, RealType, SolverType> ode_solver(param,
+                                                                     ode_system,
+                                                                     user_data.initial_condition,
+                                                                     vector_template,
+                                                                     matrix_template,
+                                                                     linear_solver);
 
       // Solve the ODE
       std::vector<N_Vector> solutions;
@@ -244,12 +244,12 @@ namespace SUNDIALS_Statistics {
    * and solves the ODE to calculate all \f$p_{i,\ell}\f$. Then \f$\log L(K)\f$ is calculated as described above. The
    * output is of type RealType.
    */
-  template<typename RealType, typename Matrix>
+  template<typename RealType, typename Matrix, typename SolverType, LinearSolverClass SolverClass>
   RealType compute_likelihood_TEM_only(const Sampling::Sample<RealType> &sample,
                                        const Sampling::ModelingParameters<RealType, Matrix> &user_data)
   {
     // Solve the ODE
-    std::vector<N_Vector> solutions = Internal::solve_ODE_from_sample<RealType, Matrix>(sample, user_data);
+    std::vector<N_Vector> solutions = Internal::solve_ODE_from_sample<RealType, Matrix, SolverType, SolverClass>(sample, user_data);
 
     // Turn ODE solution(s) into a distribution
     std::vector< Histograms::Histogram<RealType> > probabilities;

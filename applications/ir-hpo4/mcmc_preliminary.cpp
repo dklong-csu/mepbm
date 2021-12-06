@@ -15,6 +15,7 @@
 using Real = realtype;
 using Matrix = Eigen::SparseMatrix<realtype, Eigen::RowMajor>;
 using Vector = Eigen::Matrix<realtype, Eigen::Dynamic, 1>;
+using SolverType = Eigen::BiCGSTAB< Matrix, Eigen::IncompleteLUT<Real> >;
 
 
 
@@ -224,7 +225,7 @@ int main (int argc, char **argv)
       // Create the sampler
       const std::vector<Real> perturb_mag_real = {0.001, 3e2, 3e3, 3e3, 5e2, 5};
       const std::vector<int> perturb_mag_int = {10};
-      Sampling::Sampler<Real, Matrix, Sampling::UniformProposal, Sampling::UniformPrior, Sampling::DataTEMOnly>
+      Sampling::Sampler<Real, Matrix, Sampling::UniformProposal, Sampling::UniformPrior, Sampling::DataTEMOnly, SolverType, ITERATIVE>
           sampler(sample1, perturb_mag_real, perturb_mag_int, model_settings);
 
       // Create a seed for the random number generator to ensure consistent results.

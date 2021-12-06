@@ -6,8 +6,9 @@
 #include <iomanip>
 
 
-using Matrix = Eigen::SparseMatrix<double, Eigen::RowMajor>;
+using Matrix = Eigen::SparseMatrix<double>;
 using Vector = Eigen::Matrix<double, Eigen::Dynamic, 1>;
+using SolverType = Eigen::SparseLU<Matrix>;
 
 
 int main ()
@@ -37,7 +38,7 @@ int main ()
   *vec << 8, 4, 6, 2, 7, 3, 7, 7, 8, 5;
 
   // Create the linear solver
-  auto solver = create_eigen_linear_solver<Matrix, double>();
+  auto solver = create_eigen_direct_linear_solver<Matrix, double, SolverType>();
   solver->ops->setup(solver, A);
 
   // Create the solution vector

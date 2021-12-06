@@ -3,6 +3,7 @@
 
 #include "sundials/sundials_matrix.h"
 #include "eigen3/Eigen/Sparse"
+#include "eigen3/Eigen/Dense"
 
 
 

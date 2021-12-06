@@ -10,6 +10,7 @@
 
 using Vector = Eigen::Matrix<double, Eigen::Dynamic, 1>;
 using Matrix = Eigen::SparseMatrix<double, Eigen::RowMajor>;
+using SolverType = Eigen::BiCGSTAB< Matrix, Eigen::IncompleteLUT<double> >;
 
 
 class SimpleODE : public Model::RightHandSideContribution<double, Matrix>
@@ -115,7 +116,7 @@ int main ()
 
 
   // compute likelihood
-  double likelihood = SUNDIALS_Statistics::compute_likelihood_TEM_only(s, model_prm);
+  double likelihood = SUNDIALS_Statistics::compute_likelihood_TEM_only<double, Matrix, SolverType, ITERATIVE>(s, model_prm);
 
   std::cout << std::setprecision(20) << likelihood << std::endl;
 
