@@ -13,6 +13,7 @@
 using Real = realtype;
 using Vector = Eigen::Matrix<Real, Eigen::Dynamic, 1>;
 using Matrix = Eigen::SparseMatrix<Real, Eigen::RowMajor>;
+using SolverType = Eigen::BiCGSTAB< Matrix, Eigen::IncompleteLUT<Real> >;
 
 
 
@@ -138,7 +139,7 @@ int main()
   auto matrix_template = create_eigen_sunmatrix<Matrix>(dim,dim);
 
   // Linear solver for CVODE to use
-  auto linear_solver = create_eigen_linear_solver<Matrix, realtype>();
+  auto linear_solver = create_eigen_iterative_linear_solver<Matrix, realtype, SolverType>();
 
   // Settings for CVODE
   sundials::CVodeParameters<realtype> param(start_time,
@@ -148,7 +149,7 @@ int main()
                                             CV_BDF);
 
   // Setup the CVODE solver
-  sundials::CVodeSolver<Matrix, realtype> ode_solver(param,
+  sundials::CVodeSolver<Matrix, realtype, SolverType> ode_solver(param,
                                                      three_step_alt,
                                                      ic_sundials,
                                                      vector_template,

@@ -57,9 +57,10 @@ namespace Sampling
    * An object that contains the necessary information to generate a chain of samples.
    * This sampler uses the same proposal distribution for the entire sampling process.
    */
-   template<typename RealType, typename Matrix, ProposalType Proposal, PriorType Prior, DataType Data>
+   template<typename RealType, typename Matrix, ProposalType Proposal, PriorType Prior, DataType Data, typename SolverType, LinearSolverClass SolverClass>
    class Sampler
    {
+   public:
      /// Generates a chain of samples.
      void
      generate_samples(const unsigned int num_samples, std::ofstream &samples_file);
@@ -70,8 +71,8 @@ namespace Sampling
    /**
     * Partial specialization of the Sample class for when a Uniform distribution is used.
     */
-    template<typename RealType, typename Matrix>
-    class Sampler<RealType, Matrix, UniformProposal, UniformPrior, DataTEMOnly>
+    template<typename RealType, typename Matrix, typename SolverType, LinearSolverClass SolverClass>
+    class Sampler<RealType, Matrix, UniformProposal, UniformPrior, DataTEMOnly, SolverType, SolverClass>
     {
     public:
       /// Constructor
@@ -96,8 +97,8 @@ namespace Sampling
     };
 
 
-    template<typename RealType, typename Matrix>
-    Sampler<RealType, Matrix, UniformProposal, UniformPrior, DataTEMOnly>::Sampler(
+    template<typename RealType, typename Matrix, typename SolverType, LinearSolverClass SolverClass>
+    Sampler<RealType, Matrix, UniformProposal, UniformPrior, DataTEMOnly, SolverType, SolverClass>::Sampler(
         const Sample<RealType> &starting_guess,
         const std::vector<RealType> &perturb_magnitude_real,
         const std::vector<int> &perturb_magnitude_integer,
@@ -109,9 +110,9 @@ namespace Sampling
     {}
 
 
-    template<typename RealType, typename Matrix>
+    template<typename RealType, typename Matrix, typename SolverType, LinearSolverClass SolverClass>
     void
-    Sampler<RealType, Matrix, UniformProposal, UniformPrior, DataTEMOnly>::generate_samples(
+    Sampler<RealType, Matrix, UniformProposal, UniformPrior, DataTEMOnly, SolverType, SolverClass>::generate_samples(
         const unsigned int num_samples,
         std::ofstream &samples_file,
         const std::uint_fast32_t &random_seed)
@@ -159,7 +160,7 @@ namespace Sampling
                           if (sample_is_valid(s, user_data.real_parameter_bounds, user_data.integer_parameter_bounds) == false)
                             return -std::numeric_limits<RealType>::max();
                           else
-                            return SUNDIALS_Statistics::compute_likelihood_TEM_only(s, user_data);
+                            return SUNDIALS_Statistics::compute_likelihood_TEM_only<RealType, Matrix, SolverType, SolverClass>(s, user_data);
                         },
                         [&](const Sample<RealType> &s) {
                           return perturb_uniform(s, rng, perturb_magnitude_real, perturb_magnitude_integer);

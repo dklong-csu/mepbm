@@ -10,6 +10,9 @@
 
 using Vector = Eigen::Matrix<realtype, Eigen::Dynamic, 1>;
 using Matrix = Eigen::SparseMatrix<realtype, Eigen::RowMajor>;
+using SolverType = Eigen::BiCGSTAB< Matrix, Eigen::IncompleteLUT<realtype> >;
+
+
 
 class SimpleOde : public Model::RightHandSideContribution<realtype, Matrix>
     {
@@ -58,7 +61,7 @@ int main ()
   auto matrix_template = create_eigen_sunmatrix<Matrix>(1,1);
 
   // Create the linear solver
-  auto linear_solver = create_eigen_linear_solver<Matrix, realtype>();
+  auto linear_solver = create_eigen_linear_solver<Matrix, realtype, SolverType, ITERATIVE>();
 
   // Create settings for CVODE solver
   sundials::CVodeParameters<realtype> param(start_time,
@@ -68,7 +71,7 @@ int main ()
                                             CV_BDF);
 
   // Setup CVODE solver
-  sundials::CVodeSolver<Matrix, realtype> ode_solver(param,
+  sundials::CVodeSolver<Matrix, realtype, SolverType> ode_solver(param,
                                                      ode_system,
                                                      initial_condition,
                                                      vector_template,

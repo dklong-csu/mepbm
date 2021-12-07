@@ -55,7 +55,7 @@ namespace sundials
 
 
   /// Function to be passed to SUNDIALS to compute the right-hand side
-  template <typename Matrix, typename Real>
+  template <typename Matrix, typename Real, typename SolverType>
   int
   rhs_function_callback(Real t,
                         N_Vector y,
@@ -64,7 +64,7 @@ namespace sundials
 
 
   /// Function to be passed to SUNDIALS to compute the Jacobian for dense matrices
-  template <typename Matrix, typename Real>
+  template <typename Matrix, typename Real, typename SolverType>
   int
   setup_jacobian_callback(Real t,
                           N_Vector y,
@@ -134,7 +134,7 @@ namespace sundials
   /// ordinary differential equations. For either case, variable-order, variable-step
   /// multistep methods are used. Adams-Moulton for nonstiff problems, and Backward Differentiation Formula
   /// for stiff problems.
-  template <typename Matrix, typename Real>
+  template <typename Matrix, typename Real, typename SolverType>
   class CVodeSolver
   {
   public:
@@ -211,13 +211,13 @@ namespace sundials
    * Implementation of CVodeSolver
    **************************************************/
 
-  template <typename Matrix, typename Real>
-  CVodeSolver<Matrix, Real>::CVodeSolver(const CVodeParameters<Real> &data,
-                                         const Model::Model<Real, Matrix > &ode_system,
-                                         const N_Vector ic,
-                                         const N_Vector nvector_template,
-                                         const SUNMatrix sunmatrix_template,
-                                         const SUNLinearSolver linear_solver)
+  template <typename Matrix, typename Real, typename SolverType>
+  CVodeSolver<Matrix, Real, SolverType>::CVodeSolver(const CVodeParameters<Real> &data,
+                                                     const Model::Model<Real, Matrix > &ode_system,
+                                                     const N_Vector ic,
+                                                     const N_Vector nvector_template,
+                                                     const SUNMatrix sunmatrix_template,
+                                                     const SUNLinearSolver linear_solver)
   : data(data), ode_system(ode_system),
     initial_condition(nullptr),
     sun_linear_solver(nullptr),
@@ -243,7 +243,11 @@ namespace sundials
     sun_matrix = sunmatrix_template->ops->clone(sunmatrix_template);
 
     // Clone the linear solver
-    sun_linear_solver = create_eigen_linear_solver<Matrix, Real>();
+    if (linear_solver->ops->gettype(linear_solver) == SUNLINEARSOLVER_DIRECT)
+      sun_linear_solver = create_eigen_direct_linear_solver<Matrix, Real, SolverType>();
+    else
+      sun_linear_solver = create_eigen_iterative_linear_solver<Matrix, Real, SolverType>();
+
     sun_linear_solver->ops->gettype = linear_solver->ops->gettype;
     sun_linear_solver->ops->setup = linear_solver->ops->setup;
     sun_linear_solver->ops->solve = linear_solver->ops->solve;
@@ -254,8 +258,8 @@ namespace sundials
   }
 
 
-  template <typename Matrix, typename Real>
-  CVodeSolver<Matrix, Real>::~CVodeSolver()
+  template <typename Matrix, typename Real, typename SolverType>
+  CVodeSolver<Matrix, Real, SolverType>::~CVodeSolver()
   {
     CVodeFree(&cvode_mem);
     sun_linear_solver->ops->free(sun_linear_solver);
@@ -265,9 +269,9 @@ namespace sundials
   }
 
 
-  template <typename Matrix, typename Real>
+  template <typename Matrix, typename Real, typename SolverType>
   void
-  CVodeSolver<Matrix, Real>::solve_ode(N_Vector &solution, const Real tout)
+  CVodeSolver<Matrix, Real, SolverType>::solve_ode(N_Vector &solution, const Real tout)
   {
     Real t;
     flag = CVode(cvode_mem, tout, solution, &t, CV_NORMAL);
@@ -276,9 +280,9 @@ namespace sundials
   }
 
 
-  template <typename Matrix, typename Real>
+  template <typename Matrix, typename Real, typename SolverType>
   void
-  CVodeSolver<Matrix, Real>::solve_ode_incrementally(std::vector< N_Vector > &solutions,
+  CVodeSolver<Matrix, Real, SolverType>::solve_ode_incrementally(std::vector< N_Vector > &solutions,
                                                      const std::vector< Real > &times)
   {
     Real t;
@@ -298,9 +302,9 @@ namespace sundials
 
 
 
-  template <typename Matrix, typename Real>
+  template <typename Matrix, typename Real, typename SolverType>
   void
-  CVodeSolver<Matrix, Real>::setup_cvode_solver()
+  CVodeSolver<Matrix, Real, SolverType>::setup_cvode_solver()
   {
     // Setup integrator
     cvode_mem = CVodeCreate(data.solver_type);
@@ -308,7 +312,7 @@ namespace sundials
 
 
     // Initialize integrator
-    flag = CVodeInit(cvode_mem, &rhs_function_callback<Matrix, Real>, data.initial_time, initial_condition);
+    flag = CVodeInit(cvode_mem, &rhs_function_callback<Matrix, Real, SolverType>, data.initial_time, initial_condition);
     check_flag(&flag, "CVodeInit",RETURNNONNEGATIVE);
 
 
@@ -333,7 +337,7 @@ namespace sundials
 
 
     // Set the Jacobian routine
-    flag = CVodeSetJacFn(cvode_mem, &setup_jacobian_callback<Matrix, Real>);
+    flag = CVodeSetJacFn(cvode_mem, &setup_jacobian_callback<Matrix, Real, SolverType>);
     check_flag(&flag, "CVodeSetJacFn", RETURNNONNEGATIVE);
 
 
@@ -345,9 +349,9 @@ namespace sundials
 
 
   /// Returns the ODE model
-  template< typename Matrix, typename Real >
+  template< typename Matrix, typename Real, typename SolverType>
   Model::Model< Real, Matrix>
-  CVodeSolver<Matrix, Real >::return_ode_model()
+  CVodeSolver<Matrix, Real, SolverType>::return_ode_model()
   {
     return ode_system;
   }
@@ -355,9 +359,9 @@ namespace sundials
 
 
   /// Returns the CVode parameters
-  template< typename Matrix, typename Real >
+  template< typename Matrix, typename Real, typename SolverType>
   CVodeParameters< Real>
-  CVodeSolver<Matrix, Real >::return_cvode_settings()
+  CVodeSolver<Matrix, Real, SolverType>::return_cvode_settings()
   {
     return data;
   }
@@ -435,7 +439,7 @@ namespace sundials
 
 
   /// Function to be passed to SUNDIALS to compute the right-hand side
-  template <typename Matrix, typename Real>
+  template <typename Matrix, typename Real, typename SolverType>
   int
   rhs_function_callback(Real t,
                         N_Vector y,
@@ -443,8 +447,8 @@ namespace sundials
                         void * user_data)
   {
     // user_data is a pointer to the Model describing the ODEs
-    CVodeSolver<Matrix, Real> &cvode_system =
-        *static_cast< CVodeSolver<Matrix, Real> *>(user_data);
+    CVodeSolver<Matrix, Real, SolverType> &cvode_system =
+        *static_cast< CVodeSolver<Matrix, Real, SolverType> *>(user_data);
 
     Model::Model<Real, Matrix> ode_system = cvode_system.return_ode_model();
 
@@ -459,7 +463,7 @@ namespace sundials
 
 
   /// Function to be passed to SUNDIALS to compute the Jacobian for dense matrices
-  template <typename Matrix, typename Real>
+  template <typename Matrix, typename Real, typename SolverType>
   int
   setup_jacobian_callback(Real t,
                           N_Vector y,
@@ -471,8 +475,8 @@ namespace sundials
                           N_Vector tmp3)
   {
     // user_data is a pointer to the Model describing the ODEs
-    CVodeSolver<Matrix, Real> &cvode_solver =
-        *static_cast< CVodeSolver<Matrix, Real> *>(user_data);
+    CVodeSolver<Matrix, Real, SolverType> &cvode_solver =
+        *static_cast< CVodeSolver<Matrix, Real, SolverType> *>(user_data);
 
     const auto cvode_settings = cvode_solver.return_cvode_settings();
 

@@ -7,6 +7,7 @@
 #include <vector>
 #include "models.h"
 #include <utility>
+#include "linear_solver_eigen.h"
 
 namespace Sampling
 {
