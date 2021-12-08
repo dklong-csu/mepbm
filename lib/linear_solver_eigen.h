@@ -58,7 +58,7 @@ namespace SUNLinearSolverOperations
     auto b_vec = static_cast< Eigen::Matrix<Real, Eigen::Dynamic, 1>*>(b->content);
 
     // The `setup' function preps `eigen_solver' with the matrix A, so it does not need to be used here.
-    eigen_solver->setTolerance(tol);
+    //eigen_solver->setTolerance(tol);
     *x_vec = eigen_solver->solve(*b_vec);
 
     return 0;

@@ -1433,7 +1433,7 @@ namespace Model
 
 
 
-  /// Partial specialization for a sparse matrix
+  /// Partial specialization for a sparse matrix (row major)
   template<typename Real>
   class Model<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>>
   {
@@ -1522,6 +1522,111 @@ namespace Model
     }
 
     Eigen::SparseMatrix<Real, Eigen::RowMajor> J(x.rows(), x.rows());
+
+    J.setFromTriplets(triplet_list.begin(), triplet_list.end());
+
+    // Loop through every right hand side contribution added to the model and keep adding to the Jacobian.
+    for (auto & rhs_contribution : rhs_contributions)
+    {
+      rhs_contribution->add_contribution_to_jacobian(x, J);
+    }
+
+    J.makeCompressed();
+
+    return J;
+  }
+
+
+
+  /// Partial specialization for a sparse matrix (column major)
+  template<typename Real>
+  class Model<Real, Eigen::SparseMatrix<Real>>
+  {
+  public:
+    Model();
+
+    Model(unsigned int nucleation_order, unsigned int max_size);
+
+    void add_rhs_contribution(
+        std::shared_ptr<RightHandSideContribution<Real, Eigen::SparseMatrix<Real>>> &rhs);
+
+    Eigen::Matrix<Real, Eigen::Dynamic, 1> rhs(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const;
+    Eigen::SparseMatrix<Real> jacobian(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const;
+
+    unsigned int nucleation_order;
+    unsigned int max_size;
+
+  private:
+    std::vector<std::shared_ptr<
+        RightHandSideContribution<Real, Eigen::SparseMatrix<Real>>>> rhs_contributions;
+  };
+
+
+
+  template<typename Real>
+  Model<Real, Eigen::SparseMatrix<Real>>::Model()
+      : Model(std::numeric_limits<unsigned int>::signaling_NaN(), std::numeric_limits<unsigned int>::signaling_NaN())
+  {}
+
+
+
+  template<typename Real>
+  Model<Real, Eigen::SparseMatrix<Real>>::Model(unsigned int nucleation_order, unsigned int max_size)
+      : nucleation_order(nucleation_order), max_size(max_size)
+  {}
+
+
+
+  template<typename Real>
+  void Model<Real, Eigen::SparseMatrix<Real>>::add_rhs_contribution(
+      std::shared_ptr<RightHandSideContribution<Real, Eigen::SparseMatrix<Real>>> &rhs)
+  {
+    rhs_contributions.push_back(rhs);
+  }
+
+
+
+  template<typename Real>
+  Eigen::Matrix<Real, Eigen::Dynamic, 1>
+  Model<Real, Eigen::SparseMatrix<Real>>::rhs(Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const
+  {
+    // Initialize the right hand side as a zero vector.
+    Eigen::Matrix<Real, Eigen::Dynamic, 1> rhs = Eigen::Matrix<Real, Eigen::Dynamic, 1>::Zero(x.rows());
+
+    // Loop through every right hand side contribution added to the model and keep adding to the right hand side.
+    for (auto & rhs_contribution : rhs_contributions)
+    {
+      rhs_contribution->add_contribution_to_rhs(x, rhs);
+    }
+
+    return rhs;
+  }
+
+
+
+  template<typename Real>
+  Eigen::SparseMatrix<Real>
+  Model<Real, Eigen::SparseMatrix<Real>>::jacobian(
+      Eigen::Matrix<Real, Eigen::Dynamic, 1> &x) const
+  {
+    // Form the sparsity pattern by mimicking construction of the matrix, but whenever
+    // a value would be calculated, simply add those indices to a list indicating nonzero entries.
+    std::vector< Eigen::Triplet<Real> > triplet_list;
+    unsigned int estimate_nonzero = 0;
+
+    for (auto & rhs_contribution : rhs_contributions)
+    {
+      rhs_contribution->update_num_nonzero(estimate_nonzero);
+    }
+
+    triplet_list.reserve(estimate_nonzero);
+
+    for (auto & rhs_contribution : rhs_contributions)
+    {
+      rhs_contribution->add_nonzero_to_jacobian(triplet_list);
+    }
+
+    Eigen::SparseMatrix<Real> J(x.rows(), x.rows());
 
     J.setFromTriplets(triplet_list.begin(), triplet_list.end());
 
