@@ -17,3 +17,8 @@ ADD_EXECUTABLE(ode_solver_timing_test
         ode_solver_timing_test.cpp)
 TARGET_LINK_LIBRARIES(ode_solver_timing_test
         libmepbm)
+
+ADD_EXECUTABLE(mcmc_adaptive
+        mcmc_adaptive.cpp)
+TARGET_LINK_LIBRARIES(mcmc_adaptive
+        libmepbm)

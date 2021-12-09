@@ -183,6 +183,261 @@ namespace Sampling
 
 
 
+
+
+  /**
+ * An object that contains the necessary information to generate a chain of samples.
+ * This sampler employs an adaptive Metropolis-Hastings algorithm. Specifically, after a specified number of samples,
+ * the proposal distribution (1-beta)*N(x_n, alpha*(2.38)^2/d * Sigma_n) + beta*N(x, alpha*gamma^2/d * I_d)
+ * is used. alpha is initially set to a value of 1 and is adjusted along the way to target the specified goal acceptance ratio (AR).
+ * That is, at the time of checking, if the current AR is greater than the goal AR, then multiply alpha by two because the proposal area is too small.
+ * Conversely, if the current AR is less than the goal AR, then the proposal area is too big so divide alpha by two.
+ */
+  template<typename RealType, typename Matrix, PriorType Prior, DataType Data, typename SolverType, LinearSolverClass SolverClass>
+  class AdaptiveMHSampler
+  {
+  public:
+    /// Constructor
+    AdaptiveMHSampler(const Sample<RealType> starting_guess,
+                      SampleFlow::Consumers::CovarianceMatrix< std::valarray<RealType> >* sample_covariance_matrix,
+                      const Eigen::Matrix<RealType, Eigen::Dynamic, Eigen::Dynamic> starting_covariance_matrix,
+                      const ModelingParameters<RealType, Matrix> user_data,
+                      const RealType beta,
+                      const RealType gamma);
+
+    /// Generates a chain of samples.
+    void
+    generate_samples(const unsigned int num_samples,
+                     std::ofstream &samples_file,
+                     const std::uint_fast32_t &random_seed,
+                     const unsigned int adaptive_start_sample,
+                     const unsigned int ar_check_interval,
+                     const RealType ar_check_buffer);
+
+  private:
+    const Sample<RealType> starting_guess;
+    std::shared_ptr< SampleFlow::Consumers::CovarianceMatrix<std::valarray< RealType > > > sample_covariance_matrix;
+    const Eigen::Matrix<RealType, Eigen::Dynamic, Eigen::Dynamic> starting_covariance_matrix;
+    const ModelingParameters<RealType, Matrix> user_data;
+    const RealType beta;
+    const RealType gamma;
+  };
+
+
+
+  /// Partial specialization for TEM data only
+  template<typename RealType, typename Matrix, PriorType Prior, typename SolverType, LinearSolverClass SolverClass>
+  class AdaptiveMHSampler<RealType, Matrix, Prior, DataTEMOnly, SolverType, SolverClass>
+  {
+  public:
+    /// Constructor
+    AdaptiveMHSampler(const Sample<RealType> starting_guess,
+                      std::shared_ptr< SampleFlow::Consumers::CovarianceMatrix<std::valarray< RealType > > > sample_covariance_matrix,
+                      const Eigen::Matrix<RealType, Eigen::Dynamic, Eigen::Dynamic> starting_covariance_matrix,
+                      const ModelingParameters<RealType, Matrix> user_data,
+                      const RealType beta,
+                      const RealType gamma);
+
+
+    /// Generates a chain of samples.
+    void
+    generate_samples(const unsigned int num_samples,
+                     std::ofstream &samples_file,
+                     const std::uint_fast32_t &random_seed,
+                     const unsigned int adaptive_start_sample,
+                     const unsigned int ar_check_interval,
+                     const RealType goal_ar,
+                     const RealType ar_check_buffer);
+
+  private:
+    const Sample<RealType> starting_guess;
+    std::shared_ptr< SampleFlow::Consumers::CovarianceMatrix<std::valarray< RealType > > > sample_covariance_matrix;
+    const Eigen::Matrix<RealType, Eigen::Dynamic, Eigen::Dynamic> starting_covariance_matrix;
+    const ModelingParameters<RealType, Matrix> user_data;
+    const RealType beta;
+    const RealType gamma;
+  };
+
+
+
+  template<typename RealType, typename Matrix, PriorType Prior, typename SolverType, LinearSolverClass SolverClass>
+  AdaptiveMHSampler<RealType, Matrix, Prior, DataTEMOnly, SolverType, SolverClass>::AdaptiveMHSampler(
+      const Sample<RealType> starting_guess,
+      std::shared_ptr< SampleFlow::Consumers::CovarianceMatrix<std::valarray< RealType > > > sample_covariance_matrix,
+      const Eigen::Matrix<RealType, Eigen::Dynamic, Eigen::Dynamic> starting_covariance_matrix,
+      const ModelingParameters<RealType, Matrix> user_data,
+      const RealType beta,
+      const RealType gamma)
+      : starting_guess(starting_guess),
+        sample_covariance_matrix(sample_covariance_matrix),
+        starting_covariance_matrix(starting_covariance_matrix),
+        user_data(user_data),
+        beta(beta),
+        gamma(gamma)
+      {}
+
+
+
+  template<typename RealType, typename Matrix, PriorType Prior, typename SolverType, LinearSolverClass SolverClass>
+  void AdaptiveMHSampler<RealType, Matrix, Prior, DataTEMOnly, SolverType, SolverClass>::generate_samples(
+      const unsigned int num_samples,
+      std::ofstream &samples_file,
+      const std::uint_fast32_t &random_seed,
+      const unsigned int adaptive_start_sample,
+      const unsigned int ar_check_interval,
+      const RealType goal_ar,
+      const RealType ar_check_buffer)
+  {
+    // Create the object to conduct the metropolis hastings (MH) algorithm
+    SampleFlow::Producers::MetropolisHastings<Sample<RealType>> mh_sampler;
+
+    // Tell the MH algorithm where to output samples
+    // FIXME replace with MyStreamOutput so I can calculate Bayes Factor
+    SampleFlow::Consumers::StreamOutput<Sample<RealType>> stream_output(samples_file);
+    stream_output.connect_to_producer(mh_sampler);
+
+    // Since our sample object is complicated, we want to be able to turn it into a vector
+    // compatible with computations whenever that is necessary
+    SampleFlow::Filters::Conversion<Sample<RealType>, std::valarray<RealType> > convert_to_vector;
+    convert_to_vector.connect_to_producer(mh_sampler);
+
+    // Update the mean value of the samples during the process
+    // Updating the mean value requires computations on the samples, so we need the filter created above
+    SampleFlow::Consumers::MeanValue< std::valarray<RealType> > mean_value;
+    mean_value.connect_to_producer(convert_to_vector);
+
+    // Update the covariance matrix of the samples during the process
+    // Updating the covariance matrix requires computations on the samples, so we need the filter created above
+    sample_covariance_matrix->connect_to_producer(convert_to_vector);
+
+    // Keep track of the acceptance ratio to see how efficient our sampling process was
+    SampleFlow::Consumers::AcceptanceRatio< std::valarray<RealType> > acceptance_ratio;
+    acceptance_ratio.connect_to_producer(convert_to_vector);
+
+    // Write to disk only on occasion to reduce load on memory
+    SampleFlow::Filters::TakeEveryNth<Sample<RealType>> every_100th(100);
+    every_100th.connect_to_producer(mh_sampler);
+
+    SampleFlow::Consumers::Action<Sample<RealType>>
+        flush_after_every_100th([&samples_file](const Sample<RealType> &, const SampleFlow::AuxiliaryData &) {
+      samples_file << std::flush;
+    });
+
+    flush_after_every_100th.connect_to_producer(every_100th);
+
+    // Count the number of samples so I know when to perform adaptations.
+    SampleFlow::Consumers::CountSamples<Sample<RealType>> sample_count;
+    sample_count.connect_to_producer(mh_sampler);
+
+    // Check acceptance ratio and adjust alpha as necessary
+    SampleFlow::Filters::TakeEveryNth<Sample<RealType>> every_nth_adjust_alpha(ar_check_interval);
+    every_nth_adjust_alpha.connect_to_producer(mh_sampler);
+
+    RealType alpha = 1.; // alpha should start at 1
+
+    SampleFlow::Consumers::Action<Sample<RealType>>
+      modify_alpha_every_nth(
+          [&](const Sample<RealType> &, const SampleFlow::AuxiliaryData &)
+          {
+           // Make sure we've entered the adaptive part of the algorithm
+           if (sample_count.get() > adaptive_start_sample)
+           {
+             if (acceptance_ratio.get() < (goal_ar - ar_check_buffer))
+             {
+               // if AR is too small then we need a tighter proposal area
+               std::cout << "Alpha reduced: AR = "
+                         << acceptance_ratio.get()
+                         << std::endl;
+               alpha /= 2;
+             }
+             else if (acceptance_ratio.get() > (goal_ar + ar_check_buffer))
+             {
+               // if AR is too large then we can afford a larger proposal area
+               std::cout << "Alpha increased: AR = "
+                         << acceptance_ratio.get()
+                         << std::endl;
+               alpha *= 2;
+             }
+             // do nothing if AR is in an acceptable range
+           }
+          }
+          );
+
+    modify_alpha_every_nth.connect_to_producer(every_nth_adjust_alpha);
+
+    // Sample from the given distribution.
+    // Since the prior distribution is uniform then we can simply check if the parameters are within the
+    // prior bounds. If not, then we have a probability of 0. If we do, then the prior gives the same
+    // contribution to the probability, so we only need to calculate the likelihood
+    std::mt19937 rng;
+    rng.seed(random_seed);
+    auto problem_dimension = starting_guess.real_valued_parameters.size() + starting_guess.integer_valued_parameters.size();
+
+    auto log_probability = [&](const Sample<RealType> &s) {
+      if (sample_is_valid(s, user_data.real_parameter_bounds, user_data.integer_parameter_bounds) == false)
+        return -std::numeric_limits<RealType>::max();
+      else
+        return SUNDIALS_Statistics::compute_likelihood_TEM_only<RealType, Matrix, SolverType, SolverClass>(s, user_data);
+    };
+
+
+    auto proposal_distribution = [&](const Sample<RealType> &s) {
+      if (sample_count.get() < adaptive_start_sample)
+      {
+        return perturb_normal(s, rng, starting_covariance_matrix, 1.);
+      }
+      else
+      {
+        auto sample_x = perturb_normal(s, rng, sample_covariance_matrix->get(), alpha*2.38*2.38/problem_dimension);
+        const Eigen::Matrix<RealType, Eigen::Dynamic, Eigen::Dynamic> identity_matrix
+          = Eigen::Matrix<RealType, Eigen::Dynamic, Eigen::Dynamic>::Identity(problem_dimension, problem_dimension);
+        auto sample_y = perturb_normal(s, rng, identity_matrix , alpha*gamma*gamma/problem_dimension);
+        std::vector<RealType> perturbed_real_prm;
+        for (unsigned int i=0; i<sample_x.first.real_valued_parameters.size(); ++i)
+        {
+          auto prm = (1-beta)*sample_x.first.real_valued_parameters[i] + beta*sample_y.first.real_valued_parameters[i];
+          perturbed_real_prm.push_back(prm);
+        }
+
+        std::vector<int> perturbed_int_prm;
+        for (unsigned int i=0; i<sample_x.first.integer_valued_parameters.size(); ++i)
+        {
+          auto prm = (1-beta)*sample_x.first.integer_valued_parameters[i] + beta*sample_y.first.integer_valued_parameters[i];
+          perturbed_int_prm.push_back(prm);
+        }
+        Sample<RealType> perturbed_sample(perturbed_real_prm, perturbed_int_prm);
+        std::pair<Sample<RealType>, RealType> sample_and_ratio = {perturbed_sample, 1.};
+        return sample_and_ratio;
+      }
+    };
+
+
+
+    mh_sampler.sample(starting_guess,
+                      log_probability,
+                      proposal_distribution,
+                      num_samples,
+                      random_seed);
+
+    // Output the statistics we have computed in the process of sampling
+    // everything
+    std::cout << "Mean value of all samples: ";
+    for (auto x : mean_value.get())
+      std::cout << x << ' ';
+    std::cout << std::endl;
+    std::cout << "MH acceptance ratio: "
+              << acceptance_ratio.get()
+              << std::endl;
+  }
+
+
+
+
+
+
+
+
+
 }
 
 #endif //MEPBM_SAMPLING_ALGORITHM_H
