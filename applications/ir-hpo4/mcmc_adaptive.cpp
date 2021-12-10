@@ -138,7 +138,7 @@ int main (int argc, char **argv)
 {
   // Create the covariance matrix before the loop so that all chains contribute to the same covariance matrix
   auto covariance_matrix = std::make_shared< SampleFlow::Consumers::CovarianceMatrix< std::valarray< Real > > >(); // use a valarray instead of Sample<> to support arithmetic
-  unsigned int n_threads = 6;
+  unsigned int n_threads = 1;
 #ifdef _OPENMP
   n_threads = omp_get_max_threads();
 #endif
@@ -148,11 +148,28 @@ int main (int argc, char **argv)
 
 #pragma omp parallel for
   for (unsigned int thread=0; thread<n_threads; ++thread) {
+    // Create a seed for the random number generator to ensure consistent results.
+    const std::uint_fast32_t random_seed
+        = (argc > 1 ?
+           std::hash<std::string>()(std::to_string(atoi(argv[1]) + thread)) :
+           std::hash<std::string>()(std::to_string(thread)));
+
+    std::mt19937 rng(random_seed);
+
     // create a sample
     // derek            -- kf, kb, k1, k2, k3, k4, M
     // convert to danny -- kf, kb, k1, k2, k4, k3, M
-    std::vector<Real> real_prm = {1e-2, 1e4, 1e5, 1e5, 1e3, 1e2};
-    std::vector<int> int_prm = {20};
+
+    const Real kf = std::uniform_real_distribution<Real>(0.001, 0.05)(rng);
+    const Real kb = std::uniform_real_distribution<Real>(1000., 100000.)(rng);
+    const Real k1 = std::uniform_real_distribution<Real>(10000., 1000000.)(rng);
+    const Real k2 = std::uniform_real_distribution<Real>(10000., 1000000.)(rng);
+    const Real k3 = std::uniform_real_distribution<Real>(500., 50000.)(rng);
+    const Real k4 = std::uniform_real_distribution<Real>(1000., 10000.)(rng);
+    const int M = std::uniform_int_distribution<int>(10, 500)(rng);
+
+    std::vector<Real> real_prm = {kf, kb, k1, k2, k3, k4};
+    std::vector<int> int_prm = {M};
 
     std::vector<std::pair<Real, Real> > real_prm_bounds =
         {
@@ -231,44 +248,22 @@ int main (int argc, char **argv)
     // FIXME - if multiple iterations of this code are run, replace the starting covariance with the covariance matrix from the last run.
     Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> starting_covariance(d,d);
     starting_covariance <<
-        8.9073e-06,   0.0198409,   0.0340872,    0.179625,    0.263132,   0.0329012, -0.00757917,
-        0.0198409,      60.356,     70.1265,     547.348,     756.801,     93.1149,    -21.7613,
-        0.0340872,     70.1265,     135.891,     635.528,     957.772,     118.748,    -27.2615,
-        0.179625,     547.348,     635.528,     5169.47,     7062.75,     855.706,    -198.793,
-        0.263132,     756.801,     957.772,     7062.75,       10104,     1228.84,    -282.243,
-        0.0329012,     93.1149,     118.748,     855.706,     1228.84,     159.439,    -35.8455,
-        -0.00757917,    -21.7613,    -27.2615,    -198.793,    -282.243,    -35.8455,     8.18516;
+        0.00395356, 2904.42, 26380.3, 54063.8, 2015.82, -142.614, -0.537724,
+        2904.42, 2.67802e+09, 1.76214e+10, 3.13047e+10, 1.34681e+09, -1.30986e+08, -337709,
+        26380.3, 1.76214e+10, 2.70964e+11, 3.84794e+11, 1.72949e+10, -6.8373e+08, -2.81209e+06,
+        54063.8, 3.13047e+10, 3.84794e+11, 9.46076e+11, 2.87813e+10, -1.62988e+09, -9.02532e+06,
+        2015.82, 1.34681e+09, 1.72949e+10, 2.87813e+10, 1.32218e+09, -4.40328e+07, -226390,
+        -142.614, -1.30986e+08, -6.8373e+08, -1.62988e+09, -4.40328e+07, 1.06293e+07, 22340.5,
+        -0.537724, -337709, -2.81209e+06, -9.02532e+06, -226390, 22340.5, 200.485;
 
-    std::vector<Real> variances = {1e-4, 1e2, 1e3, 1e3, 1e2, 1e1, 1e1};
-    for (unsigned int i=0; i<d; ++i)
-    {
-      for (unsigned int j=0; j<d; ++j)
-      {
-        if (i==j)
-        {
-          starting_covariance(i,j) = variances[i];
-        }
-        else
-        {
-          starting_covariance(i,j) = 0.;
-        }
-      }
-    }
 
     // The adaptive algorithm uses a proposal distribution of
-    // (1-beta)*N(x, alpha*2.38^2/d * sample covariance) + beta*N(x, alpha*gamma^2/d * I)
-    // alpha is calculated internally but beta and gamma need to be specified.
-    const Real beta = 0.05;
-    const Real gamma = 0.01;
+    // (1-beta)*N(x, 2.38^2/d * sample covariance) + beta*N(x, gamma^2/d * I)
+    const Real beta = 0.01;
+    const Real gamma = 0.001;
 
     Sampling::AdaptiveMHSampler<Real, Matrix, Sampling::UniformPrior, Sampling::DataTEMOnly, SolverType, DIRECT>
         sampler(sample1, covariance_matrix, starting_covariance, model_settings, beta, gamma);
-
-    // Create a seed for the random number generator to ensure consistent results.
-    const std::uint_fast32_t random_seed
-        = (argc > 1 ?
-           std::hash<std::string>()(std::to_string(atoi(argv[1]) + thread)) :
-           std::hash<std::string>()(std::to_string(thread)));
 
     // Create an output file to print all of the samples.
     std::ofstream samples_file("samples"
@@ -280,11 +275,8 @@ int main (int argc, char **argv)
                                ".txt");
 
     const unsigned int n_samples = 1000;
-    const unsigned int adaptive_start_sample = 100;
-    const unsigned int ar_check_interval = 100;
-    const Real goal_ar = .234;
-    const Real ar_check_buffer = .05;
-    sampler.generate_samples(n_samples, samples_file, random_seed, adaptive_start_sample, ar_check_interval, goal_ar, ar_check_buffer);
+    const unsigned int adaptive_start_sample = 500;
+    sampler.generate_samples(n_samples, samples_file, random_seed, adaptive_start_sample);
   }
 
   std::cout << "Covariance matrix is: " << std::endl;

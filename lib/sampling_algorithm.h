@@ -188,10 +188,8 @@ namespace Sampling
   /**
  * An object that contains the necessary information to generate a chain of samples.
  * This sampler employs an adaptive Metropolis-Hastings algorithm. Specifically, after a specified number of samples,
- * the proposal distribution (1-beta)*N(x_n, alpha*(2.38)^2/d * Sigma_n) + beta*N(x, alpha*gamma^2/d * I_d)
- * is used. alpha is initially set to a value of 1 and is adjusted along the way to target the specified goal acceptance ratio (AR).
- * That is, at the time of checking, if the current AR is greater than the goal AR, then multiply alpha by two because the proposal area is too small.
- * Conversely, if the current AR is less than the goal AR, then the proposal area is too big so divide alpha by two.
+ * the proposal distribution (1-beta)*N(x_n, (2.38)^2/d * Sigma_n) + beta*N(x, gamma^2/d * I_d)
+ * is used.
  */
   template<typename RealType, typename Matrix, PriorType Prior, DataType Data, typename SolverType, LinearSolverClass SolverClass>
   class AdaptiveMHSampler
@@ -210,9 +208,7 @@ namespace Sampling
     generate_samples(const unsigned int num_samples,
                      std::ofstream &samples_file,
                      const std::uint_fast32_t &random_seed,
-                     const unsigned int adaptive_start_sample,
-                     const unsigned int ar_check_interval,
-                     const RealType ar_check_buffer);
+                     const unsigned int adaptive_start_sample);
 
   private:
     const Sample<RealType> starting_guess;
@@ -244,10 +240,7 @@ namespace Sampling
     generate_samples(const unsigned int num_samples,
                      std::ofstream &samples_file,
                      const std::uint_fast32_t &random_seed,
-                     const unsigned int adaptive_start_sample,
-                     const unsigned int ar_check_interval,
-                     const RealType goal_ar,
-                     const RealType ar_check_buffer);
+                     const unsigned int adaptive_start_sample);
 
   private:
     const Sample<RealType> starting_guess;
@@ -283,10 +276,7 @@ namespace Sampling
       const unsigned int num_samples,
       std::ofstream &samples_file,
       const std::uint_fast32_t &random_seed,
-      const unsigned int adaptive_start_sample,
-      const unsigned int ar_check_interval,
-      const RealType goal_ar,
-      const RealType ar_check_buffer)
+      const unsigned int adaptive_start_sample)
   {
     // Create the object to conduct the metropolis hastings (MH) algorithm
     SampleFlow::Producers::MetropolisHastings<Sample<RealType>> mh_sampler;
@@ -329,42 +319,6 @@ namespace Sampling
     SampleFlow::Consumers::CountSamples<Sample<RealType>> sample_count;
     sample_count.connect_to_producer(mh_sampler);
 
-    // Check acceptance ratio and adjust alpha as necessary
-    SampleFlow::Filters::TakeEveryNth<Sample<RealType>> every_nth_adjust_alpha(ar_check_interval);
-    every_nth_adjust_alpha.connect_to_producer(mh_sampler);
-
-    RealType alpha = 1.; // alpha should start at 1
-
-    SampleFlow::Consumers::Action<Sample<RealType>>
-      modify_alpha_every_nth(
-          [&](const Sample<RealType> &, const SampleFlow::AuxiliaryData &)
-          {
-           // Make sure we've entered the adaptive part of the algorithm
-           if (sample_count.get() > adaptive_start_sample)
-           {
-             if (acceptance_ratio.get() < (goal_ar - ar_check_buffer))
-             {
-               // if AR is too small then we need a tighter proposal area
-               std::cout << "Alpha reduced: AR = "
-                         << acceptance_ratio.get()
-                         << std::endl;
-               alpha /= 2;
-             }
-             else if (acceptance_ratio.get() > (goal_ar + ar_check_buffer))
-             {
-               // if AR is too large then we can afford a larger proposal area
-               std::cout << "Alpha increased: AR = "
-                         << acceptance_ratio.get()
-                         << std::endl;
-               alpha *= 2;
-             }
-             // do nothing if AR is in an acceptable range
-           }
-          }
-          );
-
-    modify_alpha_every_nth.connect_to_producer(every_nth_adjust_alpha);
-
     // Sample from the given distribution.
     // Since the prior distribution is uniform then we can simply check if the parameters are within the
     // prior bounds. If not, then we have a probability of 0. If we do, then the prior gives the same
@@ -388,10 +342,10 @@ namespace Sampling
       }
       else
       {
-        auto sample_x = perturb_normal(s, rng, sample_covariance_matrix->get(), alpha*2.38*2.38/problem_dimension);
+        auto sample_x = perturb_normal(s, rng, sample_covariance_matrix->get(), 2.38*2.38/problem_dimension);
         const Eigen::Matrix<RealType, Eigen::Dynamic, Eigen::Dynamic> identity_matrix
           = Eigen::Matrix<RealType, Eigen::Dynamic, Eigen::Dynamic>::Identity(problem_dimension, problem_dimension);
-        auto sample_y = perturb_normal(s, rng, identity_matrix , alpha*gamma*gamma/problem_dimension);
+        auto sample_y = perturb_normal(s, rng, identity_matrix , gamma*gamma/problem_dimension);
         std::vector<RealType> perturbed_real_prm;
         for (unsigned int i=0; i<sample_x.first.real_valued_parameters.size(); ++i)
         {
