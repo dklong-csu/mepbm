@@ -342,10 +342,10 @@ namespace Sampling
       }
       else
       {
-        auto sample_x = perturb_normal(s, rng, sample_covariance_matrix->get(), 2.38*2.38/problem_dimension);
+        auto sample_x = perturb_normal(s, rng, sample_covariance_matrix->get(), 2.38/std::sqrt(problem_dimension));
         const Eigen::Matrix<RealType, Eigen::Dynamic, Eigen::Dynamic> identity_matrix
           = Eigen::Matrix<RealType, Eigen::Dynamic, Eigen::Dynamic>::Identity(problem_dimension, problem_dimension);
-        auto sample_y = perturb_normal(s, rng, identity_matrix , gamma*gamma/problem_dimension);
+        auto sample_y = perturb_normal(s, rng, identity_matrix , gamma/std::sqrt(problem_dimension));
         std::vector<RealType> perturbed_real_prm;
         for (unsigned int i=0; i<sample_x.first.real_valued_parameters.size(); ++i)
         {
