@@ -15,7 +15,7 @@
 using Real = realtype;
 using Matrix = Eigen::SparseMatrix<realtype, Eigen::RowMajor>;
 using Vector = Eigen::Matrix<realtype, Eigen::Dynamic, 1>;
-using SolverType = Eigen::SparseLU<Matrix>; // ODE solver test found this was fastest on average
+using SolverType = Eigen::BiCGSTAB<Matrix, Eigen::IncompleteLUT<Real>>; // ODE solver test found this was fastest on average
 
 
 
@@ -134,59 +134,32 @@ four_step(const std::vector<Real> real_prm,
 
 
 
-int main (int argc, char **argv)
+
+Real
+log_likelihood(const Sampling::Sample<Real> & s)
 {
-  // Create the covariance matrix before the loop so that all chains contribute to the same covariance matrix
-  auto covariance_matrix = std::make_shared< SampleFlow::Consumers::CovarianceMatrix< std::valarray< Real > > >(); // use a valarray instead of Sample<> to support arithmetic
-  unsigned int n_threads = 1;
-#ifdef _OPENMP
-  n_threads = omp_get_max_threads();
-#endif
-
-  // Don't have a good idea of what a "good" set of parameters is so just randomly generate parameters for each thread
-  // FIXME - if successive iterations of this code are run, the starting samples can be chosen as the mean of the previous run
-
-#pragma omp parallel for
-  for (unsigned int thread=0; thread<n_threads; ++thread) {
-    // Create a seed for the random number generator to ensure consistent results.
-    const std::uint_fast32_t random_seed
-        = (argc > 1 ?
-           std::hash<std::string>()(std::to_string(atoi(argv[1]) + thread)) :
-           std::hash<std::string>()(std::to_string(thread)));
-
-    std::mt19937 rng(random_seed);
-
-    // create a sample
-    // derek            -- kf, kb, k1, k2, k3, k4, M
-    // convert to danny -- kf, kb, k1, k2, k4, k3, M
-
-    const Real kf = std::uniform_real_distribution<Real>(0.001, 0.05)(rng);
-    const Real kb = std::uniform_real_distribution<Real>(1000., 100000.)(rng);
-    const Real k1 = std::uniform_real_distribution<Real>(10000., 1000000.)(rng);
-    const Real k2 = std::uniform_real_distribution<Real>(10000., 1000000.)(rng);
-    const Real k3 = std::uniform_real_distribution<Real>(500., 50000.)(rng);
-    const Real k4 = std::uniform_real_distribution<Real>(1000., 10000.)(rng);
-    const int M = std::uniform_int_distribution<int>(10, 500)(rng);
-
-    std::vector<Real> real_prm = {kf, kb, k1, k2, k3, k4};
-    std::vector<int> int_prm = {M};
-
-    std::vector<std::pair<Real, Real> > real_prm_bounds =
-        {
-            {0, 1e12},
-            {0, 1e12},
-            {0, 1e12},
-            {0, 1e12},
-            {0, 1e12},
-            {0, 1e12}
-        };
+  // Model setup
+  std::vector<std::pair<Real, Real> > real_prm_bounds =
+      {
+          {0, 1e12},
+          {0, 1e12},
+          {0, 1e12},
+          {0, 1e12},
+          {0, 1e12},
+          {0, 1e12}
+      };
 
 
-    std::vector<std::pair<int, int> > int_prm_bounds =
-        {
-            {5, 700}
-        };
+  std::vector<std::pair<int, int> > int_prm_bounds =
+      {
+          {5, 700}
+      };
 
+  if (Sampling::sample_is_valid(s, real_prm_bounds, int_prm_bounds) == false)
+  {
+    return -std::numeric_limits<Real>::max();
+  }
+  else {
     std::function<Model::Model<Real, Matrix>(const std::vector<Real>, const std::vector<int>)> create_model_fcn
         = four_step;
 
@@ -210,7 +183,7 @@ int main (int argc, char **argv)
     }
     Real start_time = 0;
     Real end_time = 10.0;
-    Real abs_tol = 1e-13;
+    Real abs_tol = 1e-12;
     Real rel_tol = 1e-6;
 
     Data::IrHPO4Data<Real> data;
@@ -239,58 +212,74 @@ int main (int argc, char **argv)
                                                               first_particle_size,
                                                               particle_size_increase,
                                                               data_sets);
+    auto log_likelihood = SUNDIALS_Statistics::compute_likelihood_TEM_only<Real, Matrix,SolverType,ITERATIVE>(s, model_settings);
+    return log_likelihood;
+  }
+}
 
-    Sampling::Sample<Real> sample1(real_prm, int_prm);
 
+
+int main (int argc, char **argv)
+{
+  unsigned int n_threads = 1;
+#ifdef _OPENMP
+  n_threads = omp_get_max_threads();
+#endif
+
+  // Don't have a good idea of what a "good" set of parameters is so just randomly generate parameters for each thread
+  // FIXME - if successive iterations of this code are run, the starting samples can be chosen as the mean of the previous run
+
+#pragma omp parallel for
+  for (unsigned int thread=0; thread<n_threads; ++thread) {
+
+    std::vector<Real> real_prm = {12.4499, 23138.7, 5.14708e+06, 1.00951e+07, 92595.7, 5810.96};
+    std::vector<int> int_prm = {63};
+    Sampling::Sample<Real> sample(real_prm, int_prm);
 
     // Create the sampler
-    auto d = sample1.real_valued_parameters.size() + sample1.integer_valued_parameters.size();
+    auto d = sample.real_valued_parameters.size() + sample.integer_valued_parameters.size();
     // FIXME - if multiple iterations of this code are run, replace the starting covariance with the covariance matrix from the last run.
-    Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> starting_covariance(d,d);
-    starting_covariance <<
-        0.00395356, 2904.42, 26380.3, 54063.8, 2015.82, -142.614, -0.537724,
-        2904.42, 2.67802e+09, 1.76214e+10, 3.13047e+10, 1.34681e+09, -1.30986e+08, -337709,
-        26380.3, 1.76214e+10, 2.70964e+11, 3.84794e+11, 1.72949e+10, -6.8373e+08, -2.81209e+06,
-        54063.8, 3.13047e+10, 3.84794e+11, 9.46076e+11, 2.87813e+10, -1.62988e+09, -9.02532e+06,
-        2015.82, 1.34681e+09, 1.72949e+10, 2.87813e+10, 1.32218e+09, -4.40328e+07, -226390,
-        -142.614, -1.30986e+08, -6.8373e+08, -1.62988e+09, -4.40328e+07, 1.06293e+07, 22340.5,
-        -0.537724, -337709, -2.81209e+06, -9.02532e+06, -226390, 22340.5, 200.485;
+    Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> covariance(d,d);
+    covariance <<
+       0.000562611, 4.65583, 376.064, 233.657, 5.9481, 9.77201, 0.710801,
+4.65583, 43217.2, 3.20377e+06, 2.20217e+06, 49474.9, 84278, 5589.94,
+376.064, 3.20377e+06, 2.53189e+08, 1.61443e+08, 3.98139e+06, 6.59919e+06, 470505,
+233.657, 2.20217e+06, 1.61443e+08, 1.12429e+08, 2.48495e+06, 4.254e+06, 279085,
+5.9481, 49474.9, 3.98139e+06, 2.48495e+06, 62913.6, 103511, 7528.05,
+9.77201, 84278, 6.59919e+06, 4.254e+06, 103511, 172227, 12162.9,
+0.710801, 5589.94, 470505, 279085, 7528.05, 12162.9, 1052.9;
 
+    covariance *= 2.38*2.38/d;
 
-    // The adaptive algorithm uses a proposal distribution of
-    // (1-beta)*N(x, 2.38^2/d * sample covariance) + beta*N(x, gamma^2/d * I)
-    const Real beta = 0.01;
-    const Real gamma = 0.001;
+    auto chain_num = (argc > 1 ?
+        atoi(argv[1] + thread) :
+        thread);
 
-    Sampling::AdaptiveMHSampler<Real, Matrix, Sampling::UniformPrior, Sampling::DataTEMOnly, SolverType, DIRECT>
-        sampler(sample1, covariance_matrix, starting_covariance, model_settings, beta, gamma);
+    Sampling::AdaptiveMetropolisSampler<Real, Sampling::Sample<Real>> sampler(&log_likelihood,
+                                                                              covariance,
+                                                                              chain_num);
 
-    // Create an output file to print all of the samples.
-    std::ofstream samples_file("samples"
-                               +
-                               (argc > 1 ?
-                                std::string(".") + std::to_string(atoi(argv[1]) + thread) :
-                                std::string(".") + std::to_string(thread))
-                               +
-                               ".txt");
+    // Create a seed for the random number generator to ensure consistent results.
+    const std::uint_fast32_t random_seed = std::hash<std::string>()(std::to_string(chain_num));
 
-    const unsigned int n_samples = 1000;
-    const unsigned int adaptive_start_sample = 500;
-    sampler.generate_samples(n_samples, samples_file, random_seed, adaptive_start_sample);
+    // Generate samples
+    const unsigned int n_burn_in = 0;
+    const unsigned int n_samples = 100;
+    const unsigned int adaptation_period = 100;
+    const unsigned int adaptation_frequency = 100;
+
+    sampler.sample_with_burn_in(sample,
+                                n_burn_in,
+                                n_samples,
+                                adaptation_period,
+                                adaptation_frequency,
+                                random_seed);
   }
-
-  std::cout << "Covariance matrix is: " << std::endl;
-  // Normal printout of matrix does not include comma separation, but comma separation is useful for pasting
-  // a previous run's covariance matrix in for the next run.
-  for (unsigned int r=0; r<covariance_matrix->get().rows();++r)
-  {
-    for (unsigned int c=0; c<covariance_matrix->get().cols();++c)
-    {
-      std::cout << covariance_matrix->get()(r,c);
-      if (!(r==covariance_matrix->get().rows()-1 && c==covariance_matrix->get().cols()-1))
-        std::cout << ", ";
-    }
-    std::cout << std::endl;
-  }
-
+  std::string command = "./summarize_samples";
+  const auto first_chain = (argc > 1 ?
+      atoi(argv[1]) :
+      0);
+  command += " " + std::to_string(first_chain);
+  command += " " + std::to_string(first_chain + n_threads - 1);
+  auto err = system(command.c_str());
 }

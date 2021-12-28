@@ -322,7 +322,7 @@ namespace sundials
 
 
     // Set maximum number of steps -- a negative value disables the test, which is desired
-    flag = CVodeSetMaxNumSteps(cvode_mem, -1);
+    flag = CVodeSetMaxNumSteps(cvode_mem, 1000);
     check_flag(&flag, "CVodeSetMaxNumSteps", RETURNNONNEGATIVE);
 
 

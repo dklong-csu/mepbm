@@ -3,6 +3,7 @@
 
 
 #include <sampleflow/producers/metropolis_hastings.h>
+#include <sampleflow/producers/differential_evaluation_mh.h>
 #include <sampleflow/filters/conversion.h>
 #include <sampleflow/filters/take_every_nth.h>
 #include <sampleflow/consumers/stream_output.h>
@@ -11,6 +12,7 @@
 #include <sampleflow/consumers/action.h>
 #include <sampleflow/consumers/covariance_matrix.h>
 #include <sampleflow/consumers/count_samples.h>
+#include <sampleflow/consumers/last_sample.h>
 
 #include "perturb_sample.h"
 #include "sundials_statistics.h"
@@ -383,6 +385,310 @@ namespace Sampling
               << acceptance_ratio.get()
               << std::endl;
   }
+
+
+
+
+
+
+  /**
+   * An object to run the Adaptive Metropolis-Hastings sampling algorithm
+   */
+   template<typename Real, typename SampleType>
+   class AdaptiveMetropolisSampler
+   {
+   public:
+     /// Constructor
+     AdaptiveMetropolisSampler(const std::function<Real(const SampleType &)> log_likelihood,
+                       const Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> covariance,
+                       const int chain_num)
+                       : log_likelihood(log_likelihood), covariance(covariance), chain_num(chain_num)
+     {}
+
+
+     /// Function to run the burn-in period for a chain.
+     SampleType
+     burn_in(const SampleType & starting_sample, const unsigned int n_burn_in, const std::uint_fast32_t &random_seed)
+     {
+       // The only thing we care about is the last sample produced
+       SampleFlow::Producers::MetropolisHastings<SampleType> mh_sampler;
+       SampleFlow::Consumers::LastSample<SampleType> last_sample;
+       last_sample.connect_to_producer(mh_sampler);
+
+       // Run the burn-in period
+       std::mt19937 rng;
+       rng.seed(random_seed);
+       const auto proposal = [&](const SampleType &s){
+         return perturb_normal(s, rng, covariance, 1.);
+       };
+       mh_sampler.sample(starting_sample,
+                         log_likelihood,
+                         proposal,
+                         n_burn_in,
+                         random_seed);
+
+       return last_sample.get();
+     }
+
+
+     /// Function to generate samples
+     void
+     sample(const SampleType & starting_sample,
+            const unsigned int n_samples,
+            const unsigned int adaptation_period,
+            const unsigned int adaptation_frequency,
+            const std::uint_fast32_t & random_seed)
+     {
+       // First perform the adaptation period
+       // Require the acceptance ratio be within a certain range, otherwise adjust the covariance and try again
+
+       bool adaptation_finished = false;
+       SampleType first_sample = starting_sample;
+       int adaptation_attempts = 0;
+       while (!adaptation_finished) {
+         SampleFlow::Producers::MetropolisHastings<SampleType> mh_sampler_adaptation;
+
+         // Since our sample object is complicated, we want to be able to turn it into a vector
+         // compatible with computations whenever that is necessary
+         SampleFlow::Filters::Conversion<SampleType, std::valarray<Real> > convert_to_vector;
+         convert_to_vector.connect_to_producer(mh_sampler_adaptation);
+
+         SampleFlow::Consumers::LastSample<SampleType> last_sample;
+         last_sample.connect_to_producer(mh_sampler_adaptation);
+
+         // Keep track of the acceptance ratio to see how efficient our sampling process was
+         SampleFlow::Consumers::AcceptanceRatio< std::valarray<Real> > acceptance_ratio;
+         acceptance_ratio.connect_to_producer(convert_to_vector);
+
+         std::mt19937 rng;
+         rng.seed(random_seed);
+         const auto proposal = [&](const SampleType &s){
+           return perturb_normal(s, rng, covariance, 1.);
+         };
+
+         mh_sampler_adaptation.sample(first_sample,
+                           log_likelihood,
+                           proposal,
+                           adaptation_period,
+                           random_seed);
+
+         // FIXME: think about making this an input parameter
+         const Real adaptation_ar_lower_bound = .2;
+         const Real adaptation_ar_upper_bound = .5;
+         // FIXME: enforce max number of redo attempts and abort if limit is reached
+         // if the acceptance ratio is too small then reduce the covariance and try again
+         if (acceptance_ratio.get() < adaptation_ar_lower_bound)
+         {
+           covariance *= 0.1;
+         }
+         // if the acceptance ratio too large then increase the covariance and try again
+         else if (acceptance_ratio.get() > adaptation_ar_upper_bound)
+         {
+           covariance *= 10;
+         }
+         // otherwise the adaptation period is over
+         else
+         {
+           adaptation_finished = true;
+         }
+         // Regardless of outcome, set the first sample of the next sampling procedure to the most recent sample
+         first_sample = last_sample.get();
+         ++adaptation_attempts;
+         if (adaptation_attempts > 1)
+         {
+           // Don't waste too much time on the adaptation period. Move on if too many attempts have been made.
+           adaptation_finished = true;
+         }
+       }
+       std::cout << "Chain " << chain_num << " is ready for AMH after  " << adaptation_attempts << " adaptation cycles." << std::endl;
+
+
+       //Perform the sampling now that the adaptation period is finished
+       SampleFlow::Producers::MetropolisHastings<SampleType> mh_sampler;
+
+       // Tell the MH algorithm where to output samples
+       // FIXME replace with MyStreamOutput so I can calculate Bayes Factor
+       std::ofstream samples_file("samples."
+                                  +
+                                  std::to_string(chain_num)
+                                  +
+                                  ".txt");
+
+       SampleFlow::Consumers::StreamOutput<SampleType> stream_output(samples_file);
+       stream_output.connect_to_producer(mh_sampler);
+
+       // Since our sample object is complicated, we want to be able to turn it into a vector
+       // compatible with computations whenever that is necessary
+       SampleFlow::Filters::Conversion<SampleType, std::valarray<Real> > convert_to_vector;
+       convert_to_vector.connect_to_producer(mh_sampler);
+
+       // Update the mean value of the samples during the process
+       // Updating the mean value requires computations on the samples, so we need the filter created above
+       SampleFlow::Consumers::MeanValue< std::valarray<Real> > mean_value;
+       mean_value.connect_to_producer(convert_to_vector);
+
+       // Update the covariance matrix of the samples during the process
+       // Updating the covariance matrix requires computations on the samples, so we need the filter created above
+       SampleFlow::Consumers::CovarianceMatrix< std::valarray<Real> > sample_covariance;
+       sample_covariance.connect_to_producer(convert_to_vector);
+
+       // Keep track of the acceptance ratio to see how efficient our sampling process was
+       SampleFlow::Consumers::AcceptanceRatio< std::valarray<Real> > acceptance_ratio;
+       acceptance_ratio.connect_to_producer(convert_to_vector);
+
+       // Write to disk only on occasion to reduce load on memory
+       SampleFlow::Filters::TakeEveryNth<SampleType> every_100th(100);
+       every_100th.connect_to_producer(mh_sampler);
+
+       SampleFlow::Consumers::Action<SampleType>
+           flush_after_every_100th([&samples_file](const SampleType &, const SampleFlow::AuxiliaryData &) {
+         samples_file << std::flush;
+       });
+
+       flush_after_every_100th.connect_to_producer(every_100th);
+
+       // Count the number of samples so I know when to perform adaptations.
+       //SampleFlow::Consumers::CountSamples<SampleType> sample_count;
+       //sample_count.connect_to_producer(mh_sampler);
+
+       // How frequently should the covariance matrix be updated with new adaptation
+       SampleFlow::Filters::TakeEveryNth<SampleType> adaptation_update(adaptation_frequency);
+       adaptation_update.connect_to_producer(mh_sampler);
+
+       SampleFlow::Consumers::Action<SampleType>
+           update_covariance_matrix([&](const SampleType &, const SampleFlow::AuxiliaryData &){
+
+             covariance = sample_covariance.get()*2.38*2.38/(covariance.rows());
+             // FIXME: consider making these bounds user input
+             // FIXME: consider making covariance modifier stack
+             if (acceptance_ratio.get() < 0.15)
+               covariance *= 0.1;
+             else if (acceptance_ratio.get() > 0.4)
+               covariance *= 10;
+           }
+       );
+
+       update_covariance_matrix.connect_to_producer(adaptation_update);
+
+       // Run the sampler
+       std::mt19937 rng;
+       rng.seed(random_seed);
+       const auto proposal = [&](const SampleType &s){
+         return perturb_normal(s, rng, covariance, 1.);
+       };
+
+       mh_sampler.sample(starting_sample,
+                         log_likelihood,
+                         proposal,
+                         n_samples,
+                         random_seed);
+       std::cout << "Chain " << chain_num << " acceptance ratio: " << acceptance_ratio.get() << std::endl;
+     }
+
+
+
+     // Function to run a burn-in and then generate samples
+     void
+     sample_with_burn_in(const SampleType & starting_sample,
+                         const unsigned int n_burn_in,
+                         const unsigned int n_samples,
+                         const unsigned int adaptation_period,
+                         const unsigned int adaptation_frequency,
+                         const std::uint_fast32_t & random_seed)
+     {
+       if (n_burn_in > 0) {
+         auto s = burn_in(starting_sample,
+                          n_burn_in,
+                          random_seed);
+         sample(s,
+                n_samples,
+                adaptation_period,
+                adaptation_frequency,
+                random_seed);
+       }
+       else {
+         sample(starting_sample,
+                n_samples,
+                adaptation_period,
+                adaptation_frequency,
+                random_seed);
+       }
+     }
+
+
+   private:
+     const std::function<Real(const SampleType &)> log_likelihood;
+     Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> covariance;
+     const int chain_num;
+   };
+
+
+
+  /**
+   * An object to run the Differential Evolution sampling algorithm
+   */
+   template<typename Real, typename SampleType>
+   class DifferentialEvolutionSampler
+   {
+   public:
+     DifferentialEvolutionSampler(const std::function<Real(const SampleType &)> log_likelihood,
+                                  const std::function< std::pair< SampleType,Real >(const SampleType &) > perturb,
+                                  const std::function< SampleType(const SampleType &, const SampleType &, const SampleType &) > crossover,
+                                  std::string file_name)
+                                  : log_likelihood(log_likelihood),
+                                    perturb(perturb),
+                                    crossover(crossover),
+                                    file_name(file_name)
+     {
+        conversion.connect_to_producer(sampler);
+        mean_value.connect_to_producer(conversion);
+        covariance_matrix.connect_to_producer(conversion);
+        acceptance_ratio.connect_to_producer(conversion);
+        sample_count.connect_to_producer(sampler);
+     }
+
+     void generate_samples(std::vector<SampleType> & starting_samples,
+                           const unsigned int crossover_gap,
+                           const unsigned int n_samples)
+     {
+       std::ofstream samples_file(file_name);
+       SampleFlow::Consumers::StreamOutput<SampleType> output_file(samples_file);
+       output_file.connect_to_producer(sampler);
+       sampler.sample(starting_samples,
+                      log_likelihood,
+                      perturb,
+                      crossover,
+                      crossover_gap,
+                      n_samples);
+
+       std::cout << "Mean value of all samples: ";
+       for (auto x : mean_value.get())
+         std::cout << x << ' ';
+       std::cout << std::endl;
+       std::cout << "MH acceptance ratio: "
+                 << acceptance_ratio.get()
+                 << std::endl;
+       std::cout << "Sample covariance matrix: "
+                 << covariance_matrix.get()
+                 << std::endl;
+     }
+
+   private:
+     const std::function<Real(const SampleType &)> log_likelihood;
+     const std::function< std::pair< SampleType,Real >(const SampleType &) > perturb;
+     const std::function< SampleType(const SampleType &, const SampleType &, const SampleType &) > crossover;
+     SampleFlow::Producers::DifferentialEvaluationMetropolisHastings<SampleType> sampler;
+     SampleFlow::Filters::Conversion<SampleType, std::valarray<Real>> conversion;
+     SampleFlow::Consumers::MeanValue<std::valarray<Real>> mean_value;
+     SampleFlow::Consumers::CovarianceMatrix<std::valarray<Real>> covariance_matrix;
+     const std::string file_name;
+     SampleFlow::Consumers::AcceptanceRatio< std::valarray<Real> > acceptance_ratio;
+     SampleFlow::Consumers::CountSamples<Sample<Real>> sample_count;
+   };
+
+
+
+
 
 
 

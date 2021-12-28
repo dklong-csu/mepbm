@@ -88,10 +88,20 @@ namespace Sampling
 
     for (unsigned int i=sample.real_valued_parameters.size(); i < dim; ++i)
     {
-      perturbed_vector(i) = sample.integer_valued_parameters[i];
+      perturbed_vector(i) = sample.integer_valued_parameters[i-sample.real_valued_parameters.size()];
     }
 
-    perturbed_vector += factor * L * random_vector;
+    Eigen::Matrix<RealType, Eigen::Dynamic, 1> perturbation = factor * L * random_vector;
+    // round the integer perturbations to prevent too many perturbations of 0.
+    for (unsigned int i=sample.real_valued_parameters.size(); i < dim; ++i)
+    {
+      if (perturbation(i) < 0)
+        perturbation(i) = std::floor(perturbation(i));
+      else
+        perturbation(i) = std::ceil(perturbation(i));
+    }
+
+    perturbed_vector += perturbation;
 
     // Organize perturbed parameters and create a new sample
     std::vector<RealType> perturbed_real_parameters(sample.real_valued_parameters.size());
