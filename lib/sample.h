@@ -42,6 +42,10 @@ namespace Sampling
     /// Destructor
     ~Sample() = default;
 
+    /// Returns the number of parameters
+    int
+    get_dimension();
+
     /// The values of all the real-valued parameters.
     std::vector<RealType> real_valued_parameters;
 
@@ -83,6 +87,15 @@ namespace Sampling
     real_valued_parameters = old_prm.real_valued_parameters;
     integer_valued_parameters = old_prm.integer_valued_parameters;
     return *this;
+  }
+
+
+
+  template<typename RealType>
+  int
+  Sample<RealType>::get_dimension()
+  {
+    return real_valued_parameters.size() + integer_valued_parameters.size();
   }
 
 
