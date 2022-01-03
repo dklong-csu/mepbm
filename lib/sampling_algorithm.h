@@ -633,7 +633,7 @@ namespace Sampling
    public:
      DifferentialEvolutionSampler(const std::function<Real(const SampleType &)> log_likelihood,
                                   const std::function< std::pair< SampleType,Real >(const SampleType &) > perturb,
-                                  const std::function< SampleType(const SampleType &, const SampleType &, const SampleType &) > crossover,
+                                  const std::function< SampleType(const SampleType &, const SampleType &, const SampleType &, const Real gamma) > crossover,
                                   std::string file_name)
                                   : log_likelihood(log_likelihood),
                                     perturb(perturb),
@@ -642,8 +642,6 @@ namespace Sampling
      {
         conversion.connect_to_producer(sampler);
         mean_value.connect_to_producer(conversion);
-        covariance_matrix.connect_to_producer(conversion);
-        acceptance_ratio.connect_to_producer(conversion);
         sample_count.connect_to_producer(sampler);
      }
 
@@ -654,6 +652,19 @@ namespace Sampling
        std::ofstream samples_file(file_name);
        SampleFlow::Consumers::StreamOutput<SampleType> output_file(samples_file);
        output_file.connect_to_producer(sampler);
+
+       auto crossover_sampler = [&](const SampleType & s, const SampleType & s1, const SampleType & s2) {
+         // FIXME: maybe make the 10 a variable
+         if (sample_count.get() % 10 == 0)
+         {
+           return crossover(s, s1, s2, 1.0);
+         }
+         else
+         {
+           return crossover(s, s1, s2, 2.38/std::sqrt(2.0 * s.get_dimension()));
+         }
+       };
+
        sampler.sample(starting_samples,
                       log_likelihood,
                       perturb,
@@ -665,12 +676,6 @@ namespace Sampling
        for (auto x : mean_value.get())
          std::cout << x << ' ';
        std::cout << std::endl;
-       std::cout << "MH acceptance ratio: "
-                 << acceptance_ratio.get()
-                 << std::endl;
-       std::cout << "Sample covariance matrix: "
-                 << covariance_matrix.get()
-                 << std::endl;
      }
 
    private:
@@ -680,9 +685,7 @@ namespace Sampling
      SampleFlow::Producers::DifferentialEvaluationMetropolisHastings<SampleType> sampler;
      SampleFlow::Filters::Conversion<SampleType, std::valarray<Real>> conversion;
      SampleFlow::Consumers::MeanValue<std::valarray<Real>> mean_value;
-     SampleFlow::Consumers::CovarianceMatrix<std::valarray<Real>> covariance_matrix;
      const std::string file_name;
-     SampleFlow::Consumers::AcceptanceRatio< std::valarray<Real> > acceptance_ratio;
      SampleFlow::Consumers::CountSamples<Sample<Real>> sample_count;
    };
 
