@@ -44,7 +44,7 @@ namespace Sampling
 
     /// Returns the number of parameters
     int
-    get_dimension();
+    get_dimension() const;
 
     /// The values of all the real-valued parameters.
     std::vector<RealType> real_valued_parameters;
@@ -93,7 +93,7 @@ namespace Sampling
 
   template<typename RealType>
   int
-  Sample<RealType>::get_dimension()
+  Sample<RealType>::get_dimension() const
   {
     return real_valued_parameters.size() + integer_valued_parameters.size();
   }

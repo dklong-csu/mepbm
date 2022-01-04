@@ -92,13 +92,16 @@ namespace Sampling
     }
 
     Eigen::Matrix<RealType, Eigen::Dynamic, 1> perturbation = factor * L * random_vector;
-    // round the integer perturbations to prevent too many perturbations of 0.
+    // Since these are integers, perturb based on a uniform distribution using the variance of the parameter
     for (unsigned int i=sample.real_valued_parameters.size(); i < dim; ++i)
     {
-      if (perturbation(i) < 0)
-        perturbation(i) = std::floor(perturbation(i));
-      else
-        perturbation(i) = std::ceil(perturbation(i));
+      // FIXME: make this user defined
+      // Enforce a minimum perturbation to prevent getting stuck at a single value
+      const int min_perturb = 5;
+      const int max_perturb = 20;
+      const int cov_perturb = covariance(i,i); // sample variance of the parameter
+      const int used_perturb = std::min(std::max(min_perturb, cov_perturb), max_perturb);
+      perturbation(i) = std::uniform_int_distribution<int>(-used_perturb, used_perturb)(rng);
     }
 
     perturbed_vector += perturbation;

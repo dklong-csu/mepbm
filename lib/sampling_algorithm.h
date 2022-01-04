@@ -27,6 +27,53 @@
 
 namespace Sampling
 {
+  // Like the StreamOutput class, but not only output the sample itself
+  // but also its properties (as recorded by the AuxiliaryData object)
+  template <typename InputType>
+  class MyStreamOutput : public SampleFlow::Consumer<InputType>
+  {
+  public:
+    MyStreamOutput (std::ostream &output_stream)
+        :
+        output_stream (output_stream)
+    {}
+
+    ~MyStreamOutput ()
+    {
+      this->disconnect_and_flush();
+    }
+
+
+    virtual
+    void
+    consume (InputType sample, SampleFlow::AuxiliaryData aux_data) override
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+
+      output_stream << "Sample: " << sample << std::endl;
+      for (const auto &data : aux_data)
+      {
+        // Output the key of each pair:
+        output_stream << "   " << data.first;
+
+        // Then see if we can interpret the value via a known type:
+        if (const bool *p = boost::any_cast<bool>(&data.second))
+          output_stream << " -> " << (*p ? "true" : "false") << std::endl;
+        else if (const double *p = boost::any_cast<double>(&data.second))
+          output_stream << " -> " << *p << std::endl;
+        else
+          output_stream << std::endl;
+      }
+    }
+
+
+  private:
+    mutable std::mutex mutex;
+    std::ostream &output_stream;
+  };
+
+
+
   /**
    * An enum describing the distribution for the proposal.
    */
@@ -445,6 +492,10 @@ namespace Sampling
        bool adaptation_finished = false;
        SampleType first_sample = starting_sample;
        int adaptation_attempts = 0;
+
+       if (adaptation_period == 0)
+         adaptation_finished = true;
+
        while (!adaptation_finished) {
          SampleFlow::Producers::MetropolisHastings<SampleType> mh_sampler_adaptation;
 
@@ -514,6 +565,7 @@ namespace Sampling
                                   +
                                   ".txt");
 
+       //MyStreamOutput<SampleType> stream_output(samples_file);
        SampleFlow::Consumers::StreamOutput<SampleType> stream_output(samples_file);
        stream_output.connect_to_producer(mh_sampler);
 
@@ -561,10 +613,10 @@ namespace Sampling
              covariance = sample_covariance.get()*2.38*2.38/(covariance.rows());
              // FIXME: consider making these bounds user input
              // FIXME: consider making covariance modifier stack
-             if (acceptance_ratio.get() < 0.15)
+             /*if (acceptance_ratio.get() < 0.15)
                covariance *= 0.1;
              else if (acceptance_ratio.get() > 0.4)
-               covariance *= 10;
+               covariance *= 10;*/
            }
        );
 
@@ -643,6 +695,7 @@ namespace Sampling
         conversion.connect_to_producer(sampler);
         mean_value.connect_to_producer(conversion);
         sample_count.connect_to_producer(sampler);
+        cov.connect_to_producer(conversion);
      }
 
      void generate_samples(std::vector<SampleType> & starting_samples,
@@ -650,7 +703,7 @@ namespace Sampling
                            const unsigned int n_samples)
      {
        std::ofstream samples_file(file_name);
-       SampleFlow::Consumers::StreamOutput<SampleType> output_file(samples_file);
+       MyStreamOutput<SampleType> output_file(samples_file);
        output_file.connect_to_producer(sampler);
 
        auto crossover_sampler = [&](const SampleType & s, const SampleType & s1, const SampleType & s2) {
@@ -668,7 +721,7 @@ namespace Sampling
        sampler.sample(starting_samples,
                       log_likelihood,
                       perturb,
-                      crossover,
+                      crossover_sampler,
                       crossover_gap,
                       n_samples);
 
@@ -676,17 +729,20 @@ namespace Sampling
        for (auto x : mean_value.get())
          std::cout << x << ' ';
        std::cout << std::endl;
+       std::cout << "Covariance matrix of samples in all chains:\n";
+       std::cout << cov.get() << std::endl;
      }
 
    private:
      const std::function<Real(const SampleType &)> log_likelihood;
      const std::function< std::pair< SampleType,Real >(const SampleType &) > perturb;
-     const std::function< SampleType(const SampleType &, const SampleType &, const SampleType &) > crossover;
+     const std::function< SampleType(const SampleType &, const SampleType &, const SampleType &, const Real &) > crossover;
      SampleFlow::Producers::DifferentialEvaluationMetropolisHastings<SampleType> sampler;
      SampleFlow::Filters::Conversion<SampleType, std::valarray<Real>> conversion;
      SampleFlow::Consumers::MeanValue<std::valarray<Real>> mean_value;
      const std::string file_name;
      SampleFlow::Consumers::CountSamples<Sample<Real>> sample_count;
+     SampleFlow::Consumers::CovarianceMatrix<std::valarray<Real>> cov;
    };
 
 

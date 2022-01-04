@@ -11,6 +11,7 @@
 #include <iostream>
 #include <stdexcept>
 #include "sampling_parameters.h"
+#include <utility>
 
 
 
@@ -21,7 +22,7 @@ namespace SUNDIALS_Statistics {
      * A function to solve the ODE associated with a sample
      */
     template<typename RealType, typename Matrix, typename SolverType, LinearSolverClass SolverClass>
-    std::vector<N_Vector>
+    std::pair<std::vector<N_Vector>,int>
     solve_ODE_from_sample(const Sampling::Sample<RealType> &sample,
                           const Sampling::ModelingParameters<RealType, Matrix> &user_data)
     {
@@ -49,9 +50,9 @@ namespace SUNDIALS_Statistics {
 
       // Solve the ODE
       std::vector<N_Vector> solutions;
-      ode_solver.solve_ode_incrementally(solutions, user_data.times);
+      auto err_code = ode_solver.solve_ode_incrementally(solutions, user_data.times);
 
-      return solutions;
+      return {solutions, err_code};
     }
 
 
@@ -249,7 +250,13 @@ namespace SUNDIALS_Statistics {
                                        const Sampling::ModelingParameters<RealType, Matrix> &user_data)
   {
     // Solve the ODE
-    std::vector<N_Vector> solutions = Internal::solve_ODE_from_sample<RealType, Matrix, SolverType, SolverClass>(sample, user_data);
+    auto solver_output = Internal::solve_ODE_from_sample<RealType, Matrix, SolverType, SolverClass>(sample, user_data);
+    auto err_code = solver_output.second;
+    // If the solver had an error, don't trust the output and don't let the sample be chosen.
+    if (err_code < 0)
+      return std::numeric_limits<RealType>::min();
+
+    std::vector<N_Vector> solutions = solver_output.first;
 
     // Turn ODE solution(s) into a distribution
     std::vector< Histograms::Histogram<RealType> > probabilities;
@@ -288,10 +295,9 @@ namespace SUNDIALS_Statistics {
     {
       likelihood += Internal::TEMData::compute_likelihood_from_binned_data(measurements[i], probabilities[i]);
       // if one of the likelihood computations returns negative "infinity" then simply return that value
-      if (likelihood == -std::numeric_limits<RealType>::max())
+      if (likelihood <= -std::numeric_limits<RealType>::max())
         return likelihood;
     }
-
     return likelihood;
   }
 }

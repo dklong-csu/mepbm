@@ -261,7 +261,7 @@ ode_solve_test(const int n_solves)
     auto solutions = SUNDIALS_Statistics::Internal::solve_ODE_from_sample<_Real,_Matrix,_Solver,_SolverClass>(s, model_settings);
     auto end = std::chrono::high_resolution_clock::now();
     duration += std::chrono::duration_cast<std::chrono::milliseconds>(end-start);
-    all_solutions.push_back(solutions[0]);
+    all_solutions.push_back(solutions.first[0]);
   }
   std::cout << duration.count() << " milliseconds" << std::endl;
   return all_solutions;

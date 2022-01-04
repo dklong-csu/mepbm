@@ -9,13 +9,16 @@
 #include <vector>
 #include "chemical_reaction.h"
 #include <utility>
+#include "sundials_statistics.h"
+#include <limits>
 
 
 
 using Real = realtype;
-using Matrix = Eigen::SparseMatrix<realtype, Eigen::RowMajor>;
-using Vector = Eigen::Matrix<realtype, Eigen::Dynamic, 1>;
+using Matrix = Eigen::SparseMatrix<Real, Eigen::RowMajor>;
+using Vector = Eigen::Matrix<Real, Eigen::Dynamic, 1>;
 using SolverType = Eigen::SparseLU<Matrix>; // ODE solver test found this was fastest on average
+using Sample = Sampling::Sample<Real>;
 
 
 
@@ -133,10 +136,8 @@ four_step(const std::vector<Real> real_prm,
 }
 
 
-
-
-Real
-log_likelihood(const Sampling::Sample<Real> & s)
+std::vector<N_Vector>
+solve_ode_during_likelihood(const Sample & s)
 {
   // Model setup
   std::vector<std::pair<Real, Real> > real_prm_bounds =
@@ -152,14 +153,9 @@ log_likelihood(const Sampling::Sample<Real> & s)
 
   std::vector<std::pair<int, int> > int_prm_bounds =
       {
-          {5, 790}
+          {5, 700}
       };
 
-  if (Sampling::sample_is_valid(s, real_prm_bounds, int_prm_bounds) == false)
-  {
-    return -std::numeric_limits<Real>::max();
-  }
-  else {
     std::function<Model::Model<Real, Matrix>(const std::vector<Real>, const std::vector<int>)> create_model_fcn
         = four_step;
 
@@ -183,7 +179,7 @@ log_likelihood(const Sampling::Sample<Real> & s)
     }
     Real start_time = 0;
     Real end_time = 10.0;
-    Real abs_tol = 1e-12;
+    Real abs_tol = 1e-13;
     Real rel_tol = 1e-6;
 
     Data::IrHPO4Data<Real> data;
@@ -197,7 +193,7 @@ log_likelihood(const Sampling::Sample<Real> & s)
     unsigned int particle_size_increase = 2;
     std::vector<std::vector<Real> > data_sets = {data.tem_time1, data.tem_time2, data.tem_time3, data.tem_time4};
 
-    Sampling::ModelingParameters<Real, Matrix> model_settings(real_prm_bounds,
+    Sampling::ModelingParameters<Real, Matrix> user_data(real_prm_bounds,
                                                               int_prm_bounds,
                                                               create_model_fcn,
                                                               initial_condition,
@@ -212,92 +208,73 @@ log_likelihood(const Sampling::Sample<Real> & s)
                                                               first_particle_size,
                                                               particle_size_increase,
                                                               data_sets);
-    auto log_likelihood = SUNDIALS_Statistics::compute_likelihood_TEM_only<Real, Matrix,SolverType,DIRECT>(s, model_settings);
-    return log_likelihood;
+
+
+    auto solver_output = SUNDIALS_Statistics::Internal::solve_ODE_from_sample<Real, Matrix, SolverType, DIRECT>(s, user_data);
+    auto solutions = solver_output.first;
+    
+    
+
+  // Turn ODE solution(s) into a distribution
+  std::vector< Histograms::Histogram<Real> > probabilities;
+
+  std::vector<Real> particle_diameters(user_data.last_particle_index - user_data.first_particle_index + 1);
+  for (unsigned int i=0; i<particle_diameters.size(); ++i)
+  {
+    particle_diameters[i]
+        = SUNDIALS_Statistics::Internal::convert_particle_size_to_diameter<Real>(user_data.first_particle_size + i*user_data.particle_size_increase);
   }
+
+  for (unsigned int i=0; i<solutions.size(); ++i)
+  {
+    auto sol = SUNDIALS_Statistics::Internal::convert_solution_to_vector<Real>(solutions[i]);
+    auto concentrations = SUNDIALS_Statistics::Internal::strip_nanoparticles_from_vector<Real>(sol,
+                                                                              user_data.first_particle_index,
+                                                                              user_data.last_particle_index);
+    auto p = SUNDIALS_Statistics::Internal::convert_concentrations_to_pmf(concentrations,
+                                                     user_data.binning_parameters,
+                                                     particle_diameters);
+    probabilities.push_back(p);
+  }
+
+  // Turn data into a distribution
+  std::vector< Histograms::Histogram<Real> > measurements;
+  for (unsigned int i=0; i<solutions.size(); ++i)
+  {
+    auto m = SUNDIALS_Statistics::Internal::TEMData::bin_TEM_data(user_data.data[i], user_data.binning_parameters);
+    measurements.push_back(m);
+  }
+
+  // Calculate the log likelihood
+  Real likelihood = 0.;
+
+  for (unsigned int i=0; i<probabilities.size(); ++i)
+  {
+    likelihood = SUNDIALS_Statistics::Internal::TEMData::compute_likelihood_from_binned_data(measurements[i], probabilities[i]);
+    std::cout << likelihood << std::endl;
+  }
+    return solutions;
 }
 
 
 
-int main (int argc, char **argv)
+int main ()
 {
-  unsigned int n_threads = 1;
-#ifdef _OPENMP
-  n_threads = omp_get_max_threads();
-#endif
+  std::vector<Real> real_prm = {0.00428731, 101798, 8713.2, 98429.9, 9730.21, 153.977};
+  std::vector<int> int_prm = {346};
 
-  // Don't have a good idea of what a "good" set of parameters is so just randomly generate parameters for each thread
-  // FIXME - if successive iterations of this code are run, the starting samples can be chosen as the mean of the previous run
+  Sample s(real_prm, int_prm);
 
-#pragma omp parallel for
-  for (unsigned int thread=0; thread<n_threads; ++thread) {
-    // Baseline sample
-    /*std::vector<Real> real_prm = {1e-3, 1e5, 1e4, 1e5, 1e4, 1e2};
-    std::vector<int> int_prm = {100};*/
-    // Sample update after previous run
-    std::vector<Real> real_prm = {0.00168761, 100129, 9942.68, 100012, 9982.08, 98.4339};
-    std::vector<int> int_prm = {155};
-    Sampling::Sample<Real> sample(real_prm, int_prm);
+  auto sol = solve_ode_during_likelihood(s);
 
-    // Create the sampler
-    auto d = sample.real_valued_parameters.size() + sample.integer_valued_parameters.size();
-    // FIXME - if multiple iterations of this code are run, replace the starting covariance with the covariance matrix from the last run.
-    Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> covariance(d,d);
-    // Baseline covariance
-/*
-    covariance <<
-               1e-3,       0,      0,      0,       0,       0,     0,
-        0,  1e5, 0, 0,  0,  0,  0,
-        0, 0,  1e4,  0, 0,  0, 0,
-        0, 0,  0,   1e5, 0, 0, 0,
-        0,  0, 0, 0,  1e4,  0,    0,
-        0,  0,  0, 0,  0,   1e2,  0,
-        0,  0, 0, 0,    0,  0,       1e1;
-*/
-    // Covariance based on previous run
-
-    covariance <<
-     3.17022e-08, 0.000515745, -0.000564883, 0.00049721, 1.30706e-05, 1.04134e-05, -0.00200345,
-0.000515745, 1475.18, -1023.56, -1502.72, -224.115, 50.0783, 590.389,
--0.000564883, -1023.56, 727.707, 1043.53, 153.797, -35.5918, -307.723,
-0.00049721, -1502.72, 1043.53, 1584.71, 233.461, -52.287, -610.144,
-1.30706e-05, -224.115, 153.797, 233.461, 35.0768, -7.68912, -99.3635,
-1.04134e-05, 50.0783, -35.5918, -52.287, -7.68912, 1.78074, 14.7378,
--0.00200345, 590.389, -307.723, -610.144, -99.3635, 14.7378, 952.095;
-
-
-    covariance *= 2.38*2.38/d;
-    covariance *= 100;
-
-    auto chain_num = (argc > 1 ?
-        atoi(argv[1] + thread) :
-        thread);
-
-    Sampling::AdaptiveMetropolisSampler<Real, Sampling::Sample<Real>> sampler(&log_likelihood,
-                                                                              covariance,
-                                                                              chain_num);
-
-    // Create a seed for the random number generator to ensure consistent results.
-    const std::uint_fast32_t random_seed = std::hash<std::string>()(std::to_string(chain_num));
-
-    // Generate samples
-    const unsigned int n_burn_in = 0;
-    const unsigned int n_samples = 100;
-    const unsigned int adaptation_period = 100;
-    const unsigned int adaptation_frequency = 100;
-
-    sampler.sample_with_burn_in(sample,
-                                n_burn_in,
-                                n_samples,
-                                adaptation_period,
-                                adaptation_frequency,
-                                random_seed);
+  std::ofstream output_file;
+  output_file.open("ode_solutions.m");
+  for (unsigned int i=0;i<sol.size();++i)
+  {
+    output_file << "sol" << i << " = [";
+    auto vec = *static_cast<Vector *>(sol[i]->content);
+    output_file << vec;
+    output_file << "];" << std::endl;
   }
-  std::string command = "./summarize_samples";
-  const auto first_chain = (argc > 1 ?
-      atoi(argv[1]) :
-      0);
-  command += " " + std::to_string(first_chain);
-  command += " " + std::to_string(first_chain + n_threads - 1);
-  auto err = system(command.c_str());
+  output_file.close();
 }

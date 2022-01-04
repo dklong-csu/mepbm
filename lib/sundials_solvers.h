@@ -150,11 +150,11 @@ namespace sundials
     ~CVodeSolver();
 
     /// Solve the system of ODEs
-    void
+    int
     solve_ode(N_Vector &solution, Real tout);
 
     /// Solve the system of ODEs while saving the solution at intermediate points
-    void
+    int
     solve_ode_incrementally(std::vector< N_Vector > &solutions,
                             const std::vector< Real > &times);
 
@@ -270,22 +270,23 @@ namespace sundials
 
 
   template <typename Matrix, typename Real, typename SolverType>
-  void
+  int
   CVodeSolver<Matrix, Real, SolverType>::solve_ode(N_Vector &solution, const Real tout)
   {
     Real t;
     flag = CVode(cvode_mem, tout, solution, &t, CV_NORMAL);
     check_flag(&flag, "CVode", RETURNNONNEGATIVE);
-
+    return flag;
   }
 
 
   template <typename Matrix, typename Real, typename SolverType>
-  void
+  int
   CVodeSolver<Matrix, Real, SolverType>::solve_ode_incrementally(std::vector< N_Vector > &solutions,
                                                      const std::vector< Real > &times)
   {
     Real t;
+    int err_flag;
     // Loop through each time
     for (const auto & tout : times)
     {
@@ -295,9 +296,15 @@ namespace sundials
       {
         (*sol_vec_ptr)(i) = 0.;
       }
-      solve_ode(solution, tout);
+      err_flag = solve_ode(solution, tout);
+      if (err_flag < 0)
+      {
+        // This means the solver failed for some reason and we don't care about the solutions
+        return err_flag;
+      }
       solutions.push_back(solution);
     }
+    return err_flag;
   }
 
 
@@ -322,7 +329,7 @@ namespace sundials
 
 
     // Set maximum number of steps -- a negative value disables the test, which is desired
-    flag = CVodeSetMaxNumSteps(cvode_mem, 1000);
+    flag = CVodeSetMaxNumSteps(cvode_mem, 5000);
     check_flag(&flag, "CVodeSetMaxNumSteps", RETURNNONNEGATIVE);
 
 
