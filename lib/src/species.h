@@ -7,6 +7,10 @@ namespace MEPBM {
    */
    class Species {
    public:
+     /// Constructor not providing the vector index. Useful when the index will be decided at a later time.
+     Species() {}
+
+     /// Constructor providing the vector index. Useful when the index is know at the time of construction.
      Species(const unsigned int index)
      : index(index) {}
 
