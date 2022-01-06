@@ -1,14 +1,11 @@
-#include "chemical_reaction.h"
+#include "src/particle.h"
 #include <iostream>
 
-/*
- * This tests the member variables of the Particle class
- */
-
+// This tests the member variables of the Particle class
 
 int main ()
 {
-  Model::Particle my_particle(1,10,3);
+  MEPBM::Particle my_particle(1,10,3);
 
   std::cout << std::boolalpha << (my_particle.index_start == 1) << std::endl;
   std::cout << std::boolalpha << (my_particle.index_end == 10) << std::endl;

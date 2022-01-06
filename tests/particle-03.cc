@@ -1,7 +1,7 @@
 #include "src/particle.h"
 #include <iostream>
 
-// This tests the species function of the Particle class
+// This tests the size function of the Particle class.
 
 int main ()
 {
@@ -9,7 +9,8 @@ int main ()
 
   for (unsigned int i=my_particle.index_start; i<=my_particle.index_end; ++i)
   {
-    auto my_species = my_particle.species(i);
-    std::cout << std::boolalpha << (my_species.index == i) << std::endl;
+    auto s = my_particle.size(i);
+    // sizes should be: 3, 4, 5, 6, 7
+    std::cout << s << std::endl;
   }
 }
