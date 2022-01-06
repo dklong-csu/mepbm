@@ -1,4 +1,4 @@
-#include "chemical_reaction.h"
+#include "src/species.h"
 #include <iostream>
 
 /*
@@ -8,7 +8,7 @@
 int main ()
 {
   // The constructor provides the index of the Species for accessing the correct element of a vector.
-  Model::Species my_chemical(3);
+  MEPBM::Species my_chemical(3);
 
   // Make sure the index is 3
   std::cout << std::boolalpha << (my_chemical.index == 3) << std::endl;
