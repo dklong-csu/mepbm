@@ -1,4 +1,7 @@
-#include "chemical_reaction.h"
+#include "src/chemical_reaction.h"
+#include "src/species.h"
+#include "src/create_nvector.h"
+#include "src/create_sunmatrix.h"
 #include <iostream>
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Sparse>
@@ -9,15 +12,11 @@
  * This tests all of the member functions in the ChemicalReaction class
  */
 
-using Real1 = double;
-using Real2 = float;
-using SparseMatrix1 = Eigen::SparseMatrix<Real1>;
-using SparseMatrix2 = Eigen::SparseMatrix<Real2>;
-using DenseMatrix1 = Eigen::Matrix<Real1, Eigen::Dynamic, Eigen::Dynamic>;
-using DenseMatrix2 = Eigen::Matrix<Real2, Eigen::Dynamic, Eigen::Dynamic>;
-using ReactionPair = std::pair<Model::Species, unsigned int>;
-using Vector1 = Eigen::Matrix<Real1, Eigen::Dynamic, 1>;
-using Vector2 = Eigen::Matrix<Real2, Eigen::Dynamic, 1>;
+using Real = realtype;
+using SparseMatrix1 = Eigen::SparseMatrix<Real>;
+using DenseMatrix1 = Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>;
+using ReactionPair = std::pair<MEPBM::Species, int>;
+using Vector1 = Eigen::Matrix<Real, Eigen::Dynamic, 1>;
 
 
 
@@ -25,61 +24,56 @@ template<typename InputType, typename VectorType, typename MatrixType>
 void
 check_rxn_fcns(InputType & rxn)
 {
+  // Create necessary objects to pass to the functions
+  // FIXME: update when NVectorEigen.h is updated
   // Check the rhs function
-  VectorType x(3);
-  x << 1, 2, 0;
+  auto x = MEPBM::create_eigen_nvector<VectorType>(3);
+  auto x_vec = static_cast<VectorType*>(x->content);
+  *x_vec << 1, 2, 0;
   /*
    * ODEs should be
    * dA/dt = -kA*B^2  = -6
    * dB/dt = -2kA*B^2 = -12
    * dC/dt = 3kA*B^2  = 18
    */
-  VectorType rhs(3);
-  rhs.setZero();
-  rxn.add_contribution_to_rhs(x,rhs);
-  std::cout << rhs(0) << std::endl;
-  std::cout << rhs(1) << std::endl;
-  std::cout << rhs(2) << std::endl;
+  auto rhs = MEPBM::create_eigen_nvector<VectorType>(3);
+  auto rhs_vec = static_cast<VectorType*>(rhs->content);
+  *rhs_vec << 0.,0.,0.;
+
+  auto rhs_fcn = rxn.rhs_function();
+  auto err_rhs = rhs_fcn(0.0, x, rhs, nullptr);
+
+  std::cout << (*rhs_vec)(0) << std::endl;
+  std::cout << (*rhs_vec)(1) << std::endl;
+  std::cout << (*rhs_vec)(2) << std::endl;
 
   // Check the Jacobian function
-  MatrixType J(3,3);
-  J.setZero();
+  auto J = MEPBM::create_eigen_sunmatrix<MatrixType>(3,3);
+  J->ops->zero(J);
   /*
    * Jacobian should be
    *    |dA'/dA  dA'/dB  dA'/dC|    | -kB^2    -2kA*B   0|    | -6   -6   0|
    *    |dB'/dA  dB'/dB  dB'/dC|  = | -k2B^2   -4kA*B   0|  = | -12  -12  0|
    *    |dC'/dA  dC'/dB  dC'/dC|    | 3kB^2    6kA*B    0|    | 18   18   0|
    */
-  rxn.add_contribution_to_jacobian(x,J);
-  std::cout << J.coeffRef(0,0) << std::endl;
-  std::cout << J.coeffRef(0,1) << std::endl;
-  std::cout << J.coeffRef(0,2) << std::endl;
+  auto jac_fcn = rxn.jacobian_function();
+  auto tmp1 = MEPBM::create_eigen_nvector<VectorType>(3);
+  auto tmp2 = MEPBM::create_eigen_nvector<VectorType>(3);
+  auto tmp3 = MEPBM::create_eigen_nvector<VectorType>(3);
+  auto err_j = jac_fcn(0.0, x, rhs, J, nullptr, tmp1, tmp2, tmp3);
 
-  std::cout << J.coeffRef(1,0) << std::endl;
-  std::cout << J.coeffRef(1,1) << std::endl;
-  std::cout << J.coeffRef(1,2) << std::endl;
+  auto J_mat = *static_cast<MatrixType*>(J->content);
+  std::cout << J_mat.coeffRef(0,0) << std::endl;
+  std::cout << J_mat.coeffRef(0,1) << std::endl;
+  std::cout << J_mat.coeffRef(0,2) << std::endl;
 
-  std::cout << J.coeffRef(2,0) << std::endl;
-  std::cout << J.coeffRef(2,1) << std::endl;
-  std::cout << J.coeffRef(2,2) << std::endl;
-}
+  std::cout << J_mat.coeffRef(1,0) << std::endl;
+  std::cout << J_mat.coeffRef(1,1) << std::endl;
+  std::cout << J_mat.coeffRef(1,2) << std::endl;
 
-
-
-template<typename InputType, typename Real>
-void
-check_sparse_rxn_fcns(InputType & rxn)
-{
-  std::vector<Eigen::Triplet<Real>> triplet_list;
-  rxn.add_nonzero_to_jacobian(triplet_list);
-  for (auto t : triplet_list)
-  {
-    std::cout << t.row() << ", " << t.col() << std::endl;
-  }
-
-  unsigned int n_nonzero = 0;
-  rxn.update_num_nonzero(n_nonzero);
-  std::cout << n_nonzero << std::endl;
+  std::cout << J_mat.coeffRef(2,0) << std::endl;
+  std::cout << J_mat.coeffRef(2,1) << std::endl;
+  std::cout << J_mat.coeffRef(2,2) << std::endl;
 }
 
 
@@ -91,9 +85,9 @@ int main ()
    *    A + 2B ->[k=1.5] 3C
    * is used for this example.
    */
-  Model::Species A(0);
-  Model::Species B(1);
-  Model::Species C(2);
+  MEPBM::Species A(0);
+  MEPBM::Species B(1);
+  MEPBM::Species C(2);
 
   ReactionPair rxnA = {A,1};
   ReactionPair rxnB = {B,2};
@@ -106,33 +100,16 @@ int main ()
 
   // Do a test for each of the intended types for matrices and floating point number combination
 
-  // Sparse double
-  Model::ChemicalReaction<Real1, SparseMatrix1> rxn_s1(reactants, products, rxn_rate);
-  check_rxn_fcns<Model::ChemicalReaction<Real1, SparseMatrix1>, Vector1, SparseMatrix1>(rxn_s1);
-  // Sparse matrices make sense to check the other two functions
-  check_sparse_rxn_fcns<Model::ChemicalReaction<Real1, SparseMatrix1>, Real1>(rxn_s1);
+  // Sparse
+  MEPBM::ChemicalReaction<Real, SparseMatrix1> rxn_s1(reactants, products, rxn_rate);
+  check_rxn_fcns<MEPBM::ChemicalReaction<Real, SparseMatrix1>, Vector1, SparseMatrix1>(rxn_s1);
   std::cout << std::endl;
 
 
 
-  // Dense double
-  Model::ChemicalReaction<Real1, DenseMatrix1> rxn_d1(reactants, products, rxn_rate);
-  check_rxn_fcns<Model::ChemicalReaction<Real1, DenseMatrix1>, Vector1, DenseMatrix1>(rxn_d1);
+  // Dense
+  MEPBM::ChemicalReaction<Real, DenseMatrix1> rxn_d1(reactants, products, rxn_rate);
+  check_rxn_fcns<MEPBM::ChemicalReaction<Real, DenseMatrix1>, Vector1, DenseMatrix1>(rxn_d1);
   std::cout << std::endl;
-
-
-
-  // Sparse float
-  Model::ChemicalReaction<Real2, SparseMatrix2> rxn_s2(reactants, products, rxn_rate);
-  check_rxn_fcns<Model::ChemicalReaction<Real2, SparseMatrix2>, Vector2, SparseMatrix2>(rxn_s2);
-  // Sparse matrices make sense to check the other two functions
-  check_sparse_rxn_fcns<Model::ChemicalReaction<Real2, SparseMatrix2>, Real2>(rxn_s2);
-  std::cout << std::endl;
-
-
-
-  // Dense float
-  Model::ChemicalReaction<Real2, DenseMatrix2> rxn_d2(reactants, products, rxn_rate);
-  check_rxn_fcns<Model::ChemicalReaction<Real2, DenseMatrix2>, Vector2, DenseMatrix2>(rxn_d2);
 
 }
