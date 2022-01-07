@@ -1,9 +1,4 @@
-// A = 1,0;2,0. c = 3.
-// result =
-// 4, 0
-// 6, 1
-
-#include "sunmatrix_eigen.h"
+#include "src/create_sunmatrix.h"
 #include "eigen3/Eigen/Sparse"
 #include <iostream>
 
@@ -11,12 +6,12 @@ using Matrix = Eigen::SparseMatrix<realtype>;
 
 int main ()
 {
-  SUNMatrix A = create_eigen_sunmatrix<Matrix>(2,2);
+  SUNMatrix A = MEPBM::create_eigen_sunmatrix<Matrix>(2,2);
   auto A_matrix = static_cast<Matrix*>(A->content);
   A_matrix->insert(0,0) = 1;
   A_matrix->insert(1,0) = 2;
 
-  // make sure the matrix has the correct initial coefficients
+  // make sure the matrix is non-zero first
   {
     auto mat = *static_cast<Matrix*>(A->content);
 
@@ -34,12 +29,9 @@ int main ()
       }
   }
 
-  realtype c = 3;
-  std::cout << c << std::endl;
 
-
-  A->ops->scaleaddi(c, A);
-  // make sure the matrix is now scaled and has the identity added
+  A->ops->zero(A);
+  // make sure the matrix is now zero
   {
     auto mat = *static_cast<Matrix*>(A->content);
 

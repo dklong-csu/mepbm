@@ -1,14 +1,9 @@
-#ifndef MEPBM_SUNMATRIX_EIGEN_H
-#define MEPBM_SUNMATRIX_EIGEN_H
+#ifndef MEPBM_SUNMATRIX_OPERATIONS_H
+#define MEPBM_SUNMATRIX_OPERATIONS_H
 
 #include "sundials/sundials_matrix.h"
-#include "eigen3/Eigen/Sparse"
-#include "eigen3/Eigen/Dense"
 
-
-
-namespace SUNMatrixOperations
-{
+namespace MEPBM {
   /// Returns the type identifier for the matrix.
   SUNMatrix_ID
   SUNMatGetID(SUNMatrix A)
@@ -117,52 +112,6 @@ namespace SUNMatrixOperations
 
     return SUNMAT_SUCCESS;
   }
-
-
-
-  /// Function to set the ops pointers
-  template<typename MatrixType>
-  void
-  set_ops_pointers(SUNMatrix A)
-  {
-    A->ops->getid     = SUNMatrixOperations::SUNMatGetID;
-    A->ops->clone     = SUNMatrixOperations::SUNMatClone<MatrixType>;
-    A->ops->destroy   = SUNMatrixOperations::SUNMatDestroy<MatrixType>;
-    A->ops->zero      = SUNMatrixOperations::SUNMatZero<MatrixType>;
-    A->ops->copy      = SUNMatrixOperations::SUNMatCopy<MatrixType>;
-    A->ops->scaleaddi = SUNMatrixOperations::SUNMatScaleAddI<MatrixType>;
-  }
 }
 
-
-
-  /// Function to create a SUNMatrix without allocating memory for the matrix
-  template<typename MatrixType>
-  SUNMatrix
-  create_empty_eigen_sunmatrix()
-  {
-    SUNMatrix A = SUNMatNewEmpty();
-
-    SUNMatrixOperations::set_ops_pointers<MatrixType>(A);
-
-    A->content = nullptr;
-
-    return A;
-  }
-
-
-
-  /// Function to create a SUNMatrix and allocate memory for the matrix
-  template<typename MatrixType>
-  SUNMatrix
-  create_eigen_sunmatrix(sunindextype rows, sunindextype cols)
-  {
-    SUNMatrix A = create_empty_eigen_sunmatrix<MatrixType>();
-    MatrixType* mat = new MatrixType(rows, cols);
-    A->content = (void*)mat;
-
-    return A;
-  }
-
-
-#endif //MEPBM_SUNMATRIX_EIGEN_H
+#endif //MEPBM_SUNMATRIX_OPERATIONS_H

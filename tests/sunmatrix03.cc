@@ -1,4 +1,9 @@
-#include "sunmatrix_eigen.h"
+// A = 1,0;2,0. c = 3.
+// result =
+// 4, 0
+// 6, 1
+
+#include "src/create_sunmatrix.h"
 #include "eigen3/Eigen/Sparse"
 #include <iostream>
 
@@ -6,11 +11,12 @@ using Matrix = Eigen::SparseMatrix<realtype>;
 
 int main ()
 {
-  SUNMatrix A = create_eigen_sunmatrix<Matrix>(2,2);
+  SUNMatrix A = MEPBM::create_eigen_sunmatrix<Matrix>(2,2);
   auto A_matrix = static_cast<Matrix*>(A->content);
   A_matrix->insert(0,0) = 1;
   A_matrix->insert(1,0) = 2;
 
+  // make sure the matrix has the correct initial coefficients
   {
     auto mat = *static_cast<Matrix*>(A->content);
 
@@ -28,19 +34,14 @@ int main ()
       }
   }
 
+  realtype c = 3;
+  std::cout << c << std::endl;
 
 
-  SUNMatrix B = create_eigen_sunmatrix<Matrix>(2,2);
-  SUNMatrix C = create_empty_eigen_sunmatrix<Matrix>();
-
-  
-
-  // test the matrix with initialized memory
+  A->ops->scaleaddi(c, A);
+  // make sure the matrix is now scaled and has the identity added
   {
-    auto ierr = A->ops->copy(A, B);
-    std::cout << ierr << std::endl;
-
-    auto mat = *static_cast<Matrix*>(B->content);
+    auto mat = *static_cast<Matrix*>(A->content);
 
     auto rows = mat.rows();
     auto cols = mat.cols();
@@ -55,26 +56,4 @@ int main ()
           std::cout << std::endl;
       }
   }
-
-  // test the matrix with uninitialized memory
-  {
-    auto ierr = A->ops->copy(A, C);
-    std::cout << ierr << std::endl;
-
-    auto mat = *static_cast<Matrix*>(C->content);
-
-    auto rows = mat.rows();
-    auto cols = mat.cols();
-
-    for (unsigned int i=0; i<rows; ++i)
-      for (unsigned int j=0; j<cols; ++j)
-      {
-        std::cout << mat.coeff(i,j);
-        if (j < cols-1)
-          std::cout << ", ";
-        else
-          std::cout << std::endl;
-      }
-  }
-  
 }

@@ -1,4 +1,4 @@
-#include "sunmatrix_eigen.h"
+#include "src/create_sunmatrix.h"
 #include "eigen3/Eigen/Sparse"
 #include <iostream>
 
@@ -6,7 +6,7 @@ using Matrix = Eigen::SparseMatrix<realtype>;
 
 int main ()
 {
-	SUNMatrix A = create_eigen_sunmatrix<Matrix>(2,2);
+	SUNMatrix A = MEPBM::create_eigen_sunmatrix<Matrix>(2,2);
 
   auto B = A->ops->clone(A);
 
