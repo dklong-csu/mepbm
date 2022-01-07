@@ -1,4 +1,4 @@
-#include "nvector_eigen.h"
+#include "src/create_nvector.h"
 #include "eigen3/Eigen/Dense"
 #include <iostream>
 
@@ -6,12 +6,12 @@ using Vector = Eigen::Matrix<realtype, Eigen::Dynamic, 1>;
 
 int main ()
 {
-  N_Vector x = create_eigen_nvector<Vector>(2);
+  N_Vector x = MEPBM::create_eigen_nvector<Vector>(2);
   auto x_vec = static_cast<Vector*>(x->content);
   *x_vec << 2, 4;
 
 
-  N_Vector y = create_eigen_nvector<Vector>(2);
+  N_Vector y = MEPBM::create_eigen_nvector<Vector>(2);
 
   // pass the test
   auto result = x->ops->nvinvtest(x,y);

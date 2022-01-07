@@ -1,21 +1,15 @@
-#ifndef MEPBM_NVECTOR_EIGEN_H
-#define MEPBM_NVECTOR_EIGEN_H
+#ifndef MEPBM_NVECTOR_OPERATIONS_H
+#define MEPBM_NVECTOR_OPERATIONS_H
+
 
 #include "sundials/sundials_nvector.h"
 #include "sundials/sundials_types.h"
-#include "eigen3/Eigen/Sparse"
-#include "eigen3/Eigen/Dense"
-#include <memory>
+#include <cassert>
 #include <cmath>
 
 
 
-/**************************************************************************
- * Functions whose memory locations are given to the N_Vector Ops structure
- *************************************************************************/
-
-namespace NVectorOperations
-{
+namespace MEPBM{
   /// Returns the length of the vector
   template <typename VectorType>
   sunindextype
@@ -503,72 +497,6 @@ namespace NVectorOperations
     }
     return 0;
   }
-
 }
 
-
-
-/// Function to set all ops fields to the correct function pointer
-template<typename VectorType>
-void
-set_ops_pointers(N_Vector v)
-{
-  v->ops->nvgetlength         = NVectorOperations::N_VGetLength<VectorType>;
-  v->ops->nvclone             = NVectorOperations::N_VClone<VectorType>;
-  v->ops->nvcloneempty        = NVectorOperations::N_VCloneEmpty;
-  v->ops->nvdestroy           = NVectorOperations::N_VDestroy<VectorType>;
-  v->ops->nvspace             = NVectorOperations::N_VSpace;
-  v->ops->nvgetarraypointer   = NVectorOperations::N_VGetArrayPointer<VectorType>;
-  v->ops->nvsetarraypointer   = NVectorOperations::N_VSetArrayPointer<VectorType>;
-  v->ops->nvlinearsum         = NVectorOperations::N_VLinearSum<VectorType>;
-  v->ops->nvconst             = NVectorOperations::N_VConst<VectorType>;
-  v->ops->nvprod              = NVectorOperations::N_VProd<VectorType>;
-  v->ops->nvdiv               = NVectorOperations::N_VDiv<VectorType>;
-  v->ops->nvscale             = NVectorOperations::N_VScale<VectorType>;
-  v->ops->nvabs               = NVectorOperations::N_VAbs<VectorType>;
-  v->ops->nvinv               = NVectorOperations::N_VInv<VectorType>;
-  v->ops->nvaddconst          = NVectorOperations::N_VAddConst<VectorType>;
-  v->ops->nvmaxnorm           = NVectorOperations::N_VMaxNorm<VectorType>;
-  v->ops->nvwrmsnorm          = NVectorOperations::N_VWrmsNorm<VectorType>;
-  v->ops->nvmin               = NVectorOperations::N_VMin<VectorType>;
-  v->ops->nvminquotient       = NVectorOperations::N_VMinQuotient<VectorType>;
-  v->ops->nvconstrmask        = NVectorOperations::N_VConstrMask<VectorType>;
-  v->ops->nvcompare           = NVectorOperations::N_VCompare<VectorType>;
-  v->ops->nvinvtest           = NVectorOperations::N_VInvTest<VectorType>;
-  v->ops->nvlinearcombination = NVectorOperations::N_VLinearCombination<VectorType>;
-  v->ops->nvscaleaddmulti     = NVectorOperations::N_VScaleAddMulti<VectorType>;
-  v->ops->nvdotprodmulti      = NVectorOperations::N_VDotProdMulti<VectorType>;
-  v->ops->nvscalevectorarray  = NVectorOperations::N_VScaleVectorArray<VectorType>;
-}
-
-
-
-/// Function to create an N_Vector without allocating memory for the vector.
-template<typename VectorType>
-N_Vector
-create_empty_eigen_nvector()
-{
-  N_Vector v = N_VNewEmpty();
-
-  set_ops_pointers<VectorType>(v);
-
-  return v;
-}
-
-
-
-/// Function to create an N_Vector using Eigen for the backend linear algebra
-template<typename VectorType>
-N_Vector
-create_eigen_nvector(unsigned int dim)
-{
-  N_Vector v = create_empty_eigen_nvector<VectorType>();
-  VectorType* vec = new VectorType(dim);
-  v->content = (void*)vec;
-
-  return v;
-
-}
-
-
-#endif //MEPBM_NVECTOR_EIGEN_H
+#endif //MEPBM_NVECTOR_OPERATIONS_H

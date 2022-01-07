@@ -1,4 +1,4 @@
-#include "nvector_eigen.h"
+#include "src/create_nvector.h"
 #include "eigen3/Eigen/Dense"
 #include <iostream>
 
@@ -6,7 +6,7 @@ using Vector = Eigen::Matrix<realtype, Eigen::Dynamic, 1>;
 
 int main ()
 {
-  N_Vector v = create_eigen_nvector<Vector>(2);
+  N_Vector v = MEPBM::create_eigen_nvector<Vector>(2);
 
   // FIXME: This test seems silly
   auto eigen_vec = static_cast<Vector *>(v->content);

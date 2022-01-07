@@ -1,4 +1,4 @@
-#include "nvector_eigen.h"
+#include "src/create_nvector.h"
 #include "eigen3/Eigen/Dense"
 #include <iostream>
 
@@ -11,12 +11,12 @@ int main ()
 
 
   // vectors to be scaled
-  N_Vector y = create_eigen_nvector<Vector>(2);
+  N_Vector y = MEPBM::create_eigen_nvector<Vector>(2);
   auto y_vec = static_cast<Vector*>(y->content);
   *y_vec << 1,2;
 
 
-  N_Vector z = create_eigen_nvector<Vector>(2);
+  N_Vector z = MEPBM::create_eigen_nvector<Vector>(2);
   auto z_vec = static_cast<Vector*>(z->content);
   *z_vec << 3,4;
 
@@ -25,9 +25,9 @@ int main ()
 
 
   // vectors to store results
-  N_Vector a = create_eigen_nvector<Vector>(2);
+  N_Vector a = MEPBM::create_eigen_nvector<Vector>(2);
 
-  N_Vector b = create_eigen_nvector<Vector>(2);
+  N_Vector b = MEPBM::create_eigen_nvector<Vector>(2);
 
   N_Vector C [2] = {a,b};
 

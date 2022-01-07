@@ -1,4 +1,4 @@
-#include "nvector_eigen.h"
+#include "src/create_nvector.h"
 #include "eigen3/Eigen/Dense"
 #include <iostream>
 
@@ -6,16 +6,16 @@ using Vector = Eigen::Matrix<realtype, Eigen::Dynamic, 1>;
 
 int main ()
 {
-  N_Vector c = create_eigen_nvector<Vector>(4);
+  N_Vector c = MEPBM::create_eigen_nvector<Vector>(4);
   auto c_vec = static_cast<Vector*>(c->content);
   *c_vec << 2, 1, -1, -2;
 
 
-  N_Vector x = create_eigen_nvector<Vector>(4);
+  N_Vector x = MEPBM::create_eigen_nvector<Vector>(4);
   auto x_vec = static_cast<Vector*>(x->content);
 
   
-  N_Vector m = create_eigen_nvector<Vector>(4);
+  N_Vector m = MEPBM::create_eigen_nvector<Vector>(4);
   auto m_vec = static_cast<Vector*>(m->content);
 
   // we expect all to pass
