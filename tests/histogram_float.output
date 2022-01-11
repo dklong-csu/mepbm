@@ -1,8 +1,8 @@
-Checking for Histograms::Parameters
+Checking for MEPBM::Parameters
 Parameter n_bins is: 25
 Parameter x_start is: 0
 Parameter x_end is: 4.5
-Checking for Histograms::Histogram
+Checking for MEPBM::Histogram
 Interval points are: 
 0 0.18 0.36 0.54 0.72 0.9 1.08 1.26 1.44 1.62 1.8 1.98 2.16 2.34 2.52 2.7 2.88 3.06 3.24 3.42 3.6 3.78 3.96 4.14 4.32 4.5 
 Maximum x value is: 4.5

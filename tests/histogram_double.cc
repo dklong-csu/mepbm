@@ -1,7 +1,7 @@
 #include <boost/numeric/odeint.hpp>
 #include <iostream>
 #include <string>
-#include "histogram.h"
+#include "src/histogram.h"
 
 
 using Real = double;
@@ -10,9 +10,9 @@ using HistVector = std::vector<Real>;
 int main()
 {
   // check we can make proper histogram parameters
-  Histograms::Parameters<Real> prm(25, 0., 4.5);
+  MEPBM::Parameters<Real> prm(25, 0., 4.5);
 
-  std::cout << "Checking for Histograms::Parameters"
+  std::cout << "Checking for MEPBM::Parameters"
             << std::endl;
 
   std::cout << "Parameter n_bins is: "
@@ -30,9 +30,9 @@ int main()
 
 
   // check if we can make a histogram
-  Histograms::Histogram<Real> hist(prm);
+  MEPBM::Histogram<Real> hist(prm);
 
-  std::cout << "Checking for Histograms::Histogram"
+  std::cout << "Checking for MEPBM::Histogram"
             << std::endl;
 
   std::cout << "Interval points are: "
@@ -87,7 +87,7 @@ int main()
   HistVector labels = { 0,4.5,1.7, 1.7 };
   HistVector counts = { 1,1.1,3,2 };
 
-  Histograms::Histogram<Real> hist2 = Histograms::create_histogram(counts, labels, prm);
+  MEPBM::Histogram<Real> hist2 = MEPBM::create_histogram(counts, labels, prm);
   std::cout << "Created histogram properties:"
             << std::endl;
 
