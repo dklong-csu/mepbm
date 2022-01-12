@@ -33,8 +33,16 @@ namespace MEPBM {
    /// Returns the size of the particle at the indicated index.
    int size(const unsigned int index) const {
      int particle_size = (index - index_start) + first_size;
-     assert(particle_size >= 0);
+     assert(particle_size > 0);
      return particle_size;
+   }
+
+   /// Returns the index of a particle given its size
+   int index(const unsigned int size) const {
+     assert(size > 0);
+     int particle_index = (size - first_size) + index_start;
+     assert(particle_index >= 0);
+     return particle_index;
    }
 
 
