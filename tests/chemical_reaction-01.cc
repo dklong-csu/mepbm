@@ -16,7 +16,7 @@ using SparseMatrix1 = Eigen::SparseMatrix<Real1>;
 using SparseMatrix2 = Eigen::SparseMatrix<Real2>;
 using DenseMatrix1 = Eigen::Matrix<Real1, Eigen::Dynamic, Eigen::Dynamic>;
 using DenseMatrix2 = Eigen::Matrix<Real2, Eigen::Dynamic, Eigen::Dynamic>;
-using ReactionPair = std::pair<MEPBM::Species, int>;
+using ReactionPair = std::pair<MEPBM::Species, unsigned int>;
 
 
 

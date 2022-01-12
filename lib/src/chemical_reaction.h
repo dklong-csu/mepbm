@@ -18,16 +18,16 @@ namespace MEPBM {
   class ChemicalReaction {
   public:
     /// Constructor.
-    ChemicalReaction(const std::vector< std::pair<Species, int> > reactants,
-                     const std::vector< std::pair<Species, int> > products,
+    ChemicalReaction(const std::vector< std::pair<Species, unsigned int> > reactants,
+                     const std::vector< std::pair<Species, unsigned int> > products,
                      const Real rate)
     : reactants(reactants),
       products(products),
       rate(rate)
     {}
 
-    const std::vector< std::pair<Species, int> > reactants; /// The species and multiplicity of each reactant.
-    const std::vector< std::pair<Species, int> > products;  /// The species and multiplicity of each product.
+    const std::vector< std::pair<Species, unsigned int> > reactants; /// The species and multiplicity of each reactant.
+    const std::vector< std::pair<Species, unsigned int> > products;  /// The species and multiplicity of each product.
     const Real rate; /// The reaction rate.
 
     /// Returns a function for the right-hand side of the ODE that is compatible with the SUNDIALS API.
