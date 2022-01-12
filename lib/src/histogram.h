@@ -6,7 +6,7 @@
 #include <stdexcept>
 
 
-namespace Histograms
+namespace MEPBM
 {
   // This class describes the parameters for a histogram
   // A histogram needs to know the number of bins it has,
@@ -51,7 +51,7 @@ namespace Histograms
     std::vector<Real> interval_pts, count;
 
     /// constructor
-    Histogram(const Histograms::Parameters<Real>& parameters);
+    Histogram(const MEPBM::Parameters<Real>& parameters);
 
     /// Adds data to the histogram
     void AddToBins(const std::vector<Real>& y,
@@ -93,7 +93,7 @@ namespace Histograms
 
 
   template<typename Real>
-  Histogram<Real>::Histogram(const Histograms::Parameters<Real>& parameters)
+  Histogram<Real>::Histogram(const MEPBM::Parameters<Real>& parameters)
   {
     // receive values from parameters
     min_x = parameters.x_start;
@@ -191,12 +191,12 @@ namespace Histograms
 
 
   template<typename Real>
-  Histograms::Histogram<Real> create_histogram(const std::vector<Real>& counts,
+  MEPBM::Histogram<Real> create_histogram(const std::vector<Real>& counts,
                                                const std::vector<Real>& labels,
                                                const Parameters<Real>& parameters)
   {
     // create Histogram object using supplied Parameters
-    Histograms::Histogram<Real> histogram(parameters);
+    MEPBM::Histogram<Real> histogram(parameters);
 
     // add data to the Histogram
     histogram.AddToBins(counts, labels);
