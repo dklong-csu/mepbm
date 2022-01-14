@@ -1,20 +1,22 @@
-#include "sunmatrix_eigen.h"
-#include "nvector_eigen.h"
-#include "linear_solver_eigen.h"
+#include "src/create_sunmatrix.h"
+#include "src/create_nvector.h"
+#include "src/create_sunlinearsolver.h"
+#include <eigen3/Eigen/Dense>
+#include <eigen3/Eigen/Sparse>
 
 #include <iostream>
 #include <iomanip>
 
 
-using Matrix = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>;
+using Matrix = Eigen::SparseMatrix<double>; // column-major ordering necessary for Sparse LU
 using Vector = Eigen::Matrix<double, Eigen::Dynamic, 1>;
-using SolverType = Eigen::CompleteOrthogonalDecomposition< Matrix >;
+using Solver = Eigen::SparseLU<Matrix, Eigen::COLAMDOrdering<int>>; // COLAMDOrdering gives best performance
 
 
 int main ()
 {
   // Create a matrix
-  auto A = create_eigen_sunmatrix<Matrix>(10, 10);
+  auto A = MEPBM::create_eigen_sunmatrix<Matrix>(10, 10);
   auto M = static_cast<Matrix*>(A->content);
   for (unsigned int i=0; i<10;++i)
   {
@@ -33,16 +35,16 @@ int main ()
 
 
   // Create the right-hand side vector
-  auto b = create_eigen_nvector<Vector>(10);
+  auto b = MEPBM::create_eigen_nvector<Vector>(10);
   auto vec = static_cast<Vector*>(b->content);
   *vec << 8, 4, 6, 2, 7, 3, 7, 7, 8, 5;
 
   // Create the linear solver
-  auto solver = create_eigen_direct_linear_solver<Matrix, double, SolverType>();
+  auto solver = MEPBM::create_sparse_direct_solver<Matrix, double, Solver>();
   solver->ops->setup(solver, A);
 
   // Create the solution vector
-  auto x = create_eigen_nvector<Vector>(10);
+  auto x = MEPBM::create_eigen_nvector<Vector>(10);
 
   // Solve for x
   solver->ops->solve(solver, A, x, b, 1e-7);
