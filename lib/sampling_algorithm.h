@@ -14,7 +14,7 @@
 #include <sampleflow/consumers/count_samples.h>
 #include <sampleflow/consumers/last_sample.h>
 
-#include "perturb_sample.h"
+#include "src/perturb_sample.h"
 #include "sundials_statistics.h"
 #include "sampling_parameters.h"
 
