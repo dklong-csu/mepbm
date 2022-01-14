@@ -7,7 +7,7 @@
 #include "nvector_eigen.h"
 #include "sunmatrix_eigen.h"
 #include <vector>
-#include "histogram.h"
+#include "src/histogram.h"
 #include <iostream>
 #include <stdexcept>
 #include "sampling_parameters.h"
@@ -299,6 +299,21 @@ namespace SUNDIALS_Statistics {
         return likelihood;
     }
     return likelihood;
+  }
+
+
+  template<typename RealType, typename Matrix, typename SolverType, LinearSolverClass SolverClass>
+  RealType compute_likelihood_TEM_and_Precursor(const Sampling::Sample<RealType> & sample,
+                                                const Sampling::ModelingParameters<RealType, Matrix> &user_data)
+  {
+    // Aggregate and sort precursor and TEM data times
+
+    // For each time, solve the ODE for that time and compute the appropriate contribution to the likelihood
+    int precursor_counter = 0;
+    int tem_counter = 0;
+    RealType current_precursor_time =
+
+    //
   }
 }
 

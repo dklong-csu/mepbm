@@ -17,7 +17,7 @@
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Sparse>
 
-#include "models.h"
+#include "src/models.h"
 
 #include <iostream>
 #include <limits>

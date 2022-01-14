@@ -1,5 +1,5 @@
 #include <iostream>
-#include "histogram.h"
+#include "src/histogram.h"
 #include "statistics.h"
 
 

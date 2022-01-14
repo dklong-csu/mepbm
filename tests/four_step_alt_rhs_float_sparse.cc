@@ -1,6 +1,6 @@
 #include <iostream>
 #include <eigen3/Eigen/Dense>
-#include "models.h"
+#include "src/models.h"
 
 
 using Real = float;

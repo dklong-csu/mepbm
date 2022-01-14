@@ -5,7 +5,7 @@
 #include "sampling_algorithm.h"
 #include <string>
 #include "data.h"
-#include "models.h"
+#include "src/models.h"
 #include <vector>
 #include "chemical_reaction.h"
 #include <utility>

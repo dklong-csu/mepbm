@@ -5,8 +5,8 @@
 #include <vector>
 #include <iostream>
 #include <random>
-#include "models.h"
-#include "histogram.h"
+#include "src/models.h"
+#include "src/histogram.h"
 #include "ode_solver.h"
 #include <eigen3/Eigen/Dense>
 

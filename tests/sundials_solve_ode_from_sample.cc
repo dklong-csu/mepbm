@@ -4,7 +4,7 @@
 #include <iomanip>
 #include <eigen3/Eigen/Sparse>
 #include <functional>
-#include "models.h"
+#include "src/models.h"
 #include <memory>
 
 

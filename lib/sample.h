@@ -3,11 +3,11 @@
 
 #include "nvector_eigen.h"
 #include "sunmatrix_eigen.h"
-#include "models.h"
+#include "src/models.h"
 #include "sampling_parameters.h"
 #include <utility>
 #include <vector>
-#include "histogram.h"
+#include "src/histogram.h"
 #include <functional>
 #include <utility>
 #include <stdexcept>

@@ -14,7 +14,7 @@
 #include <random>
 #include <sstream>
 
-#include "models.h"
+#include "src/models.h"
 #include "ode_solver.h"
 #include "data.h"
 

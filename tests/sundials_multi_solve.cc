@@ -1,7 +1,7 @@
 #include "sundials_solvers.h"
 #include "linear_solver_eigen.h"
 #include <eigen3/Eigen/Sparse>
-#include "models.h"
+#include "src/models.h"
 #include <iostream>
 #include <iomanip>
 #include <vector>

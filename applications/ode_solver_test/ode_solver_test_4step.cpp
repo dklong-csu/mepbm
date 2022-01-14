@@ -1,6 +1,6 @@
 #include <iostream>
 #include <eigen3/Eigen/Sparse>
-#include "models.h"
+#include "src/models.h"
 #include "sundials_solvers.h"
 #include "nvector_eigen.h"
 #include "sunmatrix_eigen.h"

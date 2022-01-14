@@ -12,8 +12,8 @@
 #include <limits>
 #include <vector>
 #include <memory>
-#include "models.h"
-#include "histogram.h"
+#include "src/models.h"
+#include "src/histogram.h"
 #include "statistics.h"
 #include "data.h"
 #include <eigen3/Eigen/Dense>

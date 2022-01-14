@@ -1,8 +1,8 @@
 #include <iostream>
 #include <iomanip>
 #include <eigen3/Eigen/Dense>
-#include "models.h"
-#include "histogram.h"
+#include "src/models.h"
+#include "src/histogram.h"
 #include "statistics.h"
 #include "data.h"
 

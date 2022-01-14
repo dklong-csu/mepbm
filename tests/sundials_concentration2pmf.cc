@@ -1,4 +1,4 @@
-#include "histogram.h"
+#include "src/histogram.h"
 #include "sundials_statistics.h"
 #include <vector>
 #include <iostream>

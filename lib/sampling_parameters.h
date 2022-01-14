@@ -3,9 +3,9 @@
 
 #include "nvector_eigen.h"
 #include <functional>
-#include "histogram.h"
+#include "src/histogram.h"
 #include <vector>
-#include "models.h"
+#include "src/models.h"
 #include <utility>
 #include "linear_solver_eigen.h"
 

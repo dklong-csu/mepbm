@@ -3,7 +3,7 @@
 #include <ode_solver.h>
 #include <vector>
 #include <cmath>
-#include "models.h"
+#include "src/models.h"
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Sparse>
 
