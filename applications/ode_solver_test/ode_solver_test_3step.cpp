@@ -5,7 +5,7 @@
 #include "nvector_eigen.h"
 #include "sunmatrix_eigen.h"
 #include "linear_solver_eigen.h"
-#include "ode_solver.h"
+#include "src/ode_solver.h"
 
 #include <chrono>
 #include <fstream>

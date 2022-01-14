@@ -1,6 +1,6 @@
 #include <iostream>
 #include <iomanip>
-#include <ode_solver.h>
+#include "src/ode_solver.h"
 #include <vector>
 #include <cmath>
 #include "src/models.h"

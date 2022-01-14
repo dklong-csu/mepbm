@@ -15,7 +15,7 @@
 #include <sstream>
 
 #include "src/models.h"
-#include "ode_solver.h"
+#include "src/ode_solver.h"
 #include "data.h"
 
 // Set precision

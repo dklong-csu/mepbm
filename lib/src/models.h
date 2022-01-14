@@ -1,6 +1,9 @@
 #ifndef MEPBM_MODELS_H
 #define MEPBM_MODELS_H
 
+/*
+ * DEPRECATED -- only kept to maintain reproducibility of published results
+ */
 
 /*
  * Mechanism-Enabled Population Balance Model (MEPBM)

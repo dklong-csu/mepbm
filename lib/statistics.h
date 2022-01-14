@@ -7,7 +7,7 @@
 #include <random>
 #include "src/models.h"
 #include "src/histogram.h"
-#include "ode_solver.h"
+#include "src/ode_solver.h"
 #include <eigen3/Eigen/Dense>
 
 
