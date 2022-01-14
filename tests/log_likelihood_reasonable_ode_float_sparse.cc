@@ -3,7 +3,7 @@
 #include <eigen3/Eigen/Dense>
 #include "src/models.h"
 #include "src/histogram.h"
-#include "statistics.h"
+#include "src/statistics.h"
 #include "data.h"
 
 

@@ -19,7 +19,7 @@ namespace Statistics
   Real log_likelihood(const std::vector<Real>& data,
                       const std::vector<Real>& distribution,
                       const std::vector<Real>& sizes,
-                      const Histograms::Parameters<Real>& hist_prm);
+                      const MEPBM::Parameters<Real>& hist_prm);
 
 
 
@@ -27,10 +27,10 @@ namespace Statistics
   Real log_likelihood(const std::vector<Real>& data,
                       const std::vector<Real>& distribution,
                       const std::vector<Real>& sizes,
-                      const Histograms::Parameters<Real>& hist_prm)
+                      const MEPBM::Parameters<Real>& hist_prm)
   {
     // Step 1 -- Turn data into a histogram
-    Histograms::Histogram<Real> hist_data(hist_prm);
+    MEPBM::Histogram<Real> hist_data(hist_prm);
     std::vector<Real> data_counts(data.size(), 1.0); // each data point occurred 1 time
     hist_data.AddToBins(data_counts, data);
 
@@ -79,7 +79,7 @@ namespace Statistics
     }
 
     // Step 2b -- Create histogram from pmf
-    Histograms::Histogram<Real> hist_ode(hist_prm);
+    MEPBM::Histogram<Real> hist_ode(hist_prm);
     hist_ode.AddToBins(pmf, sizes);
 
     // Step 3 -- Combine histograms to calculate log likelihood
@@ -117,7 +117,7 @@ namespace Statistics
                       const std::vector<Real>& times,
                       const Model::Model<Real, Matrix>& ode_model,
                       Eigen::Matrix<Real, Eigen::Dynamic, 1>& ic,
-                      const Histograms::Parameters<Real>& hist_prm)
+                      const MEPBM::Parameters<Real>& hist_prm)
   {
     // Step 1 -- Solve the ODE at each time
     ODE::StepperBDF<order, Real, Matrix> stepper(ode_model);
