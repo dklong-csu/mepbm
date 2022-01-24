@@ -8,16 +8,16 @@
 
 namespace MEPBM
 {
-  // This class describes the parameters for a histogram
-  // A histogram needs to know the number of bins it has,
-  // the smallest x-value, and the largest x-value.
-  ///
-  /// A class that holds the hyperparameters which describe a histogram, namely the number of bins,
-  /// the left endpoint of the histogram domain, and the right endpoint of the histogram domain.
-  ///
+  /**
+   * A class that holds the hyperparameters which describe a histogram, namely the number of bins,
+   * the left endpoint of the histogram domain, and the right endpoint of the histogram domain.
+   */
   template<typename Real>
   class Parameters
   {
+    /*
+     * FIXME: rename this to HistogramParameters for clarity and fix references everywhere
+     */
   public:
     unsigned int n_bins;
     Real x_start, x_end;
