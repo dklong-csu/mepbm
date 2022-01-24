@@ -1,4 +1,5 @@
-#include "chemical_reaction.h"
+#include "src/chemical_reaction.h"
+#include "src/particle_growth.h"
 #include <iostream>
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Sparse>
@@ -9,13 +10,10 @@
  * This tests all of the member variables in the ParticleGrowth class
  */
 
-using Real1 = double;
-using Real2 = float;
-using SparseMatrix1 = Eigen::SparseMatrix<Real1>;
-using SparseMatrix2 = Eigen::SparseMatrix<Real2>;
-using DenseMatrix1 = Eigen::Matrix<Real1, Eigen::Dynamic, Eigen::Dynamic>;
-using DenseMatrix2 = Eigen::Matrix<Real2, Eigen::Dynamic, Eigen::Dynamic>;
-using ReactionPair = std::pair<Model::Species, unsigned int>;
+using Real = realtype;
+using SparseMatrix = Eigen::SparseMatrix<Real>;
+using DenseMatrix = Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>;
+using ReactionPair = std::pair<MEPBM::Species, unsigned int>;
 
 
 
@@ -56,14 +54,9 @@ growth_kernel(const unsigned int size)
 
 int main ()
 {
-  /*
-   * The chemical reaction
-   *    2A + B ->[k=1.5*r(i)] B + 3L
-   * is used for this example.
-   */
-  Model::Species A(0);
-  Model::Species L(1);
-  Model::Particle B(2, 5, 3);
+  MEPBM::Species A(0);
+  MEPBM::Species L(1);
+  MEPBM::Particle B(2, 5, 3);
 
   ReactionPair rxnA = {A,2};
   ReactionPair rxnL = {L, 3};
@@ -76,51 +69,26 @@ int main ()
   const unsigned int max_particle_size = 6;
 
 
-  // Do a test for each of the intended types for matrices and floating point number combination
-  {
-    Model::ParticleGrowth<Real1, SparseMatrix1> rxn(B,
-                                                    reaction_rate,
-                                                    growth_amount,
-                                                    max_particle_size,
-                                                    &growth_kernel<Real1>,
+  // Test for Dense and Sparse matrices
+  MEPBM::ParticleGrowth<Real, DenseMatrix> growth_dense(B,
+                                                        reaction_rate,
+                                                        growth_amount,
+                                                        max_particle_size,
+                                                        &growth_kernel<Real>,
+                                                            reactants,
+                                                            products);
+
+  check_rxn_members(growth_dense);
+
+
+  MEPBM::ParticleGrowth<Real, SparseMatrix > growth_sparse(B,
+                                                        reaction_rate,
+                                                        growth_amount,
+                                                        max_particle_size,
+                                                        &growth_kernel<Real>,
                                                         reactants,
                                                         products);
-    check_rxn_members(rxn);
-    std::cout << std::endl;
-  }
 
-  {
-    Model::ParticleGrowth<Real1, DenseMatrix1> rxn(B,
-                                                   reaction_rate,
-                                                   growth_amount,
-                                                   max_particle_size,
-                                                   &growth_kernel<Real1>,
-                                                   reactants,
-                                                   products);
-    check_rxn_members(rxn);
-    std::cout << std::endl;
-  }
+  check_rxn_members(growth_sparse);
 
-  {
-    Model::ParticleGrowth<Real2, SparseMatrix2> rxn(B,
-                                                    reaction_rate,
-                                                    growth_amount,
-                                                    max_particle_size,
-                                                    &growth_kernel<Real1>,
-                                                    reactants,
-                                                    products);
-    check_rxn_members(rxn);
-    std::cout << std::endl;
-  }
-
-  {
-    Model::ParticleGrowth<Real2, DenseMatrix2> rxn(B,
-                                                   reaction_rate,
-                                                   growth_amount,
-                                                   max_particle_size,
-                                                   &growth_kernel<Real1>,
-                                                   reactants,
-                                                   products);
-    check_rxn_members(rxn);
-  }
 }

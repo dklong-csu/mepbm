@@ -1,4 +1,7 @@
-#include "chemical_reaction.h"
+#include "src/chemical_reaction.h"
+#include "src/particle.h"
+#include "src/species.h"
+#include "src/particle_agglomeration.h"
 #include <iostream>
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Sparse>
@@ -6,18 +9,13 @@
 #include <vector>
 
 /*
- * This tests all of the member variables in the ParticleGrowth class
+ * This tests all of the member variables in the ParticleAgglomeration class
  */
 
-using Real1 = double;
-using Real2 = float;
-using SparseMatrix1 = Eigen::SparseMatrix<Real1>;
-using SparseMatrix2 = Eigen::SparseMatrix<Real2>;
-using DenseMatrix1 = Eigen::Matrix<Real1, Eigen::Dynamic, Eigen::Dynamic>;
-using DenseMatrix2 = Eigen::Matrix<Real2, Eigen::Dynamic, Eigen::Dynamic>;
-using ReactionPair = std::pair<Model::Species, unsigned int>;
-using Vector1 = Eigen::Matrix<Real1, Eigen::Dynamic, 1>;
-using Vector2 = Eigen::Matrix<Real2, Eigen::Dynamic, 1>;
+using Real = realtype;
+using SparseMatrix = Eigen::SparseMatrix<Real>;
+using DenseMatrix = Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>;
+using ReactionPair = std::pair<MEPBM::Species, unsigned int>;
 
 
 
@@ -29,9 +27,9 @@ check_vars(InputType & rxn)
   std::cout << std::boolalpha << (rxn.particleA.index_end == 3) << std::endl;
   std::cout << std::boolalpha << (rxn.particleA.first_size == 1) << std::endl;
 
-  std::cout << std::boolalpha << (rxn.particleB.index_start == 2) << std::endl;
-  std::cout << std::boolalpha << (rxn.particleB.index_end == 3) << std::endl;
-  std::cout << std::boolalpha << (rxn.particleB.first_size == 1) << std::endl;
+  std::cout << std::boolalpha << (rxn.particleB.index_start == 4) << std::endl;
+  std::cout << std::boolalpha << (rxn.particleB.index_end == 7) << std::endl;
+  std::cout << std::boolalpha << (rxn.particleB.first_size == 3) << std::endl;
 
   std::cout << std::boolalpha << (rxn.reaction_rate == 1.5) << std::endl;
 
@@ -39,13 +37,17 @@ check_vars(InputType & rxn)
 
   std::cout << std::boolalpha << (rxn.growth_kernel(10) == 25.) << std::endl;
 
-  std::cout << std::boolalpha << (rxn.reactants.size() == 0) << std::endl;
-  std::cout << std::boolalpha << (rxn.products.size() == 0) << std::endl;
+  std::cout << std::boolalpha << (rxn.reactants.size() == 1) << std::endl;
+  std::cout << std::boolalpha << (rxn.reactants[0].first.index == 0) << std::endl;
+  std::cout << std::boolalpha << (rxn.reactants[0].second == 2) << std::endl;
+
+  std::cout << std::boolalpha << (rxn.products.size() == 1) << std::endl;
+  std::cout << std::boolalpha << (rxn.products[0].first.index == 1) << std::endl;
+  std::cout << std::boolalpha << (rxn.products[0].second == 1) << std::endl;
 }
 
 
 
-template <typename Real>
 Real
 growth_kernel(const unsigned int size)
 {
@@ -56,70 +58,22 @@ growth_kernel(const unsigned int size)
 
 int main ()
 {
-  /*
-   * The chemical reaction
-   *    2A + B ->[k=1.5*r(i)] B + 3L
-   * is used for this example.
-   */
-  Model::Particle B(2, 3, 1);
+  MEPBM::Particle B(2, 3, 1);
+  MEPBM::Particle C(4,7,3);
 
-  const std::vector<ReactionPair> reactants;
-  const std::vector<ReactionPair> products;
+  MEPBM::Species X(0);
+  MEPBM::Species Y(1);
+  const std::vector<ReactionPair> reactants = {{X,2}};
+  const std::vector<ReactionPair> products = {{Y,1}};
 
   const unsigned int max_particle_size = 6;
 
-  // Do a test for each of the intended types for matrices and floating point number combination
-  {
-    const Real1 reaction_rate = 1.5;
-    Model::ParticleAgglomeration<Real1, SparseMatrix1> rxn(B,
-                                                           B,
-                                                           reaction_rate,
-                                                           max_particle_size,
-                                                           &growth_kernel<Real1>,
-                                                           reactants,
-                                                           products);
-    check_vars(rxn);
-    std::cout << std::endl;
-  }
+  const Real reaction_rate = 1.5;
 
-  {
-    const Real1 reaction_rate = 1.5;
-    Model::ParticleAgglomeration<Real1, DenseMatrix1> rxn(B,
-                                                   B,
-                                                   reaction_rate,
-                                                   max_particle_size,
-                                                   &growth_kernel<Real1>,
-                                                   reactants,
-                                                   products);
+  // Test
+  MEPBM::ParticleAgglomeration<Real, DenseMatrix> agglom_dense(B,C,reaction_rate,max_particle_size,&growth_kernel,reactants, products);
+  check_vars(agglom_dense);
 
-    check_vars(rxn);
-    std::cout << std::endl;
-  }
-
-  {
-    const Real2 reaction_rate = 1.5;
-    Model::ParticleAgglomeration<Real2, SparseMatrix2> rxn(B,
-                                                    B,
-                                                    reaction_rate,
-                                                    max_particle_size,
-                                                    &growth_kernel<Real2>,
-                                                    reactants,
-                                                    products);
-
-    check_vars(rxn);
-    std::cout << std::endl;
-  }
-
-  {
-    const Real2 reaction_rate = 1.5;
-    Model::ParticleAgglomeration<Real2, DenseMatrix2> rxn(B,
-                                                   B,
-                                                   reaction_rate,
-                                                   max_particle_size,
-                                                   &growth_kernel<Real2>,
-                                                   reactants,
-                                                   products);
-
-    check_vars(rxn);
-  }
+  MEPBM::ParticleAgglomeration<Real, SparseMatrix> agglom_sparse(B,C,reaction_rate,max_particle_size,&growth_kernel,reactants, products);
+  check_vars(agglom_sparse);
 }

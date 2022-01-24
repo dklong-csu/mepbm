@@ -2,7 +2,7 @@
 #include <string>
 #include <boost/numeric/odeint.hpp>
 #include <typeinfo>
-#include "data.h"
+#include "src/ir_pom_data.h"
 
 
 
@@ -24,7 +24,7 @@ void print_array(std::vector<Real> array)
 int main ()
 {
   // create data
-  Data::PomData<Real> my_data;
+  MEPBM::PomData<Real> my_data;
 
   // check that each is initialized properly
   print_array(my_data.chcrr_concentration);

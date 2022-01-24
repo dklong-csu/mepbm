@@ -14,9 +14,7 @@
 #include <random>
 #include <sstream>
 
-#include "models.h"
-#include "ode_solver.h"
-#include "data.h"
+#include "sampling_custom_ode.h"
 
 // Set precision
 using Real = float;
@@ -231,7 +229,7 @@ std::vector< StateVector > compute_solutions(const Model::Model<Real, Matrix> & 
   ODE::StepperBDF<4, Real, Matrix> stepper(model);
   std::vector< StateVector > solutions;
   solutions.push_back( create_initial_condition() );
-  const Data::PomData<Real> tem_data;
+  const MEPBM::PomData<Real> tem_data;
   const std::vector<Real> times = {0., tem_data.tem_time1, tem_data.tem_time2, tem_data.tem_time3, tem_data.tem_time4};
 
   for (unsigned int i = 1; i < times.size()+1; ++i)
