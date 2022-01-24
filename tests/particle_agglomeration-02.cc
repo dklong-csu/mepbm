@@ -72,7 +72,17 @@ check_jacobian(InputType & rxn)
 
   // Check the Jacobian
   auto J_mat = *static_cast<MatrixType*>(J->content);
-  std::cout << std::setprecision(10) << J_mat << std::endl;
+  // Output manually because outputting a Sparse Matrix using << gives undesired information
+  const auto r = J_mat.rows();
+  const auto c = J_mat.cols();
+  for (unsigned int i=0; i<r; ++i)
+  {
+    for (unsigned int j=0; j<c; ++j)
+    {
+      std::cout << J_mat.coeffRef(i,j) << ' ';
+    }
+    std::cout << std::endl;
+  }
 }
 
 
