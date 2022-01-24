@@ -12,10 +12,7 @@
 #include <limits>
 #include <vector>
 #include <memory>
-#include "src/models.h"
-#include "src/histogram.h"
-#include "src/statistics.h"
-#include "data.h"
+#include "sampling_custom_ode.h"
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Sparse>
 
@@ -88,7 +85,7 @@ public:
 
   // The raw data is provided with diameter measurements, but we want to convert that to particle size upon
   // receiving the data. We also want to keep track of the time each piece of data was collected.
-  Data::PomData<Real> data_diameter;
+  MEPBM::PomData<Real> data_diameter;
   std::vector< std::vector<Real> > data_size;
   std::vector<Real> times;
 
@@ -177,7 +174,7 @@ public:
   std::vector<Real> return_times() const;
   Model::Model<Real, Matrix> return_model() const;
   StateVector return_initial_condition() const;
-  Histograms::Parameters<Real> return_histogram_parameters() const;
+  MEPBM::Parameters<Real> return_histogram_parameters() const;
   bool within_bounds() const;
 
   // Sample assignment
@@ -268,9 +265,9 @@ StateVector Sample::return_initial_condition() const
 
 
 // Provides access to the parameters to be used to bin data/simulation for the likelihood calculation
-Histograms::Parameters<Real> Sample::return_histogram_parameters() const
+MEPBM::Parameters<Real> Sample::return_histogram_parameters() const
 {
-  Histograms::Parameters<Real> hist_parameters(const_parameters.hist_bins, const_parameters.min_bin_size,
+  MEPBM::Parameters<Real> hist_parameters(const_parameters.hist_bins, const_parameters.min_bin_size,
                                          const_parameters.max_bin_size);
   return hist_parameters;
 }
