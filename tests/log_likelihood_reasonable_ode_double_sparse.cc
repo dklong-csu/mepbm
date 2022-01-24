@@ -4,7 +4,7 @@
 #include "src/models.h"
 #include "src/histogram.h"
 #include "src/statistics.h"
-#include "data.h"
+#include "src/ir_pom_data.h"
 
 
 
@@ -17,7 +17,7 @@ using Matrix = Eigen::SparseMatrix<Real, Eigen::RowMajor>;
 int main()
 {
   // create data
-  const Data::PomData<Real> all_data;
+  const MEPBM::PomData<Real> all_data;
   const std::vector<std::vector<Real>> data = {all_data.tem_diam_time1, all_data.tem_diam_time2,
                                                  all_data.tem_diam_time3, all_data.tem_diam_time4};
 
@@ -69,7 +69,7 @@ int main()
   ic(0) = 0.0012;
 
   // set up histogram parameters
-  const Histograms::Parameters<Real> hist_prm(27, 1.4, 4.1);
+  const MEPBM::Parameters<Real> hist_prm(27, 1.4, 4.1);
 
   // calculate log likelihood
   const Real likelihood = Statistics::log_likelihood<4, Real>(data, times, three_step_alt, ic, hist_prm);
