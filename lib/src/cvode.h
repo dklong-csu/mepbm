@@ -122,6 +122,16 @@ namespace MEPBM {
        assert(check == 0);
      }
 
+     /// Function to set user_data that is needed for the right-hand side or Jacobian functions
+     void
+     set_user_data(void * user_data)
+     {
+       int check = 0;
+       flag = CVodeSetUserData(cvode_memory, user_data);
+       check = check_flag(&flag, "CVodeSetUserData", RETURNZERO);
+       assert(check==0);
+     }
+
      /// Function to solve the ODE.
      N_Vector
      solve(Real solve_time)
