@@ -64,6 +64,7 @@ namespace MEPBM {
   {
     N_Vector v = create_empty_eigen_nvector<VectorType>();
     VectorType* vec = new VectorType(dim);
+    vec->setZero();
     v->content = (void*)vec;
 
     return v;
