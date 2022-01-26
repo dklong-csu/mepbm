@@ -43,6 +43,7 @@ namespace MEPBM {
   {
     SUNMatrix A = create_empty_eigen_sunmatrix<MatrixType>();
     MatrixType* mat = new MatrixType(rows, cols);
+    mat->setZero();
     A->content = (void*)mat;
 
     return A;

@@ -17,6 +17,7 @@
 
 using Real = realtype;
 using SparseMatrix = Eigen::SparseMatrix<Real>;
+using SparseMatrix2 = Eigen::SparseMatrix<Real, Eigen::RowMajor>;
 using DenseMatrix = Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>;
 using ReactionPair = std::pair<MEPBM::Species, unsigned int>;
 using Vector = Eigen::Matrix<Real, Eigen::Dynamic, 1>;
@@ -49,7 +50,7 @@ check_rhs(InputType & rxn)
 
 template<typename InputType, typename MatrixType>
 void
-check_jacobian(InputType & rxn)
+check_dense(InputType & rxn)
 {
   auto x = MEPBM::create_eigen_nvector<Vector>(6);
   auto x_vec = static_cast<Vector*>(x->content);
@@ -72,17 +73,36 @@ check_jacobian(InputType & rxn)
 
   // Check the Jacobian
   auto J_mat = *static_cast<MatrixType*>(J->content);
-  // Output manually because outputting a Sparse Matrix using << gives undesired information
-  const auto r = J_mat.rows();
-  const auto c = J_mat.cols();
-  for (unsigned int i=0; i<r; ++i)
-  {
-    for (unsigned int j=0; j<c; ++j)
-    {
-      std::cout << J_mat.coeffRef(i,j) << ' ';
-    }
-    std::cout << std::endl;
-  }
+  std::cout << J_mat << std::endl;
+}
+
+
+
+template<typename InputType, typename MatrixType>
+void
+check_sparse(InputType & rxn)
+{
+  auto x = MEPBM::create_eigen_nvector<Vector>(6);
+  auto x_vec = static_cast<Vector*>(x->content);
+  *x_vec << 1,2,3,4,5,6;
+
+  auto x_dot = MEPBM::create_eigen_nvector<Vector>(6);
+  x_dot->ops->nvconst(0., x_dot);
+
+  auto J = MEPBM::create_eigen_sunmatrix<MatrixType>(6,6);
+  J->ops->zero(J);
+
+  auto J_fcn = rxn.jacobian_function();
+  std::vector<Eigen::Triplet<Real>> triplet_list;
+  auto err = J_fcn(x, triplet_list, J);
+
+  // Should not have an error so check for err=0
+  std::cout << err << std::endl;
+
+  // Check the Jacobian
+  auto J_mat = *static_cast<MatrixType*>(J->content);
+  J_mat.setFromTriplets(triplet_list.begin(), triplet_list.end());
+  std::cout << J_mat << std::endl;
 }
 
 
@@ -112,11 +132,16 @@ int main ()
   // Test
   MEPBM::ParticleAgglomeration<Real, DenseMatrix> agglom_dense(B,C,reaction_rate,max_particle_size,&growth_kernel,reactants, products);
   check_rhs(agglom_dense);
-  check_jacobian<MEPBM::ParticleAgglomeration<Real, DenseMatrix>, DenseMatrix>(agglom_dense);
+  check_dense<MEPBM::ParticleAgglomeration<Real, DenseMatrix>, DenseMatrix>(agglom_dense);
 
 
   MEPBM::ParticleAgglomeration<Real, SparseMatrix> agglom_sparse(B,C,reaction_rate,max_particle_size,&growth_kernel,reactants, products);
   check_rhs(agglom_sparse);
-  check_jacobian<MEPBM::ParticleAgglomeration<Real, SparseMatrix >, SparseMatrix>(agglom_sparse);
+  check_sparse<MEPBM::ParticleAgglomeration<Real, SparseMatrix >, SparseMatrix>(agglom_sparse);
+
+
+  MEPBM::ParticleAgglomeration<Real, SparseMatrix2> agglom_sparse2(B,C,reaction_rate,max_particle_size,&growth_kernel,reactants, products);
+  check_rhs(agglom_sparse2);
+  check_sparse<MEPBM::ParticleAgglomeration<Real, SparseMatrix2 >, SparseMatrix2>(agglom_sparse2);
 
 }

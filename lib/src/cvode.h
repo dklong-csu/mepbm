@@ -79,6 +79,12 @@ namespace MEPBM {
        assert(check == 0);
 
 
+       // Activate the BDF stability limit detection algorithm
+       flag = CVodeSetStabLimDet(cvode_memory, SUNTRUE);
+       check = check_flag(&flag, "CVodeSetStabLimDet", RETURNZERO);
+       assert(check == 0);
+
+
        // Attach linear solver
        flag = CVodeSetLinearSolver(cvode_memory, linear_solver, template_matrix);
        check = check_flag(&flag, "CVodeSetLinearSolver", RETURNNONNEGATIVE);

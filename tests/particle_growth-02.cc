@@ -14,6 +14,7 @@
 
 using Real = realtype;
 using SparseMatrix = Eigen::SparseMatrix<Real>;
+using SparseMatrix2 = Eigen::SparseMatrix<Real, Eigen::RowMajor>;
 using DenseMatrix = Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>;
 using ReactionPair = std::pair<MEPBM::Species, unsigned int>;
 using Vector = Eigen::Matrix<Real, Eigen::Dynamic, 1>;
@@ -56,7 +57,7 @@ check_rhs(InputType & rxn)
 
 template<typename InputType, typename MatrixType>
 void
-check_jacobian(InputType & rxn)
+check_dense(InputType & rxn)
 {
   auto x = MEPBM::create_eigen_nvector<Vector>(6);
   auto x_vec = static_cast<Vector*>(x->content);
@@ -87,17 +88,44 @@ check_jacobian(InputType & rxn)
 
   // Check the Jacobian
   MatrixType J_mat = *static_cast<MatrixType*>(J->content);
-  // Output manually because outputting a Sparse Matrix using << gives undesired information
-  const auto r = J_mat.rows();
-  const auto c = J_mat.cols();
-  for (unsigned int i=0; i<r; ++i)
-  {
-    for (unsigned int j=0; j<c; ++j)
-    {
-      std::cout << J_mat.coeffRef(i,j) << ' ';
-    }
-    std::cout << std::endl;
-  }
+  std::cout << J_mat << std::endl;
+}
+
+
+
+template<typename InputType, typename MatrixType>
+void
+check_sparse(InputType & rxn)
+{
+  auto x = MEPBM::create_eigen_nvector<Vector>(6);
+  auto x_vec = static_cast<Vector*>(x->content);
+  *x_vec << 2,3,4,5,6,7;
+
+  auto x_dot = MEPBM::create_eigen_nvector<Vector>(6);
+  x_dot->ops->nvconst(0., x_dot);
+
+  auto J = MEPBM::create_eigen_sunmatrix<MatrixType>(6,6);
+  J->ops->zero(J);
+  /*
+   * Jacobian should be
+   *    |dA'/dA    dA'/dL    dA'/dB_3    dA'/dB_4    dA'/dB_5    dA'/dB_6  |   |-3120  0  -90  -120  -150 -180|
+   *    |dL'/dA    dL'/dL    dL'/dB_3    dL'/dB_4    dL'/dB_5    dL'/dB_6  |   |4680   0  135   180   225  270|
+   *    |dB_3'/dA  dB_3'/dL  dB_3'/dB_3  dB_3'/dB_4  dB_3'/dB_5  dB_3'/dB_6| = |-180   0  -45   0     0    0  |
+   *    |dB_4'/dA  dB_4'/dL  dB_4'/dB_3  dB_4'/dB_4  dB_4'/dB_5  dB_4'/dB_6|   |-120   0  45    -60   0    0  |
+   *    |dB_5'/dA  dB_5'/dL  dB_5'/dB_3  dB_5'/dB_4  dB_5'/dB_5  dB_5'/dB_6|   |-150   0  0      60   -75  0  |
+   *    |dB_6'/dA  dB_6'/dL  dB_6'/dB_3  dB_6'/dB_4  dB_6'/dB_5  dB_6'/dB_6|   |-180   0  0      0     75  -90|
+   */
+  auto J_fcn = rxn.jacobian_function();
+  std::vector<Eigen::Triplet<Real>> triplet_list;
+  auto err = J_fcn(x, triplet_list, J);
+
+  // Should not have an error so check for err=0
+  std::cout << err << std::endl;
+
+  // Check the Jacobian
+  MatrixType J_mat = *static_cast<MatrixType*>(J->content);
+  J_mat.setFromTriplets(triplet_list.begin(), triplet_list.end());
+  std::cout << J_mat << std::endl;
 }
 
 
@@ -133,7 +161,7 @@ int main ()
   const unsigned int max_particle_size = 6;
 
 
-  // Test for Dense and Sparse matrices
+  // Test for dense matrix
   MEPBM::ParticleGrowth<Real, DenseMatrix> growth_dense(B,
                                                         reaction_rate,
                                                         growth_amount,
@@ -143,9 +171,10 @@ int main ()
                                                         products);
 
   check_rhs(growth_dense);
-  check_jacobian<MEPBM::ParticleGrowth<Real, DenseMatrix>, DenseMatrix>(growth_dense);
+  check_dense<MEPBM::ParticleGrowth<Real, DenseMatrix>, DenseMatrix>(growth_dense);
 
 
+  // Test for sparse matrix -- column storage
   MEPBM::ParticleGrowth<Real, SparseMatrix> growth_sparse(B,
                                                         reaction_rate,
                                                         growth_amount,
@@ -155,5 +184,18 @@ int main ()
                                                         products);
 
   check_rhs(growth_sparse);
-  check_jacobian<MEPBM::ParticleGrowth<Real, SparseMatrix>, SparseMatrix>(growth_sparse);
+  check_sparse<MEPBM::ParticleGrowth<Real, SparseMatrix>, SparseMatrix>(growth_sparse);
+
+
+  // Test for sparse matrix -- row storage
+  MEPBM::ParticleGrowth<Real, SparseMatrix2> growth_sparse2(B,
+                                                          reaction_rate,
+                                                          growth_amount,
+                                                          max_particle_size,
+                                                          &growth_kernel<Real>,
+                                                          reactants,
+                                                          products);
+
+  check_rhs(growth_sparse2);
+  check_sparse<MEPBM::ParticleGrowth<Real, SparseMatrix2>, SparseMatrix2>(growth_sparse2);
 }

@@ -20,5 +20,6 @@
 #include "src/size_to_diameter.h"
 #include "src/species.h"
 #include "src/to_vector.h"
+#include "src/chemical_reaction_network.h"
 
 #endif // MEPBM_SAMPLING_SUNDIALS_H
