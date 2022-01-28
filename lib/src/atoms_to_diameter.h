@@ -10,7 +10,7 @@ namespace MEPBM {
   Real
   atoms_to_diameter(const unsigned int num_atoms)
   {
-    return 0.3000808 * std::pow(1. * num_atoms, 1./3.);
+    return 0.3000805 * std::pow(1. * num_atoms, 1./3.);
   }
 }
 
