@@ -65,6 +65,7 @@ namespace MEPBM{
     // create memory for the vector in the new N_Vector
     // the corresponding delete is called in N_VDestroy()
     auto cloned = new VectorType(w->ops->nvgetlength(w));
+    cloned->setZero();
     v->content = cloned;
     return v;
   }
