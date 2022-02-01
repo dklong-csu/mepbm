@@ -26,4 +26,8 @@ int main ()
 
   std::cout << mq1 << std::endl;
   std::cout << mq2 << std::endl;
+
+  num->ops->nvdestroy(num);
+  denom1->ops->nvdestroy(denom1);
+  denom2->ops->nvdestroy(denom2);
 }

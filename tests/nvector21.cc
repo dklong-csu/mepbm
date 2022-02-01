@@ -50,4 +50,13 @@ int main ()
 
   result = x->ops->nvscaleaddmulti(0, coeff, scale, X, Y);
   std::cout << result << std::endl;
+
+
+  scale->ops->nvdestroy(scale);
+  x->ops->nvdestroy(x);
+  y->ops->nvdestroy(y);
+  z->ops->nvdestroy(z);
+  a->ops->nvdestroy(a);
+  b->ops->nvdestroy(b);
+  c->ops->nvdestroy(c);
 }

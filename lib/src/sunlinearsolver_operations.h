@@ -3,6 +3,7 @@
 
 #include "sundials/sundials_linearsolver.h"
 #include <eigen3/Eigen/Dense>
+#include <iostream>
 
 
 

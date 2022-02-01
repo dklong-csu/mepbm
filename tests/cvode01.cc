@@ -74,4 +74,9 @@ int main ()
   // The answer should be close to exp(-10)
   const Vector s = *static_cast<Vector*>(solution->content);
   std::cout << std::setprecision(20) << std::fixed << s << std::endl;
+
+  ic->ops->nvdestroy(ic);
+  template_matrix->ops->destroy(template_matrix);
+  linear_solver->ops->free(linear_solver);
+  solution->ops->nvdestroy(solution);
 }

@@ -10,4 +10,6 @@ int main ()
 
   sunindextype n = v->ops->nvgetlength(v);
   std::cout << n << std::endl;
+
+  v->ops->nvdestroy(v);
 }

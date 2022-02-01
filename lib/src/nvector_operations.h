@@ -6,6 +6,7 @@
 #include "sundials/sundials_types.h"
 #include <cassert>
 #include <cmath>
+#include <iostream>
 
 
 
@@ -91,6 +92,7 @@ namespace MEPBM{
   void
   N_VDestroy( N_Vector v)
   {
+
     if (v->content != nullptr)
     {
       auto *content = static_cast<VectorType *>(v->content);

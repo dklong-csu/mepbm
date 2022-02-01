@@ -56,4 +56,6 @@ int main ()
           std::cout << std::endl;
       }
   }
+
+  A->ops->destroy(A);
 }

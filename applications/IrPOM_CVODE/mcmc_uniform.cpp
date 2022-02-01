@@ -22,6 +22,7 @@
 #include <fstream>
 #include <vector>
 #include <limits>
+#include <iostream>
 
 
 using Real = realtype;
@@ -240,7 +241,15 @@ log_probability(const Sample & sample)
   {
     auto sol = ode_solver.solve(times[i]);
     log_prob += log_likelihood(sol, tem_data[i]);
+    // Delete sol from the heap
+    sol->ops->nvdestroy(sol);
   }
+
+  // Perform cleanup of SUNDIALS objects
+  ic->ops->nvdestroy(ic);
+  template_matrix->ops->destroy(template_matrix);
+  linear_solver->ops->free(linear_solver);
+
   return log_prob;
 }
 
@@ -292,7 +301,7 @@ int main(int argc, char **argv)
            std::hash<std::string>()(std::to_string(atoi(argv[1]) + i)) :
            std::hash<std::string>()(std::to_string(i)));
 
-    const unsigned int n_samples = 10;
+    const unsigned int n_samples = 2;
 
     std::mt19937 rng;
     rng.seed(random_seed);

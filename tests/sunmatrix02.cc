@@ -76,5 +76,9 @@ int main ()
           std::cout << std::endl;
       }
   }
+
+  A->ops->destroy(A);
+  B->ops->destroy(B);
+  C->ops->destroy(C);
   
 }

@@ -14,4 +14,5 @@ int main ()
 
   std::cout << *v_vec << std::endl;
 
+  v->ops->nvdestroy(v);
 }

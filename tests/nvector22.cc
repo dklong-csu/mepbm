@@ -39,4 +39,9 @@ int main ()
 
   result = y->ops->nvscalevectorarray(0, c, X, C);
   std::cout << result << std::endl;
+
+  y->ops->nvdestroy(y);
+  z->ops->nvdestroy(z);
+  a->ops->nvdestroy(a);
+  b->ops->nvdestroy(b);
 }

@@ -184,7 +184,14 @@ solve_ode_new(const Real t)
   MEPBM::CVODE<Real> ode_solver(ic, template_matrix, linear_solver,&cvode_rhs_func,&cvode_jac_func,0,1);
   ode_solver.set_tolerance(1e-7,1e-13);
   auto sol = ode_solver.solve(t);
-  return *static_cast<Vector*>(sol->content);
+  auto s = *static_cast<Vector*>(sol->content);
+
+  ic->ops->nvdestroy(ic);
+  template_matrix->ops->destroy(template_matrix);
+  linear_solver->ops->free(linear_solver);
+  sol->ops->nvdestroy(sol);
+
+  return s;
 }
 
 
@@ -205,6 +212,7 @@ prune_vector(const Vector & vec, const Real cutoff)
 
 
 // Calculate percent difference between each entry in vector
+// FIXME: make this relative to size of vector
 Vector
 percent_diff(const Vector & x, const Vector & y)
 {

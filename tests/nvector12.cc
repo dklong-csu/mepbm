@@ -17,4 +17,7 @@ int main ()
 
   auto y_vec = static_cast<Vector*>(y->content);
   std::cout << *y_vec << std::endl;
+
+  x->ops->nvdestroy(x);
+  y->ops->nvdestroy(y);
 }

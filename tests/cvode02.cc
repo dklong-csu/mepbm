@@ -77,5 +77,11 @@ int main ()
     const Vector s = *static_cast<Vector*>(solution->content);
     std::cout << std::setprecision(20) << std::fixed << s << std::endl;
     t += 0.1;
+    solution->ops->nvdestroy(solution);
   }
+
+  ic->ops->nvdestroy(ic);
+  template_matrix->ops->destroy(template_matrix);
+  linear_solver->ops->free(linear_solver);
+
 }

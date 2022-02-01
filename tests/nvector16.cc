@@ -13,4 +13,6 @@ int main ()
 
   realtype m = x->ops->nvmaxnorm(x);
   std::cout << m << std::endl;
+
+  x->ops->nvdestroy(x);
 }

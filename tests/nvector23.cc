@@ -18,4 +18,7 @@ int main ()
   // Result should be 2
   auto result = x->ops->nvwrmsnorm(x,w);
   std::cout << result << std::endl;
+
+  x->ops->nvdestroy(x);
+  w->ops->nvdestroy(w);
 }
