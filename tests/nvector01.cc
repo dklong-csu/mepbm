@@ -15,4 +15,6 @@ int main ()
 
   auto vec = *(static_cast<Vector *>(x->content));
   std::cout << vec << std::endl;
+  v->ops->nvdestroy(v);
+  x->ops->nvdestroy(x);
 }

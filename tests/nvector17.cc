@@ -13,4 +13,6 @@ int main ()
 
   auto m = v->ops->nvmin(v);
   std::cout << m << std::endl;
+
+  v->ops->nvdestroy(v);
 }

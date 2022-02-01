@@ -140,5 +140,11 @@ int main ()
 
     // Compare to initial number of Ir atoms
     std::cout << (0.0012 - mass) << std::endl;
+
+    solution->ops->nvdestroy(solution);
   }
+
+  ic->ops->nvdestroy(ic);
+  template_matrix->ops->destroy(template_matrix);
+  linear_solver->ops->free(linear_solver);
 }

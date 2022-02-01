@@ -35,4 +35,9 @@ int main ()
 
   result = x->ops->nvlinearcombination(0, c, X, r);
   std::cout << result << std::endl;
+
+  x->ops->nvdestroy(x);
+  y->ops->nvdestroy(y);
+  z->ops->nvdestroy(z);
+  r->ops->nvdestroy(r);
 }

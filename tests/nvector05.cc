@@ -16,4 +16,7 @@ int main ()
 
   x->ops->nvcompare(c,x,y);
   std::cout << *static_cast<Vector*>(y->content) << std::endl;
+
+  x->ops->nvdestroy(x);
+  y->ops->nvdestroy(y);
 }

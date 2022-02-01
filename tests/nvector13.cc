@@ -23,4 +23,6 @@ int main ()
   result = x->ops->nvinvtest(x,y);
   std::cout << result << std::endl;
 
+  x->ops->nvdestroy(x);
+  y->ops->nvdestroy(y);
 }

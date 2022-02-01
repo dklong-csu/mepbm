@@ -55,4 +55,7 @@ int main ()
   std::cout << *m_vec << std::endl;
 
 
+  c->ops->nvdestroy(c);
+  x->ops->nvdestroy(x);
+  m->ops->nvdestroy(m);
 }

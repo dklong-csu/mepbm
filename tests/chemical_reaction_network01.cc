@@ -55,6 +55,13 @@ check(Input & network)
 
   auto J_mat = static_cast<Matrix*>(J->content);
   std::cout << *J_mat << std::endl;
+
+  x->ops->nvdestroy(x);
+  rhs->ops->nvdestroy(rhs);
+  J->ops->destroy(J);
+  tmp1->ops->nvdestroy(tmp1);
+  tmp2->ops->nvdestroy(tmp2);
+  tmp3->ops->nvdestroy(tmp3);
 }
 
 

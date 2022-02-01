@@ -21,4 +21,8 @@ int main ()
 
   auto z_vec = static_cast<Vector*>(z->content);
   std::cout << *z_vec << std::endl;
+
+  x->ops->nvdestroy(x);
+  y->ops->nvdestroy(y);
+  z->ops->nvdestroy(z);
 }

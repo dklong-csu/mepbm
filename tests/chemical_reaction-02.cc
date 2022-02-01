@@ -65,6 +65,13 @@ check_dense(InputType & rxn)
   auto J_mat = *static_cast<MatrixType*>(J->content);
 
   std::cout << J_mat << std::endl;
+
+  x->ops->nvdestroy(x);
+  rhs->ops->nvdestroy(rhs);
+  J->ops->destroy(J);
+  tmp1->ops->nvdestroy(tmp1);
+  tmp2->ops->nvdestroy(tmp2);
+  tmp3->ops->nvdestroy(tmp3);
 }
 
 
@@ -111,6 +118,11 @@ check_sparse(InputType & rxn)
   J_mat.setFromTriplets(triplet_list.begin(), triplet_list.end());
 
   std::cout << J_mat << std::endl;
+
+
+  x->ops->nvdestroy(x);
+  rhs->ops->nvdestroy(rhs);
+  J->ops->destroy(J);
 }
 
 

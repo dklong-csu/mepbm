@@ -2,6 +2,7 @@
 #define MEPBM_SUNMATRIX_OPERATIONS_H
 
 #include "sundials/sundials_matrix.h"
+#include <iostream>
 
 namespace MEPBM {
   /// Returns the type identifier for the matrix.

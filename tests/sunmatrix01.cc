@@ -24,4 +24,7 @@ int main ()
       else
         std::cout << std::endl;
     }
+
+  A->ops->destroy(A);
+  B->ops->destroy(B);
 }

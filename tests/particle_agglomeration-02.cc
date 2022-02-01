@@ -44,6 +44,9 @@ check_rhs(InputType & rxn)
   // Output resulting rhs vector
   auto rhs_vec = *static_cast<Vector*>(x_dot->content);
   std::cout << std::setprecision(10) << rhs_vec << std::endl;
+
+  x->ops->nvdestroy(x);
+  x_dot->ops->nvdestroy(x_dot);
 }
 
 
@@ -74,6 +77,13 @@ check_dense(InputType & rxn)
   // Check the Jacobian
   auto J_mat = *static_cast<MatrixType*>(J->content);
   std::cout << J_mat << std::endl;
+
+  x->ops->nvdestroy(x);
+  x_dot->ops->nvdestroy(x_dot);
+  J->ops->destroy(J);
+  tmp1->ops->nvdestroy(tmp1);
+  tmp2->ops->nvdestroy(tmp2);
+  tmp3->ops->nvdestroy(tmp3);
 }
 
 
@@ -103,6 +113,10 @@ check_sparse(InputType & rxn)
   auto J_mat = *static_cast<MatrixType*>(J->content);
   J_mat.setFromTriplets(triplet_list.begin(), triplet_list.end());
   std::cout << J_mat << std::endl;
+
+  x->ops->nvdestroy(x);
+  x_dot->ops->nvdestroy(x_dot);
+  J->ops->destroy(J);
 }
 
 

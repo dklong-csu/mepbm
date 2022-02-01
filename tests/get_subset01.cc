@@ -15,4 +15,6 @@ int main ()
 
   // subset = [1,2,3] if done correctly
   std::cout << subset << std::endl;
+
+  vector->ops->nvdestroy(vector);
 }

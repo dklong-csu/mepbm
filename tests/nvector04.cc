@@ -39,4 +39,7 @@ int main ()
   << (x->ops->nvscalevectorarray == v->ops->nvscalevectorarray) << std::endl
   << (x->content == nullptr)
   << std::endl;
+
+  v->ops->nvdestroy(v);
+  x->ops->nvdestroy(x);
 }

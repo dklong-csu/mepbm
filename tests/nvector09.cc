@@ -33,4 +33,8 @@ int main ()
 
   result = x->ops->nvdotprodmulti(0, x, X, d);
   std::cout << result << std::endl;
+
+  x->ops->nvdestroy(x);
+  y->ops->nvdestroy(y);
+  z->ops->nvdestroy(z);
 }

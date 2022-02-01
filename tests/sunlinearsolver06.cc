@@ -53,4 +53,9 @@ int main ()
   // output confirmed by solving the same system in Matlab
   auto x_vec = *static_cast<Vector*>(x->content);
   std::cout << std::setprecision(20) << x_vec << std::endl;
+
+  A->ops->destroy(A);
+  b->ops->nvdestroy(b);
+  solver->ops->free(solver);
+  x->ops->nvdestroy(x);
 }
