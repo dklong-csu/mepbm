@@ -236,6 +236,7 @@ log_probability(const Sample & sample)
   auto sample_ptr = &sample;
   auto user_data = (void *)sample_ptr;
   ode_solver.set_user_data(user_data);
+  ode_solver.set_tolerance(1e-7,1e-13); // Based on visual inspection this tends to give non-oscillitory solutions
   Real log_prob = 0;
   for (unsigned int i=0; i<times.size();++i)
   {
