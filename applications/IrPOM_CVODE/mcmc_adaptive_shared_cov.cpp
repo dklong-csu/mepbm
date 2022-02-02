@@ -263,6 +263,8 @@ int main(int argc, char **argv)
   n_threads = omp_get_max_threads();
 #endif
 
+  SampleFlow::Consumers::CovarianceMatrix<Sample> covariance_matrix;
+
 #pragma omp parallel for
   for (unsigned int i=0;i<n_threads;++i)
   {
@@ -272,11 +274,11 @@ int main(int argc, char **argv)
 
     Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> starting_cov(prm_dim, prm_dim);
     starting_cov <<
-      std::pow(1.5e2,2), 0, 0, 0, 0,
-      0, std::pow(1.5e3,2), 0, 0, 0,
-      0, 0, std::pow(1.5e3,2), 0, 0,
-      0, 0, 0, std::pow(2.5e2,2), 0,
-      0, 0, 0, 0, std::pow(5,2);
+                 std::pow(1.5e2,2), 0, 0, 0, 0,
+        0, std::pow(1.5e3,2), 0, 0, 0,
+        0, 0, std::pow(1.5e3,2), 0, 0,
+        0, 0, 0, std::pow(2.5e2,2), 0,
+        0, 0, 0, 0, std::pow(5,2);
 
 
     SampleFlow::Producers::MetropolisHastings<Sample> mh_sampler;
@@ -305,7 +307,6 @@ int main(int argc, char **argv)
         flush_sample([&samples](const Sample &, const SampleFlow::AuxiliaryData &){samples << std::flush;});
     flush_sample.connect_to_producer(every_100th);
 
-    SampleFlow::Consumers::CovarianceMatrix<Sample> covariance_matrix;
     covariance_matrix.connect_to_producer(mh_sampler);
 
     SampleFlow::Consumers::CountSamples<Sample> count_samples;
