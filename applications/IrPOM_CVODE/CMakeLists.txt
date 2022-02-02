@@ -13,3 +13,13 @@ ADD_EXECUTABLE(mean_value_solution
         mean_value_solution.cpp)
 TARGET_LINK_LIBRARIES (mean_value_solution
         libmepbm)
+
+ADD_EXECUTABLE(mcmc_adaptive
+        mcmc_adaptive.cpp)
+TARGET_LINK_LIBRARIES (mcmc_adaptive
+        libmepbm)
+
+ADD_EXECUTABLE(mcmc_adaptive_shared_cov
+        mcmc_adaptive_shared_cov.cpp)
+TARGET_LINK_LIBRARIES (mcmc_adaptive_shared_cov
+        libmepbm)
