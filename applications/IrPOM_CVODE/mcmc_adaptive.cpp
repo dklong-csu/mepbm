@@ -281,7 +281,7 @@ int main(int argc, char **argv)
 
     SampleFlow::Producers::MetropolisHastings<Sample> mh_sampler;
 
-    std::ofstream samples("samples"
+    std::ofstream samples("./amh_samples/samples"
                           +
                           (argc > 1 ?
                            std::string(".") + std::to_string(atoi(argv[1])+i) :
@@ -324,7 +324,7 @@ int main(int argc, char **argv)
       if (count_samples.get() < 200)
         return perturb(s,starting_cov,rng);
       else
-        return perturb(s, (2.38*2.38/s.size())*covariance_matrix.get(), rng);
+        return perturb(s,(2.38*2.38/s.size())*covariance_matrix.get(), rng);
     };
     mh_sampler.sample(starting_guess,
                       &log_probability,
