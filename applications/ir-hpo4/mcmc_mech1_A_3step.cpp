@@ -233,7 +233,6 @@ Real
 log_probability(const Sample & sample)
 {
   if (!within_bounds(sample)) {
-    std::cout << "Out of domain!" << std::endl;
     return -std::numeric_limits<Real>::infinity();
   }
 
@@ -285,9 +284,6 @@ log_probability(const Sample & sample)
         // Therefore if the simulated [A] is less than the data then we have likelihood=0
         if (data.precursor_concentrations[precursor_index] > conc_A) {
           // return lowest() instead of -infinity() so that valid parameters with precursor too low are accepted over invalid parameters.
-          std::cout << "Measurement = " << data.precursor_concentrations[precursor_index]
-                    << "; Simulated concentration = " << conc_A
-                    << std::endl;
           return std::numeric_limits<Real>::lowest();
         }
         // Otherwise this looks good so no contribution to the likelihood and we can look at the next precursor data point
