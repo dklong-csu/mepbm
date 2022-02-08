@@ -8,7 +8,7 @@ ADD_EXECUTABLE(mcmc_mech1_A_3step
 TARGET_LINK_LIBRARIES (mcmc_mech1_A_3step
                        libmepbm)
 
-ADD_EXECUTABLE(process_samples
-        process_samples.cpp)
-TARGET_LINK_LIBRARIES (process_samples
+ADD_EXECUTABLE(process_samples_mech1_A_3step
+        process_samples_mech1_A_3step.cpp)
+TARGET_LINK_LIBRARIES (process_samples_mech1_A_3step
         libmepbm)
