@@ -9,6 +9,7 @@
 #include <sampleflow/consumers/action.h>
 #include <sampleflow/consumers/covariance_matrix.h>
 #include <sampleflow/consumers/count_samples.h>
+#include <sampleflow/filters/discard_first_n.h>
 
 #include <omp.h>
 
@@ -364,8 +365,17 @@ int main(int argc, char **argv)
       0, 0, 0, 0, 0, std::pow(starting_guess(5)/10, 2);
 
 
+    // Use the Metropolis-Hastings sampling algorithm
     SampleFlow::Producers::MetropolisHastings<Sample> mh_sampler;
 
+    // We want a burn-in period
+    const unsigned int samples_desired = 50000;
+    const unsigned int burn_in_period = 0.2 * samples_desired;
+    SampleFlow::Filters::DiscardFirstN<Sample> burn_in(burn_in_period);
+    burn_in.connect_to_producer(mh_sampler);
+
+
+    // Output samples to a file
     std::ofstream samples("samples"
                           +
                           (argc > 1 ?
@@ -375,42 +385,125 @@ int main(int argc, char **argv)
                           ".txt"
     );
 
-    //SampleFlow::Consumers::StreamOutput<Sample> stream_output(samples);
+
+    // Output the auxilary data as well as the parameter values
     MEPBM::MyStreamOutput<Sample> stream_output(samples);
-    stream_output.connect_to_producer(mh_sampler);
+    stream_output.connect_to_producer(burn_in);
 
+    // Keep track of the mean
     SampleFlow::Consumers::MeanValue<Sample> mean_value;
-    mean_value.connect_to_producer(mh_sampler);
+    mean_value.connect_to_producer(burn_in);
 
+    // Keep track of the acceptance_ratio
     SampleFlow::Consumers::AcceptanceRatio<Sample> acceptance_ratio;
-    acceptance_ratio.connect_to_producer(mh_sampler);
+    acceptance_ratio.connect_to_producer(burn_in);
 
+    // Only write to disk every 100 samples
     SampleFlow::Filters::TakeEveryNth<Sample> every_100th(100);
-    every_100th.connect_to_producer(mh_sampler);
+    every_100th.connect_to_producer(burn_in);
     SampleFlow::Consumers::Action<Sample>
         flush_sample([&samples](const Sample &, const SampleFlow::AuxiliaryData &){samples << std::flush;});
     flush_sample.connect_to_producer(every_100th);
 
+    // Keep track of the covariance matrix
     SampleFlow::Consumers::CovarianceMatrix<Sample> covariance_matrix;
-    covariance_matrix.connect_to_producer(mh_sampler);
+    covariance_matrix.connect_to_producer(burn_in);
 
+    // Count the number of samples
     SampleFlow::Consumers::CountSamples<Sample> count_samples;
-    count_samples.connect_to_producer(mh_sampler);
+    count_samples.connect_to_producer(burn_in);
+
+    /*
+     * The following is found in Algorithm 1 of https://doi.org/10.1111/anzs.12344
+     * Robbins-Monro algorithm scales the covariance matrix to target a particular acceptance ratio
+     * Each proposal is of the form: X_{n+1} ~ N(X_n, \lambda_n^2 * c * C_n)
+     * where X_n are samples,
+     * c = 2.38^2/dim,
+     * C_n is the sample covariance matrix,
+     * and \lambda_n^2 is the factor the Robbins-Monro algorithm updates.
+     *
+     * For \theta_n = log(\lambda_n), the update is defined as
+     *    \theta_{n+1} = { \theta_n + \delta/n * (1-a), if nth trial is accepted
+     *                   { \theta_n - \delta/n * a    , if nth trial is rejected
+     * where \delta is a step-size constant stated below,
+     * n is the sample number,
+     * and a is the target acceptance ratio.
+     * Thus, E(\theta_{n+1}-\theta_n) = 0 iff success probability is a. So an acceptance ratio of a is targeted.
+     * From https://doi.org/10.1080/03610926.2014.936562
+     *    \delta = (1 - 1/dim) * (A^{-1} * 2^{-1/2} * \sqrt(\pi) * exp(A^2/2)) + (dim * a * (1-a) )^{-1}
+     *    where A = -f^{-1}(a/2) and f is the cdf of a standard normal distribution.
+     */
+    const Real c = std::pow(2.38,2.)/starting_guess.size();
+    const Real target_ar = 0.234;
+    // From Matlab command icdf('Normal',0.234/2,0,1)
+    // If target_ar is changed, then this value also needs to be changed.
+    const Real A = -1.19011804189642322882036751252599060535430908203125;
+    const Real pi = 2 * std::acos(0.0); // arccos(0) = pi/2
+    const Real delta = (1 - 1/starting_guess.size())
+                      *(1/(A * std::sqrt(2.0)) * std::sqrt(pi) * std::exp(A*A/2.))
+                      + 1/(starting_guess.size() * target_ar * (1-target_ar));
+    Real lambda_start = 1;
+    Real lambda = lambda_start;
+    const Real lambda_min = 1e-2;
+    // Sample to start at to avoid rapid changes in scale at the beginning
+    int n_start = 5/( (1-target_ar)*target_ar );
+    // If lambda exceeds lambda_start by this factor, then restart the Robbins-Monro algorithm
+    const Real restart_factor = 3;
+
+    // The final scale to multiply the covariance matrix by.
+    Real scale = c * lambda * lambda;
+
+    // theta = ln(lambda)
+    Real theta = std::log(lambda);
+
+    // Maximum times the Robbins-Monro algorithm is allowed to reset
+    // Theoretical convergence results are with finite resets
+    const unsigned int max_n_resets = 10;
+    unsigned int times_reset = 0;
+
+    // Apply the Robbins-Monro algorithm to the sampler
+    SampleFlow::Filters::TakeEveryNth<Sample> robbins_monro(1);
+    robbins_monro.connect_to_producer(burn_in);
+    SampleFlow::Consumers::Action<Sample>
+      rm_update(
+          [&](const Sample &, const SampleFlow::AuxiliaryData & aux_data)
+          {
+            // Update the scale
+            const bool repeated_sample = boost::any_cast<bool>(aux_data.at("sample is repeated"));
+            if (repeated_sample)
+              theta += (delta / ( n_start + count_samples.get() ) ) * (1 - target_ar);
+            else
+              theta -= (delta / ( n_start + count_samples.get() ) ) * target_ar;
+            lambda = std::max(lambda_min, std::exp(theta));
+            scale = lambda * lambda * c;
+            // Check if the algorithm should be restarted
+            if (times_reset < max_n_resets) {
+              if (std::abs(std::log(lambda) - std::log(lambda_start)) > std::log(restart_factor)) {
+                lambda_start = lambda;
+                n_start = 5 / (target_ar * (1 - target_ar)) - count_samples.get();
+                ++times_reset;
+              }
+            }
+          }
+          );
+    rm_update.connect_to_producer(robbins_monro);
+
+
 
     const std::uint_fast32_t random_seed
         = (argc > 1 ?
            std::hash<std::string>()(std::to_string(atoi(argv[1]) + i)) :
            std::hash<std::string>()(std::to_string(i)));
 
-    const unsigned int n_samples = 20000;
+    const unsigned int n_samples = samples_desired + burn_in_period;
 
     std::mt19937 rng;
     rng.seed(random_seed);
     auto sampler_perturb = [&](const Sample &s){
-      if (count_samples.get() < 200)
-        return perturb(s,starting_cov,rng);
+      if (count_samples.get() < 1)
+        return perturb(s, starting_cov, rng);
       else
-        return perturb(s, (2.38*2.38/s.size())*covariance_matrix.get(), rng);
+        return perturb(s, scale * (covariance_matrix.get() + 0.0001 * starting_cov), rng);
     };
     mh_sampler.sample(starting_guess,
                       &log_probability,
