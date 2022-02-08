@@ -14,6 +14,7 @@
 #include <eigen3/Eigen/Sparse>
 
 #include <functional>
+#include <stdio.h>
 
 
 
@@ -63,6 +64,12 @@ namespace MEPBM {
        check = check_flag(&flag, "CVodeInit",RETURNNONNEGATIVE);
        assert(check == 0);
 
+       // Set error file
+       err_file = fopen("SUNDIALS_error_log.txt","a");
+       flag = CVodeSetErrFile(cvode_memory, err_file);
+       check = check_flag(&flag, "CVodeSetErrFile", MEMORY);
+       assert(check == 0);
+
 
        // Specify tolerances -- these can be modified with the `set_tolerance()` function prior to calling `solve()`
        // Based on my experience with the equations that arise in MEPBM applications, these default tolerances are pretty good.
@@ -110,6 +117,7 @@ namespace MEPBM {
        // All the SUNDIALS data structures are created on the Heap, so we need to dispose of them here.
        template_vector->ops->nvdestroy(template_vector);
        CVodeFree(&cvode_memory);
+       fclose(err_file);
      }
 
      /// Function to set the absolute and relative tolerances. By default abs_tol=1e-12 and rel_tol=1e-6.
@@ -161,6 +169,9 @@ namespace MEPBM {
 
      /// The final time, i.e. the last time you want a solution vector.
      const Real final_time;
+
+     /// Error file
+     FILE* err_file;
    };
 
 }
