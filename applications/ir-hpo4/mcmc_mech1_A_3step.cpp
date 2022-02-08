@@ -503,7 +503,7 @@ int main(int argc, char **argv)
       if (count_samples.get() < 1)
         return perturb(s, starting_cov, rng);
       else
-        return perturb(s, scale * covariance_matrix.get(), rng);
+        return perturb(s, scale * (covariance_matrix.get() + 0.0001 * starting_cov), rng);
     };
     mh_sampler.sample(starting_guess,
                       &log_probability,
