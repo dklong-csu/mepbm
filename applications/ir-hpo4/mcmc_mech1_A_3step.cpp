@@ -273,7 +273,7 @@ log_probability(const Sample & sample)
   Real log_prob = 0;
   // Loop through all TEM and Precursor Curve times
   Real solve_time = std::min(tem_times[tem_index], data.precursor_times[precursor_index]);
-  while (tem_index < tem_times.size() && precursor_index < data.precursor_times.size())
+  while (tem_index < tem_times.size() || precursor_index < data.precursor_times.size())
   {
     auto sol = ode_solver.solve(solve_time);
     // See if this is a precursor time
