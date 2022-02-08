@@ -12,3 +12,8 @@ ADD_EXECUTABLE(process_samples_mech1_A_3step
         process_samples_mech1_A_3step.cpp)
 TARGET_LINK_LIBRARIES (process_samples_mech1_A_3step
         libmepbm)
+
+ADD_EXECUTABLE(ode_solution_mech1_A_3step
+        ode_solution_mech1_A_3step.cpp)
+TARGET_LINK_LIBRARIES (ode_solution_mech1_A_3step
+        libmepbm)
