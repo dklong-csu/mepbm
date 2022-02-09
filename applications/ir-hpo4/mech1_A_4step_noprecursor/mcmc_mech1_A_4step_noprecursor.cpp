@@ -50,11 +50,11 @@ perturb(const Sample & sample,
 bool
 within_bounds(const Sample & sample)
 {
-  // Parameters are: kf, kb, k1, k2, k3, M
-  Vector lower_bounds(6);
-  Vector upper_bounds(6);
-  lower_bounds << 0, 0, 0, 1, 1, 5;
-  upper_bounds << 1e3, 1e10, 1e10, 1e10, 1e10, 200;
+  // Parameters are: kf, kb, k1, k2, k3, k4, M
+  Vector lower_bounds(7);
+  Vector upper_bounds(7);
+  lower_bounds << 0, 0, 0, 0, 0, 0,5;
+  upper_bounds << 1e3, 1e10, 1e10, 1e10, 1e10, 1e10, 200;
 
   assert(sample.size() == lower_bounds.size());
   assert(sample.size() == upper_bounds.size());
@@ -84,13 +84,14 @@ MEPBM::ChemicalReactionNetwork<Real, Matrix>
 create_mechanism(const Sample & sample)
 {
   // Give names to elements of the sample
-  assert(sample.size() == 6);
+  assert(sample.size() == 7);
   const Real kf = sample(0);
   const Real kb = sample(1);
   const Real k1 = sample(2);
   const Real k2 = sample(3);
   const Real k3 = sample(4);
-  const unsigned int M = sample(5);
+  const Real k4 = sample(5);
+  const unsigned int M = sample(6);
 
   const unsigned int max_size = 450;
   const Real S = 11.7;
@@ -139,9 +140,17 @@ create_mechanism(const Sample & sample)
                                                    { {A,1} },
                                                    { {L,2} });
 
+  MEPBM::ParticleAgglomeration<Real, Matrix> agglom(B,
+                                                    B,
+                                                    k4,
+                                                    max_size,
+                                                    &growth_kernel,
+                                                    {},
+                                                    {});
+
   MEPBM::ChemicalReactionNetwork<Real, Matrix> network({nucleationAf, nucleationAb, nucleationB},
                                                        {small_growth, large_growth},
-                                                       {});
+                                                       {agglom});
   return network;
 }
 
@@ -241,8 +250,6 @@ log_probability(const Sample & sample)
   const MEPBM::HPO4Data<Real> data;
   const std::vector<Real> tem_times = {data.time1, data.time2, data.time3, data.time4};
   const std::vector<std::vector<Real>> tem_data = {data.tem_data_t1, data.tem_data_t2, data.tem_data_t3, data.tem_data_t4};
-  unsigned int tem_index = 0;
-  unsigned int precursor_index = 1; // index=0 is time 0 which we don't need to check
 
   // Create the ODE solver
   const unsigned int first_size = 2;
@@ -258,7 +265,7 @@ log_probability(const Sample & sample)
   auto template_matrix = MEPBM::create_eigen_sunmatrix<Matrix>(ic->ops->nvgetlength(ic),ic->ops->nvgetlength(ic));
   auto linear_solver = MEPBM::create_sparse_iterative_solver<Matrix, Real, Solver>();
   const Real t_start = 0;
-  const Real t_end = std::max(tem_times.back(), data.precursor_times.back());
+  const Real t_end = tem_times.back();
   MEPBM::CVODE<Real> ode_solver(ic,
                                 template_matrix,
                                 linear_solver,
@@ -271,63 +278,13 @@ log_probability(const Sample & sample)
   ode_solver.set_user_data(user_data);
   ode_solver.set_tolerance(1e-7,1e-13); // Based on visual inspection this tends to give non-oscillitory solutions
   Real log_prob = 0;
-  // Loop through all TEM and Precursor Curve times
-  Real solve_time = std::min(tem_times[tem_index], data.precursor_times[precursor_index]);
-  while (tem_index < tem_times.size() || precursor_index < data.precursor_times.size())
+  // Loop through all TEM times
+  for (unsigned int t=0; t<tem_times.size(); ++t)
   {
-    auto sol = ode_solver.solve(solve_time);
-    // See if this is a precursor time
-    if (precursor_index < data.precursor_times.size()) {
-      if (solve_time == data.precursor_times[precursor_index]) {
-        // Get the precursor concentration
-        const auto conc_A = (*static_cast<Vector *>(sol->content))(0);
-        // The precursor data has a known flaw in the measurement process that causes concentration to be underreported
-        // Therefore if the simulated [A] is less than the data then we have likelihood=0
-        if (data.precursor_concentrations[precursor_index] > conc_A) {
-          // return lowest() instead of -infinity() so that valid parameters with precursor too low are accepted over invalid parameters.
-          return std::numeric_limits<Real>::lowest();
-        }
-        // Otherwise this looks good so no contribution to the likelihood and we can look at the next precursor data point
-        ++precursor_index;
-      }
-    }
-    // See if this is a TEM time
-    if (tem_index < tem_times.size()) {
-      if (solve_time == tem_times[tem_index]) {
-        // Perform the TEM likelihood calculation
-        log_prob += log_likelihood(sol, tem_data[tem_index]);
-        // Move on to the next TEM dataset
-        ++tem_index;
-      }
-    }
-    // Garbage collect the solution vector
+    auto sol = ode_solver.solve(tem_times[t]);
+    log_prob += log_likelihood(sol, tem_data[t]);
     sol->ops->nvdestroy(sol);
-
-    // Update the solve time
-    if (tem_index >= tem_times.size())
-    {
-      if (precursor_index >= data.precursor_times.size())
-      {
-        // No more calculations will occur and the while loop will end
-      }
-      else
-      {
-        solve_time = data.precursor_times[precursor_index];
-      }
-    }
-    else
-    {
-      if (precursor_index >= data.precursor_times.size())
-      {
-        solve_time = tem_times[tem_index];
-      }
-      else
-      {
-        solve_time = std::min(tem_times[tem_index], data.precursor_times[precursor_index]);
-      }
-    }
   }
-
 
   // Perform cleanup of SUNDIALS objects
   ic->ops->nvdestroy(ic);
@@ -350,27 +307,28 @@ int main(int argc, char **argv)
 #pragma omp parallel for
   for (unsigned int i=0;i<n_threads;++i)
   {
-    const int prm_dim = 6;
+    const int prm_dim = 7;
     Sample starting_guess(prm_dim);
     // kf, kb, k1, k2, k3, M
-    starting_guess << 1e-5, 1e5, 1e3, 1e3, 1e4, 50;
+    starting_guess << 1e-5, 1e5, 1e3, 1e3, 1e4, 1e2, 50;
 
     Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> starting_cov(prm_dim, prm_dim);
     starting_cov <<
-      std::pow(starting_guess(0)/10, 2), 0, 0, 0, 0, 0,
-      0, std::pow(starting_guess(1)/10, 2), 0, 0, 0, 0,
-      0, 0, std::pow(starting_guess(2)/10, 2), 0, 0, 0,
-      0, 0, 0, std::pow(starting_guess(3)/10, 2), 0, 0,
-      0, 0, 0, 0, std::pow(starting_guess(4)/10, 2), 0,
-      0, 0, 0, 0, 0, std::pow(starting_guess(5)/10, 2);
+                 std::pow(starting_guess(0)/10, 2), 0, 0, 0, 0, 0, 0,
+        0, std::pow(starting_guess(1)/10, 2), 0, 0, 0, 0, 0,
+        0, 0, std::pow(starting_guess(2)/10, 2), 0, 0, 0, 0,
+        0, 0, 0, std::pow(starting_guess(3)/10, 2), 0, 0, 0,
+        0, 0, 0, 0, std::pow(starting_guess(4)/10, 2), 0, 0,
+        0, 0, 0, 0, 0, std::pow(starting_guess(5)/10, 2), 0,
+        0, 0, 0, 0, 0, 0, std::pow(starting_guess(6)/10, 2);
 
 
     // Use the Metropolis-Hastings sampling algorithm
     SampleFlow::Producers::MetropolisHastings<Sample> mh_sampler;
 
     // We want a burn-in period
-    const unsigned int samples_desired = 50000;
-    const unsigned int burn_in_period = 0.2 * samples_desired;
+    const unsigned int samples_desired = 20000;
+    const unsigned int burn_in_period = 0.02 * samples_desired;
     SampleFlow::Filters::DiscardFirstN<Sample> burn_in(burn_in_period);
     burn_in.connect_to_producer(mh_sampler);
 
@@ -400,7 +358,7 @@ int main(int argc, char **argv)
 
     // Only write to disk every 100 samples
     SampleFlow::Filters::TakeEveryNth<Sample> every_100th(100);
-    every_100th.connect_to_producer(burn_in);
+    every_100th.connect_to_producer(mh_sampler);
     SampleFlow::Consumers::Action<Sample>
         flush_sample([&samples](const Sample &, const SampleFlow::AuxiliaryData &){samples << std::flush;});
     flush_sample.connect_to_producer(every_100th);
@@ -440,8 +398,8 @@ int main(int argc, char **argv)
     const Real A = -1.19011804189642322882036751252599060535430908203125;
     const Real pi = 2 * std::acos(0.0); // arccos(0) = pi/2
     const Real delta = (1 - 1/starting_guess.size())
-                      *(1/(A * std::sqrt(2.0)) * std::sqrt(pi) * std::exp(A*A/2.))
-                      + 1/(starting_guess.size() * target_ar * (1-target_ar));
+                       *(1/(A * std::sqrt(2.0)) * std::sqrt(pi) * std::exp(A*A/2.))
+                       + 1/(starting_guess.size() * target_ar * (1-target_ar));
     Real lambda_start = 1;
     Real lambda = lambda_start;
     const Real lambda_min = 1e-2;
@@ -458,34 +416,34 @@ int main(int argc, char **argv)
 
     // Maximum times the Robbins-Monro algorithm is allowed to reset
     // Theoretical convergence results are with finite resets
-    const unsigned int max_n_resets = 10;
+    const unsigned int max_n_resets = 1e6;
     unsigned int times_reset = 0;
 
     // Apply the Robbins-Monro algorithm to the sampler
     SampleFlow::Filters::TakeEveryNth<Sample> robbins_monro(1);
-    robbins_monro.connect_to_producer(burn_in);
+    robbins_monro.connect_to_producer(mh_sampler);
     SampleFlow::Consumers::Action<Sample>
-      rm_update(
-          [&](const Sample &, const SampleFlow::AuxiliaryData & aux_data)
-          {
-            // Update the scale
-            const bool repeated_sample = boost::any_cast<bool>(aux_data.at("sample is repeated"));
-            if (repeated_sample)
-              theta += (delta / ( n_start + count_samples.get() ) ) * (1 - target_ar);
-            else
-              theta -= (delta / ( n_start + count_samples.get() ) ) * target_ar;
-            lambda = std::max(lambda_min, std::exp(theta));
-            scale = lambda * lambda * c;
-            // Check if the algorithm should be restarted
-            if (times_reset < max_n_resets) {
-              if (std::abs(std::log(lambda) - std::log(lambda_start)) > std::log(restart_factor)) {
-                lambda_start = lambda;
-                n_start = 5 / (target_ar * (1 - target_ar)) - count_samples.get();
-                ++times_reset;
-              }
+        rm_update(
+        [&](const Sample &, const SampleFlow::AuxiliaryData & aux_data)
+        {
+          // Update the scale
+          const bool repeated_sample = boost::any_cast<bool>(aux_data.at("sample is repeated"));
+          if (repeated_sample)
+            theta += (delta / ( n_start + count_samples.get() ) ) * (1 - target_ar);
+          else
+            theta -= (delta / ( n_start + count_samples.get() ) ) * target_ar;
+          lambda = std::max(lambda_min, std::exp(theta));
+          scale = lambda * lambda * c;
+          // Check if the algorithm should be restarted
+          if (times_reset < max_n_resets) {
+            if (std::abs(std::log(lambda) - std::log(lambda_start)) > std::log(restart_factor)) {
+              lambda_start = lambda;
+              n_start = 5 / (target_ar * (1 - target_ar)) - count_samples.get();
+              ++times_reset;
             }
           }
-          );
+        }
+    );
     rm_update.connect_to_producer(robbins_monro);
 
 
@@ -503,7 +461,7 @@ int main(int argc, char **argv)
       if (count_samples.get() < 1)
         return perturb(s, starting_cov, rng);
       else
-        return perturb(s, scale * (covariance_matrix.get() + 0.0001 * starting_cov), rng);
+        return perturb(s, scale * (covariance_matrix.get() + std::max(0.001, 1.0/count_samples.get()) * starting_cov), rng);
     };
     mh_sampler.sample(starting_guess,
                       &log_probability,
