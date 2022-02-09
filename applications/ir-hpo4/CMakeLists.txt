@@ -2,11 +2,13 @@ CMAKE_MINIMUM_REQUIRED (VERSION 3.1)
 
 FIND_PACKAGE (Threads)
 
+ADD_SUBDIRECTORY(mech1_A_3step)
 
-ADD_EXECUTABLE(mcmc_mech1_A_3step
-               mcmc_mech1_A_3step.cpp)
-TARGET_LINK_LIBRARIES (mcmc_mech1_A_3step
-                       libmepbm)
+ADD_SUBDIRECTORY(mech1_A_3step_noprecursor)
+
+ADD_SUBDIRECTORY(mech1_A_4step)
+
+ADD_SUBDIRECTORY(mech1_A_4step_noprecursor)
 
 ADD_EXECUTABLE(process_samples_mech1_A_3step
         process_samples_mech1_A_3step.cpp)

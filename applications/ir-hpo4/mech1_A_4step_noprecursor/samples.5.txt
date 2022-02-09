@@ -1,0 +1,300 @@
+Sample: 1.51896e-05     51142.1     1164.11      1427.2      6622.3     42.6989     74.0843
+   relative log likelihood -> -9102.98
+   sample is repeated -> true
+Sample: 1.62143e-05     58426.1     1098.92     1330.25     6780.34     39.7491     79.0461
+   relative log likelihood -> -9076.43
+   sample is repeated -> false
+Sample: 1.62143e-05     58426.1     1098.92     1330.25     6780.34     39.7491     79.0461
+   relative log likelihood -> -9076.43
+   sample is repeated -> true
+Sample: 1.62143e-05     58426.1     1098.92     1330.25     6780.34     39.7491     79.0461
+   relative log likelihood -> -9076.43
+   sample is repeated -> true
+Sample: 1.56869e-05     60935.8     1115.49     1321.59     6877.42     38.3072     80.7387
+   relative log likelihood -> -9068.95
+   sample is repeated -> false
+Sample: 1.56869e-05     60935.8     1115.49     1321.59     6877.42     38.3072     80.7387
+   relative log likelihood -> -9068.95
+   sample is repeated -> true
+Sample: 1.57858e-05       63077     1089.55     1294.07     6683.27      36.476     80.4242
+   relative log likelihood -> -9065.37
+   sample is repeated -> false
+Sample: 1.63948e-05     67206.8     1099.81      1269.3     6461.69     33.6469     82.5567
+   relative log likelihood -> -8995.9
+   sample is repeated -> false
+Sample: 1.62909e-05     69648.1     1072.47     1235.64     6652.36     29.4922     84.2861
+   relative log likelihood -> -8978.44
+   sample is repeated -> false
+Sample: 1.62909e-05     69648.1     1072.47     1235.64     6652.36     29.4922     84.2861
+   relative log likelihood -> -8978.44
+   sample is repeated -> true
+Sample: 1.62909e-05     69648.1     1072.47     1235.64     6652.36     29.4922     84.2861
+   relative log likelihood -> -8978.44
+   sample is repeated -> true
+Sample: 1.61885e-05     77027.7     1051.54     1189.35     6863.03     26.6506     86.9227
+   relative log likelihood -> -8978.3
+   sample is repeated -> false
+Sample: 1.63936e-05     78024.4      1012.4     1151.55     6746.09     22.4134     88.5031
+   relative log likelihood -> -8969.32
+   sample is repeated -> false
+Sample: 1.63936e-05     78024.4      1012.4     1151.55     6746.09     22.4134     88.5031
+   relative log likelihood -> -8969.32
+   sample is repeated -> true
+Sample: 1.69378e-05     83489.2     962.051     1108.06     6772.12     13.1023     92.9997
+   relative log likelihood -> -8898.32
+   sample is repeated -> false
+Sample: 1.70634e-05     91537.6     943.368     1037.71     6783.57     10.4525     95.2358
+   relative log likelihood -> -8877.69
+   sample is repeated -> false
+Sample: 1.71722e-05     91581.8     925.576     1055.78     6860.99     11.7464     96.5155
+   relative log likelihood -> -8854.88
+   sample is repeated -> false
+Sample: 1.71722e-05     91581.8     925.576     1055.78     6860.99     11.7464     96.5155
+   relative log likelihood -> -8854.88
+   sample is repeated -> true
+Sample: 1.71722e-05     91581.8     925.576     1055.78     6860.99     11.7464     96.5155
+   relative log likelihood -> -8854.88
+   sample is repeated -> true
+Sample: 1.75451e-05     94325.4     914.625     1018.79     6656.97     7.36509     98.7314
+   relative log likelihood -> -8841.31
+   sample is repeated -> false
+Sample: 1.75451e-05     94325.4     914.625     1018.79     6656.97     7.36509     98.7314
+   relative log likelihood -> -8841.31
+   sample is repeated -> true
+Sample: 1.75451e-05     94325.4     914.625     1018.79     6656.97     7.36509     98.7314
+   relative log likelihood -> -8841.31
+   sample is repeated -> true
+Sample: 1.75451e-05     94325.4     914.625     1018.79     6656.97     7.36509     98.7314
+   relative log likelihood -> -8841.31
+   sample is repeated -> true
+Sample: 1.75451e-05     94325.4     914.625     1018.79     6656.97     7.36509     98.7314
+   relative log likelihood -> -8841.31
+   sample is repeated -> true
+Sample: 1.75451e-05     94325.4     914.625     1018.79     6656.97     7.36509     98.7314
+   relative log likelihood -> -8841.31
+   sample is repeated -> true
+Sample: 1.75451e-05     94325.4     914.625     1018.79     6656.97     7.36509     98.7314
+   relative log likelihood -> -8841.31
+   sample is repeated -> true
+Sample: 1.78167e-05     96906.3     887.495     987.739      6673.9     5.96589     100.982
+   relative log likelihood -> -8840.43
+   sample is repeated -> false
+Sample: 1.78167e-05     96906.3     887.495     987.739      6673.9     5.96589     100.982
+   relative log likelihood -> -8840.43
+   sample is repeated -> true
+Sample: 1.78167e-05     96906.3     887.495     987.739      6673.9     5.96589     100.982
+   relative log likelihood -> -8840.43
+   sample is repeated -> true
+Sample: 1.82193e-05      102765     865.179     937.946      6863.3    0.995995     103.717
+   relative log likelihood -> -8781.7
+   sample is repeated -> false
+Sample: 1.82193e-05      102765     865.179     937.946      6863.3    0.995995     103.717
+   relative log likelihood -> -8781.7
+   sample is repeated -> true
+Sample: 1.82193e-05      102765     865.179     937.946      6863.3    0.995995     103.717
+   relative log likelihood -> -8781.7
+   sample is repeated -> true
+Sample: 1.81434e-05      101044     880.048     956.842     6878.52     2.62755     102.441
+   relative log likelihood -> -8779.04
+   sample is repeated -> false
+Sample: 1.81434e-05      101044     880.048     956.842     6878.52     2.62755     102.441
+   relative log likelihood -> -8779.04
+   sample is repeated -> true
+Sample: 1.81434e-05      101044     880.048     956.842     6878.52     2.62755     102.441
+   relative log likelihood -> -8779.04
+   sample is repeated -> true
+Sample: 1.81434e-05      101044     880.048     956.842     6878.52     2.62755     102.441
+   relative log likelihood -> -8779.04
+   sample is repeated -> true
+Sample: 1.81434e-05      101044     880.048     956.842     6878.52     2.62755     102.441
+   relative log likelihood -> -8779.04
+   sample is repeated -> true
+Sample: 1.81434e-05      101044     880.048     956.842     6878.52     2.62755     102.441
+   relative log likelihood -> -8779.04
+   sample is repeated -> true
+Sample: 1.81434e-05      101044     880.048     956.842     6878.52     2.62755     102.441
+   relative log likelihood -> -8779.04
+   sample is repeated -> true
+Sample: 1.82905e-05      101555     872.284     957.552     6685.72     2.06577     102.217
+   relative log likelihood -> -8773.5
+   sample is repeated -> false
+Sample: 1.82905e-05      101555     872.284     957.552     6685.72     2.06577     102.217
+   relative log likelihood -> -8773.5
+   sample is repeated -> true
+Sample: 1.82905e-05      101555     872.284     957.552     6685.72     2.06577     102.217
+   relative log likelihood -> -8773.5
+   sample is repeated -> true
+Sample: 1.82905e-05      101555     872.284     957.552     6685.72     2.06577     102.217
+   relative log likelihood -> -8773.5
+   sample is repeated -> true
+Sample: 1.82905e-05      101555     872.284     957.552     6685.72     2.06577     102.217
+   relative log likelihood -> -8773.5
+   sample is repeated -> true
+Sample: 1.82905e-05      101555     872.284     957.552     6685.72     2.06577     102.217
+   relative log likelihood -> -8773.5
+   sample is repeated -> true
+Sample: 1.82905e-05      101555     872.284     957.552     6685.72     2.06577     102.217
+   relative log likelihood -> -8773.5
+   sample is repeated -> true
+Sample: 1.82905e-05      101555     872.284     957.552     6685.72     2.06577     102.217
+   relative log likelihood -> -8773.5
+   sample is repeated -> true
+Sample: 1.82905e-05      101555     872.284     957.552     6685.72     2.06577     102.217
+   relative log likelihood -> -8773.5
+   sample is repeated -> true
+Sample: 1.82905e-05      101555     872.284     957.552     6685.72     2.06577     102.217
+   relative log likelihood -> -8773.5
+   sample is repeated -> true
+Sample: 1.82905e-05      101555     872.284     957.552     6685.72     2.06577     102.217
+   relative log likelihood -> -8773.5
+   sample is repeated -> true
+Sample: 1.82905e-05      101555     872.284     957.552     6685.72     2.06577     102.217
+   relative log likelihood -> -8773.5
+   sample is repeated -> true
+Sample: 1.82905e-05      101555     872.284     957.552     6685.72     2.06577     102.217
+   relative log likelihood -> -8773.5
+   sample is repeated -> true
+Sample: 1.82905e-05      101555     872.284     957.552     6685.72     2.06577     102.217
+   relative log likelihood -> -8773.5
+   sample is repeated -> true
+Sample: 1.82905e-05      101555     872.284     957.552     6685.72     2.06577     102.217
+   relative log likelihood -> -8773.5
+   sample is repeated -> true
+Sample: 1.82905e-05      101555     872.284     957.552     6685.72     2.06577     102.217
+   relative log likelihood -> -8773.5
+   sample is repeated -> true
+Sample: 1.82905e-05      101555     872.284     957.552     6685.72     2.06577     102.217
+   relative log likelihood -> -8773.5
+   sample is repeated -> true
+Sample: 1.82905e-05      101555     872.284     957.552     6685.72     2.06577     102.217
+   relative log likelihood -> -8773.5
+   sample is repeated -> true
+Sample: 1.83531e-05      101302     875.767      960.25      6656.8     2.04926     102.047
+   relative log likelihood -> -8772.2
+   sample is repeated -> false
+Sample: 1.83531e-05      101302     875.767      960.25      6656.8     2.04926     102.047
+   relative log likelihood -> -8772.2
+   sample is repeated -> true
+Sample: 1.83531e-05      101302     875.767      960.25      6656.8     2.04926     102.047
+   relative log likelihood -> -8772.2
+   sample is repeated -> true
+Sample: 1.83531e-05      101302     875.767      960.25      6656.8     2.04926     102.047
+   relative log likelihood -> -8772.2
+   sample is repeated -> true
+Sample: 1.83531e-05      101302     875.767      960.25      6656.8     2.04926     102.047
+   relative log likelihood -> -8772.2
+   sample is repeated -> true
+Sample: 1.83531e-05      101302     875.767      960.25      6656.8     2.04926     102.047
+   relative log likelihood -> -8772.2
+   sample is repeated -> true
+Sample: 1.83531e-05      101302     875.767      960.25      6656.8     2.04926     102.047
+   relative log likelihood -> -8772.2
+   sample is repeated -> true
+Sample: 1.82879e-05      101364     873.497      955.99     6630.95     1.41227      102.02
+   relative log likelihood -> -8772.06
+   sample is repeated -> false
+Sample: 1.82879e-05      101364     873.497      955.99     6630.95     1.41227      102.02
+   relative log likelihood -> -8772.06
+   sample is repeated -> true
+Sample: 1.82879e-05      101364     873.497      955.99     6630.95     1.41227      102.02
+   relative log likelihood -> -8772.06
+   sample is repeated -> true
+Sample: 1.82879e-05      101364     873.497      955.99     6630.95     1.41227      102.02
+   relative log likelihood -> -8772.06
+   sample is repeated -> true
+Sample: 1.82879e-05      101364     873.497      955.99     6630.95     1.41227      102.02
+   relative log likelihood -> -8772.06
+   sample is repeated -> true
+Sample: 1.82879e-05      101364     873.497      955.99     6630.95     1.41227      102.02
+   relative log likelihood -> -8772.06
+   sample is repeated -> true
+Sample: 1.82879e-05      101364     873.497      955.99     6630.95     1.41227      102.02
+   relative log likelihood -> -8772.06
+   sample is repeated -> true
+Sample: 1.82879e-05      101364     873.497      955.99     6630.95     1.41227      102.02
+   relative log likelihood -> -8772.06
+   sample is repeated -> true
+Sample: 1.82879e-05      101364     873.497      955.99     6630.95     1.41227      102.02
+   relative log likelihood -> -8772.06
+   sample is repeated -> true
+Sample: 1.82879e-05      101364     873.497      955.99     6630.95     1.41227      102.02
+   relative log likelihood -> -8772.06
+   sample is repeated -> true
+Sample: 1.82879e-05      101364     873.497      955.99     6630.95     1.41227      102.02
+   relative log likelihood -> -8772.06
+   sample is repeated -> true
+Sample: 1.82879e-05      101364     873.497      955.99     6630.95     1.41227      102.02
+   relative log likelihood -> -8772.06
+   sample is repeated -> true
+Sample: 1.82879e-05      101364     873.497      955.99     6630.95     1.41227      102.02
+   relative log likelihood -> -8772.06
+   sample is repeated -> true
+Sample: 1.82879e-05      101364     873.497      955.99     6630.95     1.41227      102.02
+   relative log likelihood -> -8772.06
+   sample is repeated -> true
+Sample: 1.82879e-05      101364     873.497      955.99     6630.95     1.41227      102.02
+   relative log likelihood -> -8772.06
+   sample is repeated -> true
+Sample: 1.82879e-05      101364     873.497      955.99     6630.95     1.41227      102.02
+   relative log likelihood -> -8772.06
+   sample is repeated -> true
+Sample: 1.82879e-05      101364     873.497      955.99     6630.95     1.41227      102.02
+   relative log likelihood -> -8772.06
+   sample is repeated -> true
+Sample: 1.82879e-05      101364     873.497      955.99     6630.95     1.41227      102.02
+   relative log likelihood -> -8772.06
+   sample is repeated -> true
+Sample: 1.82879e-05      101364     873.497      955.99     6630.95     1.41227      102.02
+   relative log likelihood -> -8772.06
+   sample is repeated -> true
+Sample: 1.8321e-05     101121    872.999     959.58    6651.86    1.34577     102.08
+   relative log likelihood -> -8771.93
+   sample is repeated -> false
+Sample: 1.8321e-05     101121    872.999     959.58    6651.86    1.34577     102.08
+   relative log likelihood -> -8771.93
+   sample is repeated -> true
+Sample: 1.8321e-05     101121    872.999     959.58    6651.86    1.34577     102.08
+   relative log likelihood -> -8771.93
+   sample is repeated -> true
+Sample: 1.8321e-05     101121    872.999     959.58    6651.86    1.34577     102.08
+   relative log likelihood -> -8771.93
+   sample is repeated -> true
+Sample: 1.8321e-05     101121    872.999     959.58    6651.86    1.34577     102.08
+   relative log likelihood -> -8771.93
+   sample is repeated -> true
+Sample: 1.8321e-05     101121    872.999     959.58    6651.86    1.34577     102.08
+   relative log likelihood -> -8771.93
+   sample is repeated -> true
+Sample: 1.8321e-05     101121    872.999     959.58    6651.86    1.34577     102.08
+   relative log likelihood -> -8771.93
+   sample is repeated -> true
+Sample: 1.8321e-05     101121    872.999     959.58    6651.86    1.34577     102.08
+   relative log likelihood -> -8771.93
+   sample is repeated -> true
+Sample: 1.8321e-05     101121    872.999     959.58    6651.86    1.34577     102.08
+   relative log likelihood -> -8771.93
+   sample is repeated -> true
+Sample: 1.8321e-05     101121    872.999     959.58    6651.86    1.34577     102.08
+   relative log likelihood -> -8771.93
+   sample is repeated -> true
+Sample: 1.8321e-05     101121    872.999     959.58    6651.86    1.34577     102.08
+   relative log likelihood -> -8771.93
+   sample is repeated -> true
+Sample: 1.8321e-05     101121    872.999     959.58    6651.86    1.34577     102.08
+   relative log likelihood -> -8771.93
+   sample is repeated -> true
+Sample: 1.8321e-05     101121    872.999     959.58    6651.86    1.34577     102.08
+   relative log likelihood -> -8771.93
+   sample is repeated -> true
+Sample: 1.8321e-05     101121    872.999     959.58    6651.86    1.34577     102.08
+   relative log likelihood -> -8771.93
+   sample is repeated -> true
+Sample: 1.8321e-05     101121    872.999     959.58    6651.86    1.34577     102.08
+   relative log likelihood -> -8771.93
+   sample is repeated -> true
+Sample: 1.8361e-05     102058    870.149    955.058    6641.39   0.654752    102.565
+   relative log likelihood -> -8772.23
+   sample is repeated -> false
+Sample: 1.83558e-05      102177     869.183     956.999     6642.64    0.733733      102.44
+   relative log likelihood -> -8771.93
+   sample is repeated -> false
