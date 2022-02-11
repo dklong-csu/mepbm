@@ -6,7 +6,7 @@ int main ()
   const std::string file_root = "/home/danny/r/mepbm/ir-hpo4/mech1_A_3step/";
 
   const unsigned int first_file = 0;
-  const unsigned int last_file = 95;
+  const unsigned int last_file = 47;
   for (unsigned int i=first_file; i<=last_file; ++i)
   {
     const std::string file_name = file_root + "samples." + std::to_string(i) + ".txt";
