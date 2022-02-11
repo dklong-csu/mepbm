@@ -3,14 +3,13 @@
 
 #include <sampleflow/producers/metropolis_hastings.h>
 #include <sampleflow/filters/take_every_nth.h>
-#include <sampleflow/consumers/stream_output.h>
 #include <sampleflow/consumers/mean_value.h>
 #include <sampleflow/consumers/acceptance_ratio.h>
 #include <sampleflow/consumers/action.h>
 #include <sampleflow/consumers/covariance_matrix.h>
 #include <sampleflow/consumers/count_samples.h>
 #include <sampleflow/filters/discard_first_n.h>
-#include <sampleflow/consumers/maximum_probability_sample.h>
+#include <sampleflow/producers/differential_evaluation_mh.h>
 
 #include <omp.h>
 
@@ -20,24 +19,13 @@
 #include <limits>
 #include <iostream>
 #include <algorithm>
-#include <iomanip>
-#include <boost/math/special_functions/erf.hpp>
 
 
 using Real = realtype;
 using Sample = Eigen::Matrix<Real, 1, Eigen::Dynamic>;
 using Vector = Eigen::Matrix<Real, Eigen::Dynamic, 1>;
 using Matrix = Eigen::SparseMatrix<Real, Eigen::RowMajor>;
-//using Matrix = Eigen::SparseMatrix<Real>;
 using Solver = Eigen::BiCGSTAB<Matrix, Eigen::IncompleteLUT<Real>>;
-//using Solver = Eigen::SparseLU<Matrix>;
-
-
-Real
-inv_normal_cdf(const Real quantile, const Real mu, const Real sigma)
-{
-  return mu + sigma * std::sqrt(2.0) * boost::math::erf_inv(2 * quantile - 1);
-}
 
 
 
@@ -65,8 +53,8 @@ within_bounds(const Sample & sample)
   // Parameters are: kf, kb, k1, k2, k3, k4, M
   Vector lower_bounds(7);
   Vector upper_bounds(7);
-  lower_bounds << 0, 0, 0, 0, 0, 0,10;
-  upper_bounds << 1e3, 1e10, 1e10, 1e10, 1e10, 1e10, 60;
+  lower_bounds << 0, 0, 0, 0, 0, 0, 5;
+  upper_bounds << 1e3, 1e10, 1e10, 1e10, 1e10, 1e10, 200;
 
   assert(sample.size() == lower_bounds.size());
   assert(sample.size() == upper_bounds.size());
@@ -201,7 +189,7 @@ jac(Real t, N_Vector x, N_Vector x_dot, SUNMatrix J, void* user_data, N_Vector t
 
 
 Real
-log_likelihood(const N_Vector solution_vector, const std::vector<Real> & data_vector)
+log_likelihood(const N_Vector solution_vector, const std::vector<Real> data_vector)
 {
   // Reduce the solution vector to only the concentrations of particles
   const unsigned int first_size = 2;
@@ -209,6 +197,7 @@ log_likelihood(const N_Vector solution_vector, const std::vector<Real> & data_ve
   const unsigned int max_size = 450;
   const unsigned int last_index = max_size + (first_index - first_size);
   auto only_particles = MEPBM::get_subset<Real>(solution_vector, first_index, last_index);
+
   // Normalize the concentrations to make them a probability distribution
   auto particle_probability = MEPBM::normalize_concentrations(only_particles);
 
@@ -253,13 +242,17 @@ log_likelihood(const N_Vector solution_vector, const std::vector<Real> & data_ve
 Real
 log_probability(const Sample & sample)
 {
+  std::stringstream msg;
+  msg << "Proposed sample: " << sample << "; Log probability: ";
   if (!within_bounds(sample)) {
+    msg << -std::numeric_limits<Real>::infinity() << "\n";
+    std::cout << msg.str();
     return -std::numeric_limits<Real>::infinity();
   }
 
   // Get the data
   const MEPBM::HPO4Data<Real> data;
-  const std::vector<Real> tem_times = {MEPBM::HPO4Data<Real>::time1, MEPBM::HPO4Data<Real>::time2, MEPBM::HPO4Data<Real>::time3, MEPBM::HPO4Data<Real>::time4};
+  const std::vector<Real> tem_times = {data.time1, data.time2, data.time3, data.time4};
   const std::vector<std::vector<Real>> tem_data = {data.tem_data_t1, data.tem_data_t2, data.tem_data_t3, data.tem_data_t4};
 
   // Create the ODE solver
@@ -293,8 +286,7 @@ log_probability(const Sample & sample)
   for (unsigned int t=0; t<tem_times.size(); ++t)
   {
     auto sol = ode_solver.solve(tem_times[t]);
-    if (t==3)
-      log_prob += log_likelihood(sol, tem_data[t]);
+    log_prob += log_likelihood(sol, tem_data[t]);
     sol->ops->nvdestroy(sol);
   }
 
@@ -303,246 +295,144 @@ log_probability(const Sample & sample)
   template_matrix->ops->destroy(template_matrix);
   linear_solver->ops->free(linear_solver);
 
+  msg << log_prob << "\n";
+  std::cout << msg.str();
   return log_prob;
 }
 
 
 
-
-int main(int argc, char **argv)
+Sample
+crossover(const Sample &current_sample, const Sample & sample_a, const Sample & sample_b)
 {
-  unsigned int n_threads = 1;
-#ifdef _OPENMP
-  n_threads = omp_get_max_threads();
-#endif
-
-  /*
-   * 1) Conduct a burn-in period
-   */
-  const int prm_dim = 7;
-  Sample starting_guess(prm_dim);
-  starting_guess << 2.6e-1, 2.e4, 2.2, 5.4e4, 1e3, 1.6e6, 50;
-
-  Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> cov(prm_dim, prm_dim);
-  cov <<
-      std::pow(starting_guess(0)/3, 2), 0, 0, 0, 0, 0, 0,
-      0, std::pow(starting_guess(1)/3, 2), 0, 0, 0, 0, 0,
-      0, 0, std::pow(starting_guess(2)/3, 2), 0, 0, 0, 0,
-      0, 0, 0, std::pow(starting_guess(3)/3, 2), 0, 0, 0,
-      0, 0, 0, 0, std::pow(starting_guess(4)/3, 2), 0, 0,
-      0, 0, 0, 0, 0, std::pow(starting_guess(5)/3, 2), 0,
-      0, 0, 0, 0, 0, 0, std::pow(starting_guess(6)/3, 2);
-
-  const unsigned int n_burn_in = 500;
-
-  std::vector<Sample> max_prob_samples_burnin(n_threads);
-  std::vector<Real> max_prob_values(n_threads);
-
-#pragma omp parallel for
-  for (unsigned int i=0; i<n_threads; ++i)
-  {
-    SampleFlow::Producers::MetropolisHastings<Sample> mh_sampler;
-
-    // Keep track of the maximum likelihood sample so we can start the next step with that sample.
-    SampleFlow::Consumers::MaximumProbabilitySample<Sample> max_prob;
-    max_prob.connect_to_producer(mh_sampler);
-
-    SampleFlow::Consumers::AcceptanceRatio<Sample> ar_burnin;
-    ar_burnin.connect_to_producer(mh_sampler);
-
-    const std::uint_fast32_t random_seed
-        = (argc > 1 ?
-           std::hash<std::string>()(std::to_string(atoi(argv[1]) + i)) :
-           std::hash<std::string>()(std::to_string(i)));
-
-    std::mt19937 rng;
-    rng.seed(random_seed);
-
-    auto sampler_perturb = [&](const Sample &s){
-        return perturb(s, cov, rng);
-    };
-
-    mh_sampler.sample(starting_guess,
-                      &log_probability,
-                      sampler_perturb,
-                      n_burn_in,
-                      random_seed);
-
-    // Report the maximum probability sample
-    max_prob_samples_burnin[i] = max_prob.get().first;
-    max_prob_values[i] = boost::any_cast<Real>(max_prob.get().second.at("relative log likelihood"));
-    std::cout << "AR: " << ar_burnin.get() << std::endl;
-  }
-  auto max_prob_iterator = std::max_element(max_prob_values.begin(), max_prob_values.end());
-  auto max_prob_index = std::distance(max_prob_values.begin(), max_prob_iterator);
-  starting_guess = max_prob_samples_burnin[max_prob_index];
-  std::cout << "After burn-in: sample [" << starting_guess << "] has the maximum probability of " << max_prob_values[max_prob_index] << std::endl;
-
-
-  /*
-   * 2) Construct an initial estimate of the covariance matrix
-   */
-  unsigned int n_iter = 0;
-  const unsigned int max_iter = 10;
-  Real upper_scale = 2;
-  Real lower_scale = 0;
-  Real scale = (upper_scale + lower_scale)/2;
-
-  const Real max_ar = 0.4;
-  const Real min_ar = 0.1;
-  Real avg_ar = 0.;
-
-  const unsigned int n_adapt = 500;
-  while ( (n_iter < max_iter) && (avg_ar < min_ar || avg_ar > max_ar) )
-  {
-    std::vector<Sample> max_prob_samples_adapt(n_threads);
-    std::vector<Real> max_prob_value_adapt(n_threads);
-    std::vector<Real> ar_adapt(n_threads);
-
-    // Share the covariance matrix between chains for the most information
-    SampleFlow::Consumers::CovarianceMatrix<Sample> cov_adaptation;
-#pragma omp parallel for
-    for (unsigned int i=0; i<n_threads; ++i)
-    {
-      SampleFlow::Producers::MetropolisHastings<Sample> mh_sampler;
-
-      cov_adaptation.connect_to_producer(mh_sampler);
-
-      SampleFlow::Consumers::AcceptanceRatio<Sample> acceptance_ratio;
-      acceptance_ratio.connect_to_producer(mh_sampler);
-
-      SampleFlow::Consumers::MaximumProbabilitySample<Sample> max_prob;
-      max_prob.connect_to_producer(mh_sampler);
-
-      SampleFlow::Consumers::CountSamples<Sample> count_samples;
-      count_samples.connect_to_producer(mh_sampler);
-
-
-      const std::uint_fast32_t random_seed
-          = (argc > 1 ?
-             std::hash<std::string>()(std::to_string(atoi(argv[1]) + i)) :
-             std::hash<std::string>()(std::to_string(i)));
-
-      std::mt19937 rng;
-      rng.seed(random_seed);
-
-      auto sampler_perturb = [&](const Sample &s){
-        return perturb(s, scale * cov, rng);
-      };
-
-      mh_sampler.sample(starting_guess,
-                        &log_probability,
-                        sampler_perturb,
-                        n_adapt,
-                        random_seed);
-
-      max_prob_samples_adapt[i] = max_prob.get().first;
-      max_prob_value_adapt[i] = boost::any_cast<Real>(max_prob.get().second.at("relative log likelihood"));
-      ar_adapt[i] = acceptance_ratio.get();
-    }
-    // Get the average AR
-    avg_ar = std::accumulate(ar_adapt.begin(), ar_adapt.end(), 0.0)/ ar_adapt.size();
-    std::cout << "Average AR: " << avg_ar << std::endl;
-    if (avg_ar < min_ar)
-      upper_scale = scale;
-    else if (avg_ar > max_ar)
-      lower_scale = scale;
-    else
-      cov = cov_adaptation.get();
-
-    scale = (upper_scale + lower_scale)/2;
-    std::cout << "Covariance scale: " << scale << std::endl;
-
-    // Increase iteration count
-    ++n_iter;
-    if (n_iter == max_iter)
-      cov = cov_adaptation.get();
-
-    // Start next iteration at the best sample
-    auto max_iter_adapt = std::max_element(max_prob_value_adapt.begin(), max_prob_value_adapt.end());
-    auto max_index_adapt = std::distance(max_prob_value_adapt.begin(), max_iter_adapt);
-    starting_guess = max_prob_samples_adapt[max_prob_index];
-    std::cout << "After adaptation: sample [" << starting_guess << "] has the maximum probability of " << max_prob_value_adapt[max_index_adapt] << std::endl;
-  }
-
-  std::cout << "Covariance matrix after adaptation:\n"
-            << cov << std::endl;
-
-
-
-
-
-/*
- * 3) Sample
- */
-SampleFlow::Consumers::CovarianceMatrix<Sample> covariance_matrix;
-#pragma omp parallel for
-for (unsigned int i=0; i<n_threads; ++i)
-{
-  SampleFlow::Producers::MetropolisHastings<Sample> mh_sampler;
-
-  covariance_matrix.connect_to_producer(mh_sampler);
-
-  // Output samples to a file
-  std::ofstream samples("samples"
-                        +
-                        (argc > 1 ?
-                         std::string(".") + std::to_string(atoi(argv[1])+i) :
-                         std::string(".") + std::to_string(i))
-                        +
-                        ".txt"
-  );
-
-  // Output the auxilary data as well as the parameter values
-  MEPBM::MyStreamOutput<Sample> stream_output(samples);
-  stream_output.connect_to_producer(mh_sampler);
-
-  // Keep track of the mean
-  SampleFlow::Consumers::MeanValue<Sample> mean_value;
-  mean_value.connect_to_producer(mh_sampler);
-
-  // Keep track of the acceptance_ratio
-  SampleFlow::Consumers::AcceptanceRatio<Sample> acceptance_ratio;
-  acceptance_ratio.connect_to_producer(mh_sampler);
-
-  // Track the number of samples
-  SampleFlow::Consumers::CountSamples<Sample> count_samples;
-  count_samples.connect_to_producer(mh_sampler);
-
-  // Only write to disk every 100 samples
-  SampleFlow::Filters::TakeEveryNth<Sample> every_100th(100);
-  every_100th.connect_to_producer(mh_sampler);
-  SampleFlow::Consumers::Action<Sample>
-      flush_sample([&samples](const Sample &, const SampleFlow::AuxiliaryData &){samples << std::flush;});
-  flush_sample.connect_to_producer(every_100th);
-
-  const std::uint_fast32_t random_seed
-      = (argc > 1 ?
-         std::hash<std::string>()(std::to_string(atoi(argv[1]) + i)) :
-         std::hash<std::string>()(std::to_string(i)));
-
-  const unsigned int n_samples = 50000;
-
-  std::mt19937 rng;
-  rng.seed(random_seed);
-  const Real c = 2.38 * 2.38 / starting_guess.size();
-  auto sampler_perturb = [&](const Sample &s){
-    if (count_samples.get() > 1)
-      return perturb(s, c * covariance_matrix.get() + 0.01 * cov, rng);
-    else
-      return perturb(s, c * cov, rng);
-  };
-
-  mh_sampler.sample(starting_guess,
-                    &log_probability,
-                    sampler_perturb,
-                    n_samples,
-                    random_seed);
-
-  std::stringstream msg;
-  msg << "Acceptance ratio for chain " << i << ": " << acceptance_ratio.get() << "\n";
-  std::cout << msg.str();
+  return current_sample + (2.38 / std::sqrt(2*current_sample.size())) * ( sample_a - sample_b);
 }
 
 
+
+int main(int argc, char **argv)
+{
+  /*
+   * Settings for the sampling algorithm
+   * 1) How many chains should be used
+   * 2) How long the burn-in should be
+   * 3) How many total samples are desired
+   * 4) What should the starting sample be
+   * 5) How much should the starting sample be perturbed for the start of each chain
+   */
+
+  // 1)
+  const unsigned int n_chains = 7;
+
+  // 2)
+  const unsigned int n_burn_in = 0;
+
+  // 3)
+  const unsigned int n_samples = 22;
+
+  // 4)
+  const int prm_dim = 7;
+  Sample starting_guess(prm_dim);
+  // kf, kb, k1, k2, k3, k4, M
+  starting_guess << 2.6e-1, 2.e4, 2.2, 5.4e4, 1e3, 1.6e6, 23;
+
+  // 5)
+  // sigma^2 = k*^2/9 means 99.7% of draws will be +-100% of the parameter value
+  Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> perturb_cov(prm_dim, prm_dim);
+  perturb_cov <<
+      std::pow(starting_guess(0)/3., 2.), 0, 0, 0, 0, 0, 0,
+      0, std::pow(starting_guess(1)/3., 2.), 0, 0, 0, 0, 0,
+      0, 0, std::pow(starting_guess(2)/3., 2.), 0, 0, 0, 0,
+      0, 0, 0, std::pow(starting_guess(3)/3., 2.), 0, 0, 0,
+      0, 0, 0, 0, std::pow(starting_guess(4)/3., 2.), 0, 0,
+      0, 0, 0, 0, 0, std::pow(starting_guess(5)/3., 2.), 0,
+      0, 0, 0, 0, 0, 0, std::pow(starting_guess(6)/3., 2.);
+
+  /*
+   * ***************************************
+   * End of settings, beginning of algorithm
+   * ***************************************
+   */
+
+  // Create and seed random number generator used throughout the code
+  const std::uint_fast32_t random_seed
+      = (argc > 1 ?
+         std::hash<std::string>()(std::to_string(atoi(argv[1]))) :
+         std::hash<std::string>()(std::to_string(0)));
+
+  std::mt19937 rng;
+  rng.seed(random_seed);
+
+
+
+  // Generate starting parameters. Make sure they are valid parameters. Redraw parameters if necessary.
+  std::vector<Sample> starting_samples(n_chains);
+  for (auto & s : starting_samples)
+  {
+    bool invalid_sample = true;
+    while (invalid_sample)
+    {
+      auto sample = perturb(starting_guess, 0.0*perturb_cov, rng);
+      if (within_bounds(sample.first))
+      {
+        s = sample.first;
+        invalid_sample = false;
+      }
+    }
+  }
+
+
+
+  // Setup sampler
+  SampleFlow::Producers::DifferentialEvaluationMetropolisHastings<Sample> demc;
+
+  // Filter out burn-in
+  SampleFlow::Filters::DiscardFirstN<Sample> burn_in(n_burn_in);
+  burn_in.connect_to_producer(demc);
+
+  // Track the mean value. Only track after burn-in, so filter through the burn_in object instead of directly to the sampler.
+  SampleFlow::Consumers::MeanValue<Sample> mean_value;
+  mean_value.connect_to_producer(burn_in);
+
+  // Track the covariance. Only track after burn-in, so filter through the burn_in object instead of directly to the sampler.
+  SampleFlow::Consumers::CovarianceMatrix<Sample> covariance_matrix;
+  covariance_matrix.connect_to_producer(burn_in);
+
+  // Track the acceptance ratio. Only track after burn-in, so filter through the burn_in object instead of directly to the sampler.
+  SampleFlow::Consumers::AcceptanceRatio<Sample> acceptance_ratio;
+  acceptance_ratio.connect_to_producer(burn_in);
+
+  // Output the samples to a file. Don't output the burn-in period.
+  std::ofstream samples("samples"
+                        +
+                        (argc > 1 ?
+                         std::string(".") + std::to_string(atoi(argv[1])) :
+                         std::string(".") + std::to_string(0))
+                        +
+                        ".txt"
+  );
+  MEPBM::MyStreamOutput<Sample> stream_output(samples);
+  stream_output.connect_to_producer(burn_in);
+
+  // Define the perturb function the sampler will use
+  auto sampler_perturb = [&](const Sample &s)
+  {
+    return perturb(s, 0.001 * perturb_cov, rng);
+  };
+
+
+
+  // Generate samples
+  demc.sample(starting_samples,
+              &log_probability,
+              sampler_perturb,
+              &crossover,
+              1,
+              n_burn_in + n_samples);
+
+
+
+  std::cout << "Mean value: " << mean_value.get() << std::endl;
+  std::cout << "Acceptance ratio: " << acceptance_ratio.get() << std::endl;
+  std::cout << "Covariance matrix:\n" << covariance_matrix.get() << std::endl;
 }
