@@ -22,5 +22,6 @@
 #include "src/to_vector.h"
 #include "src/chemical_reaction_network.h"
 #include "src/atoms_to_diameter.h"
+#include "src/bfgs.h"
 
 #endif // MEPBM_SAMPLING_SUNDIALS_H
