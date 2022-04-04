@@ -19,9 +19,9 @@ using Solver = Eigen::BiCGSTAB< Matrix, Eigen::IncompleteLUT<Real> >;
  */
 
 
-Real growth_kernel(const unsigned int size)
+Real growth_kernel(const unsigned int size, const Real k)
 {
-  return (1.0 * size) * (2.677 * std::pow(1.0*size, -0.28));
+  return k * (1.0 * size) * (2.677 * std::pow(1.0*size, -0.28));
 }
 
 
@@ -62,9 +62,9 @@ create_mechanism()
   MEPBM::ChemicalReaction<Real, Matrix> nucleationAb({ {Asolv,1}, {L,1} }, { {A,1} }, kb);
   auto B_nucleated = B.species(3);
   MEPBM::ChemicalReaction<Real, Matrix> nucleationB({ {Asolv,1} }, { {B_nucleated,1}, {L,1} }, k1);
-  MEPBM::ParticleGrowth<Real, Matrix> small_growth(B, k2, 2, max_size, &growth_kernel, { {A,1} }, { {L,1} });
-  MEPBM::ParticleGrowth<Real, Matrix> large_growth(C, k3, 2, max_size, &growth_kernel, { {A,1} }, { {L,1} });
-  MEPBM::ParticleAgglomeration<Real, Matrix> agglom(B, B, k4, max_size, &growth_kernel, {},{});
+  MEPBM::ParticleGrowth<Real, Matrix> small_growth(B, 2, max_size, [&](const unsigned int size){return growth_kernel(size, k2);}, { {A,1} }, { {L,1} });
+  MEPBM::ParticleGrowth<Real, Matrix> large_growth(C, 2, max_size, [&](const unsigned int size){return growth_kernel(size, k3);}, { {A,1} }, { {L,1} });
+  MEPBM::ParticleAgglomeration<Real, Matrix> agglom(B, B, max_size, [&](const unsigned int sizeA, const unsigned int sizeB){return k4 * growth_kernel(sizeA, 1) * growth_kernel(sizeB, 1);}, {},{});
 
   MEPBM::ChemicalReactionNetwork<Real, Matrix> network({nucleationAf, nucleationAb, nucleationB},
                                                        {small_growth, large_growth},

@@ -22,14 +22,12 @@ namespace MEPBM {
   {
   public:
     ParticleGrowth(const Particle particle,
-                   const Real reaction_rate,
                    const unsigned int growth_amount,
                    const unsigned int max_particle_size,
                    const std::function<Real(const unsigned int)> growth_kernel,
                    const std::vector<std::pair<Species, unsigned int>> reactants,
                    const std::vector<std::pair<Species, unsigned int>> products)
        : particle(particle),
-         reaction_rate(reaction_rate),
          growth_amount(growth_amount),
          max_particle_size(max_particle_size),
          growth_kernel(growth_kernel),
@@ -38,7 +36,6 @@ namespace MEPBM {
     {}
 
     const Particle particle;
-    const Real reaction_rate;
     const unsigned int growth_amount;
     const unsigned int max_particle_size;
     const std::function<Real(const unsigned int)> growth_kernel;
@@ -71,14 +68,13 @@ namespace MEPBM {
 
           // Form a chemical reaction
           // Growth kernel times the base reaction rate gives the overall reaction rate
-          const Real rate = reaction_rate * growth_kernel(particle.size(i));
+          const Real rate = growth_kernel(particle.size(i));
           ChemicalReaction<Real, Matrix> rxn(all_reactants, all_products, rate);
 
           // Get the right hand side function
           auto rhs = rxn.rhs_function();
 
           // Apply the right hand side function
-          // FIXME: should this be += instead of =?
           output_value = rhs(time, x, x_dot, user_data);
         }
         return output_value;
@@ -113,14 +109,13 @@ namespace MEPBM {
 
           // Form a chemical reaction
           // Growth kernel times the base reaction rate gives the overall reaction rate
-          const Real rate = reaction_rate * growth_kernel(particle.size(i));
+          const Real rate = growth_kernel(particle.size(i));
           ChemicalReaction<Real, Matrix> rxn(all_reactants, all_products, rate);
 
           // Get the Jacobian function
           auto jac = rxn.jacobian_function();
 
           // Apply the right hand side function
-          // FIXME: should this be += instead of =?
           output_value = jac(time, x, x_dot, J, user_data, tmp1, tmp2, tmp3);
         }
         return output_value;
@@ -147,14 +142,12 @@ namespace MEPBM {
   {
   public:
     ParticleGrowth(const Particle particle,
-                   const Real reaction_rate,
                    const unsigned int growth_amount,
                    const unsigned int max_particle_size,
                    const std::function<Real(const unsigned int)> growth_kernel,
                    const std::vector<std::pair<Species, unsigned int>> reactants,
                    const std::vector<std::pair<Species, unsigned int>> products)
         : particle(particle),
-          reaction_rate(reaction_rate),
           growth_amount(growth_amount),
           max_particle_size(max_particle_size),
           growth_kernel(growth_kernel),
@@ -163,7 +156,6 @@ namespace MEPBM {
     {}
 
     const Particle particle;
-    const Real reaction_rate;
     const unsigned int growth_amount;
     const unsigned int max_particle_size;
     const std::function<Real(const unsigned int)> growth_kernel;
@@ -196,14 +188,13 @@ namespace MEPBM {
 
           // Form a chemical reaction
           // Growth kernel times the base reaction rate gives the overall reaction rate
-          const Real rate = reaction_rate * growth_kernel(particle.size(i));
+          const Real rate = growth_kernel(particle.size(i));
           ChemicalReaction<Real, Eigen::SparseMatrix<Real>> rxn(all_reactants, all_products, rate);
 
           // Get the right hand side function
           auto rhs = rxn.rhs_function();
 
           // Apply the right hand side function
-          // FIXME: should this be += instead of =?
           output_value = rhs(time, x, x_dot, user_data);
         }
         return output_value;
@@ -238,14 +229,13 @@ namespace MEPBM {
 
           // Form a chemical reaction
           // Growth kernel times the base reaction rate gives the overall reaction rate
-          const Real rate = reaction_rate * growth_kernel(particle.size(i));
+          const Real rate = growth_kernel(particle.size(i));
           ChemicalReaction<Real, Eigen::SparseMatrix<Real>> rxn(all_reactants, all_products, rate);
 
           // Get the Jacobian function
           auto jac = rxn.jacobian_function();
 
           // Apply the right hand side function
-          // FIXME: should this be += instead of =?
           output_value = jac(x, triplet_list, Jacobian);
         }
         return output_value;
@@ -272,14 +262,12 @@ namespace MEPBM {
   {
   public:
     ParticleGrowth(const Particle particle,
-                   const Real reaction_rate,
                    const unsigned int growth_amount,
                    const unsigned int max_particle_size,
                    const std::function<Real(const unsigned int)> growth_kernel,
                    const std::vector<std::pair<Species, unsigned int>> reactants,
                    const std::vector<std::pair<Species, unsigned int>> products)
         : particle(particle),
-          reaction_rate(reaction_rate),
           growth_amount(growth_amount),
           max_particle_size(max_particle_size),
           growth_kernel(growth_kernel),
@@ -288,7 +276,6 @@ namespace MEPBM {
     {}
 
     const Particle particle;
-    const Real reaction_rate;
     const unsigned int growth_amount;
     const unsigned int max_particle_size;
     const std::function<Real(const unsigned int)> growth_kernel;
@@ -322,14 +309,13 @@ namespace MEPBM {
 
           // Form a chemical reaction
           // Growth kernel times the base reaction rate gives the overall reaction rate
-          const Real rate = reaction_rate * growth_kernel(particle.size(i));
+          const Real rate = growth_kernel(particle.size(i));
           ChemicalReaction<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>> rxn(all_reactants, all_products, rate);
 
           // Get the right hand side function
           auto rhs = rxn.rhs_function();
 
           // Apply the right hand side function
-          // FIXME: should this be += instead of =?
           output_value = rhs(time, x, x_dot, user_data);
         }
         return output_value;
@@ -364,14 +350,13 @@ namespace MEPBM {
 
           // Form a chemical reaction
           // Growth kernel times the base reaction rate gives the overall reaction rate
-          const Real rate = reaction_rate * growth_kernel(particle.size(i));
+          const Real rate = growth_kernel(particle.size(i));
           ChemicalReaction<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>> rxn(all_reactants, all_products, rate);
 
           // Get the Jacobian function
           auto jac = rxn.jacobian_function();
 
           // Apply the right hand side function
-          // FIXME: should this be += instead of =?
           output_value = jac(x, triplet_list, Jacobian);
         }
         return output_value;

@@ -12,9 +12,9 @@ using Solver = Eigen::BiCGSTAB< Matrix, Eigen::IncompleteLUT<Real> >;
 
 
 
-Real growth_kernel(const unsigned int size)
+Real growth_kernel(const unsigned int size, const Real k)
 {
-  return (1.0 * size) * (2.677 * std::pow(1.0*size, -0.28));
+  return k * (1.0 * size) * (2.677 * std::pow(1.0*size, -0.28));
 }
 
 
@@ -112,8 +112,8 @@ create_new_ode(const Real kf, const Real kb, const Real k1, const Real k2, const
   MEPBM::ChemicalReaction<Real, Matrix> rxn3({{As,2}, {A,1}},
                                              {{B_nuc,1}, {L,1}},
                                              k1);
-  MEPBM::ParticleGrowth<Real, Matrix> rxn4(B,k2,conserved_size,max_size,&growth_kernel,{{A,1}},{{L,1}});
-  MEPBM::ParticleGrowth<Real, Matrix> rxn5(C,k3, conserved_size, max_size, &growth_kernel, {{A,1}},{{L,1}});
+  MEPBM::ParticleGrowth<Real, Matrix> rxn4(B,conserved_size,max_size,[&](const unsigned int size){return growth_kernel(size, k2);},{{A,1}},{{L,1}});
+  MEPBM::ParticleGrowth<Real, Matrix> rxn5(C, conserved_size, max_size, [&](const unsigned int size){return growth_kernel(size, k3);}, {{A,1}},{{L,1}});
 
   MEPBM::ChemicalReactionNetwork<Real, Matrix> mech({rxn1,rxn2,rxn3},{rxn4,rxn5},{});
   return mech;

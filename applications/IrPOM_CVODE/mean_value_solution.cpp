@@ -47,8 +47,10 @@ create_mechanism(const Sample & sample)
   MEPBM::ChemicalReaction<Real, Matrix> nucleationAb({ {Asolv,1}, {L,1} }, { {A,1} }, kb);
   auto B_nucleated = B.species(3);
   MEPBM::ChemicalReaction<Real, Matrix> nucleationB({ {Asolv,2}, {A,1} }, { {B_nucleated,1}, {L,1} }, k1);
-  MEPBM::ParticleGrowth<Real, Matrix> small_growth(B, k2, 1, max_size, &growth_kernel, { {A,1} }, { {L,1} });
-  MEPBM::ParticleGrowth<Real, Matrix> large_growth(C, k3, 1, max_size, &growth_kernel, { {A,1} }, { {L,1} });
+  MEPBM::ParticleGrowth<Real, Matrix> small_growth(B, 1, max_size, [&](const unsigned int size){return k2*
+                                                                                                       growth_kernel(size);}, { {A,1} }, { {L,1} });
+  MEPBM::ParticleGrowth<Real, Matrix> large_growth(C, 1, max_size, [&](const unsigned int size){return k3*
+                                                                                                       growth_kernel(size);}, { {A,1} }, { {L,1} });
 
   MEPBM::ChemicalReactionNetwork<Real, Matrix> network({nucleationAf, nucleationAb, nucleationB},
                                                        {small_growth, large_growth},

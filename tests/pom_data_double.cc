@@ -1,6 +1,6 @@
 #include <iostream>
 #include <string>
-#include <boost/numeric/odeint.hpp>
+#include <vector>
 #include <typeinfo>
 #include "src/ir_pom_data.h"
 

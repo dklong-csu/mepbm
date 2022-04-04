@@ -98,13 +98,11 @@ run_test()
                                                   1.0);
   MEPBM::ParticleGrowth<Real, Matrix> grow1(D,
                                                  1,
-                                                 1,
                                                  3,
                                                  &growth_kernel<Real>,
                                                  {{A,1}},
                                                  {});
   MEPBM::ParticleGrowth<Real, Matrix> grow2(E,
-                                                 1,
                                                  1,
                                                  3,
                                                  &growth_kernel<Real>,
@@ -112,9 +110,9 @@ run_test()
                                                  {});
   MEPBM::ParticleAgglomeration<Real, Matrix> agglom1(D,
                                                           D,
-                                                          1,
                                                           3,
-                                                          &growth_kernel<Real>,
+                                                          [&](const unsigned int sizeA, const unsigned int sizeB){return growth_kernel<Real>(sizeA)*
+                                                                                                                         growth_kernel<Real>(sizeB);},
                                                           {},
                                                           {});
   MEPBM::ChemicalReactionNetwork<Real, Matrix> network({rxn1},
