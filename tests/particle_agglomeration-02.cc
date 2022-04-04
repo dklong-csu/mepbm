@@ -122,9 +122,9 @@ check_sparse(InputType & rxn)
 
 
 Real
-growth_kernel(const unsigned int size)
+growth_kernel(const unsigned int sizeA, const unsigned int sizeB)
 {
-  return size * 2.5;
+  return 1.5 * sizeA * 2.5 * sizeB * 2.5;
 }
 
 
@@ -141,20 +141,18 @@ int main ()
 
   const unsigned int max_particle_size = 4;
 
-  const Real reaction_rate = 1.5;
-
   // Test
-  MEPBM::ParticleAgglomeration<Real, DenseMatrix> agglom_dense(B,C,reaction_rate,max_particle_size,&growth_kernel,reactants, products);
+  MEPBM::ParticleAgglomeration<Real, DenseMatrix> agglom_dense(B,C,max_particle_size,&growth_kernel,reactants, products);
   check_rhs(agglom_dense);
   check_dense<MEPBM::ParticleAgglomeration<Real, DenseMatrix>, DenseMatrix>(agglom_dense);
 
 
-  MEPBM::ParticleAgglomeration<Real, SparseMatrix> agglom_sparse(B,C,reaction_rate,max_particle_size,&growth_kernel,reactants, products);
+  MEPBM::ParticleAgglomeration<Real, SparseMatrix> agglom_sparse(B,C,max_particle_size,&growth_kernel,reactants, products);
   check_rhs(agglom_sparse);
   check_sparse<MEPBM::ParticleAgglomeration<Real, SparseMatrix >, SparseMatrix>(agglom_sparse);
 
 
-  MEPBM::ParticleAgglomeration<Real, SparseMatrix2> agglom_sparse2(B,C,reaction_rate,max_particle_size,&growth_kernel,reactants, products);
+  MEPBM::ParticleAgglomeration<Real, SparseMatrix2> agglom_sparse2(B,C,max_particle_size,&growth_kernel,reactants, products);
   check_rhs(agglom_sparse2);
   check_sparse<MEPBM::ParticleAgglomeration<Real, SparseMatrix2 >, SparseMatrix2>(agglom_sparse2);
 

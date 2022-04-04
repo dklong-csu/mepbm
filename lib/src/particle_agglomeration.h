@@ -21,14 +21,12 @@ namespace MEPBM {
   public:
     ParticleAgglomeration(const Particle particleA,
                           const Particle particleB,
-                          const Real reaction_rate,
                           const unsigned int max_particle_size,
-                          const std::function<Real(const unsigned int)> growth_kernel,
+                          const std::function<Real(const unsigned int, const unsigned int)> growth_kernel,
                           const std::vector<std::pair<Species, unsigned int>> reactants,
                           const std::vector<std::pair<Species, unsigned int>> products)
       : particleA(particleA),
         particleB(particleB),
-        reaction_rate(reaction_rate),
         max_particle_size(max_particle_size),
         growth_kernel(growth_kernel),
         reactants(reactants),
@@ -36,9 +34,8 @@ namespace MEPBM {
     {}
 
     const Particle particleA, particleB;
-    const Real reaction_rate;
     const unsigned int max_particle_size;
-    const std::function<Real(const unsigned int)> growth_kernel;
+    const std::function<Real(const unsigned int, const unsigned int)> growth_kernel;
     const std::vector<std::pair<Species, unsigned int>> reactants, products;
 
     /// Returns a function for the right-hand side of the ODE that is compatible with the SUNDIALS API.
@@ -78,7 +75,7 @@ namespace MEPBM {
             }
 
             // Calculate the reaction rate.
-            const auto rate = reaction_rate * growth_kernel(sizeA) * growth_kernel(sizeB);
+            const auto rate = growth_kernel(sizeA, sizeB);
 
             // Create the chemical reaction
             ChemicalReaction<Real, Matrix> rxn(all_reactants, all_products, rate);
@@ -110,8 +107,6 @@ namespace MEPBM {
           const auto agglomA = particleA.species(indexA);
 
           // Loop through all particleB particles
-          // FIXME? If particleA=particleB or if there is overlap, then there is some double counting
-          // FIXME? But this likely doesn't matter since the inverse problem will just find 1/2*k instead of k
           for (unsigned int indexB=particleB.index_start; indexB <= particleB.index_end; ++indexB)
           {
             // Extract particleB reactant species
@@ -133,7 +128,7 @@ namespace MEPBM {
             }
 
             // Calculate the reaction rate.
-            const auto rate = reaction_rate * growth_kernel(sizeA) * growth_kernel(sizeB);
+            const auto rate = growth_kernel(sizeA, sizeB);
 
             // Create the chemical reaction
             ChemicalReaction<Real, Matrix> rxn(all_reactants, all_products, rate);
@@ -142,7 +137,6 @@ namespace MEPBM {
             auto jac = rxn.jacobian_function();
 
             // Apply the rhs to the inputs
-            // FIXME: should this be += instead of =?
             output_value = jac(time, x, x_dot, J, user_data, tmp1, tmp2, tmp3);
           }
         }
@@ -170,14 +164,12 @@ namespace MEPBM {
   public:
     ParticleAgglomeration(const Particle particleA,
                           const Particle particleB,
-                          const Real reaction_rate,
                           const unsigned int max_particle_size,
-                          const std::function<Real(const unsigned int)> growth_kernel,
+                          const std::function<Real(const unsigned int, const unsigned int)> growth_kernel,
                           const std::vector<std::pair<Species, unsigned int>> reactants,
                           const std::vector<std::pair<Species, unsigned int>> products)
         : particleA(particleA),
           particleB(particleB),
-          reaction_rate(reaction_rate),
           max_particle_size(max_particle_size),
           growth_kernel(growth_kernel),
           reactants(reactants),
@@ -185,9 +177,8 @@ namespace MEPBM {
     {}
 
     const Particle particleA, particleB;
-    const Real reaction_rate;
     const unsigned int max_particle_size;
-    const std::function<Real(const unsigned int)> growth_kernel;
+    const std::function<Real(const unsigned int, const unsigned int)> growth_kernel;
     const std::vector<std::pair<Species, unsigned int>> reactants, products;
 
     /// Returns a function for the right-hand side of the ODE that is compatible with the SUNDIALS API.
@@ -204,8 +195,6 @@ namespace MEPBM {
           const auto agglomA = particleA.species(indexA);
 
           // Loop through all particleB particles
-          // FIXME? If particleA=particleB or if there is overlap, then there is some double counting
-          // FIXME? But this likely doesn't matter since the inverse problem will just find 1/2*k instead of k
           for (unsigned int indexB=particleB.index_start; indexB <= particleB.index_end; ++indexB)
           {
             // Extract particleB reactant species
@@ -227,7 +216,7 @@ namespace MEPBM {
             }
 
             // Calculate the reaction rate.
-            const auto rate = reaction_rate * growth_kernel(sizeA) * growth_kernel(sizeB);
+            const auto rate = growth_kernel(sizeA, sizeB);
 
             // Create the chemical reaction
             ChemicalReaction<Real, Eigen::SparseMatrix<Real>> rxn(all_reactants, all_products, rate);
@@ -236,7 +225,6 @@ namespace MEPBM {
             auto rhs = rxn.rhs_function();
 
             // Apply the rhs to the inputs
-            // FIXME: should this be += instead of =?
             output_value = rhs(time, x, x_dot, user_data);
           }
         }
@@ -259,8 +247,6 @@ namespace MEPBM {
           const auto agglomA = particleA.species(indexA);
 
           // Loop through all particleB particles
-          // FIXME? If particleA=particleB or if there is overlap, then there is some double counting
-          // FIXME? But this likely doesn't matter since the inverse problem will just find 1/2*k instead of k
           for (unsigned int indexB=particleB.index_start; indexB <= particleB.index_end; ++indexB)
           {
             // Extract particleB reactant species
@@ -282,7 +268,7 @@ namespace MEPBM {
             }
 
             // Calculate the reaction rate.
-            const auto rate = reaction_rate * growth_kernel(sizeA) * growth_kernel(sizeB);
+            const auto rate = growth_kernel(sizeA, sizeB);
 
             // Create the chemical reaction
             ChemicalReaction<Real, Eigen::SparseMatrix<Real>> rxn(all_reactants, all_products, rate);
@@ -291,7 +277,6 @@ namespace MEPBM {
             auto jac = rxn.jacobian_function();
 
             // Apply the rhs to the inputs
-            // FIXME: should this be += instead of =?
             output_value = jac(x, triplet_list, Jacobian);
           }
         }
@@ -319,14 +304,12 @@ namespace MEPBM {
   public:
     ParticleAgglomeration(const Particle particleA,
                           const Particle particleB,
-                          const Real reaction_rate,
                           const unsigned int max_particle_size,
-                          const std::function<Real(const unsigned int)> growth_kernel,
+                          const std::function<Real(const unsigned int, const unsigned int)> growth_kernel,
                           const std::vector<std::pair<Species, unsigned int>> reactants,
                           const std::vector<std::pair<Species, unsigned int>> products)
         : particleA(particleA),
           particleB(particleB),
-          reaction_rate(reaction_rate),
           max_particle_size(max_particle_size),
           growth_kernel(growth_kernel),
           reactants(reactants),
@@ -334,9 +317,8 @@ namespace MEPBM {
     {}
 
     const Particle particleA, particleB;
-    const Real reaction_rate;
     const unsigned int max_particle_size;
-    const std::function<Real(const unsigned int)> growth_kernel;
+    const std::function<Real(const unsigned int, const unsigned int)> growth_kernel;
     const std::vector<std::pair<Species, unsigned int>> reactants, products;
 
     /// Returns a function for the right-hand side of the ODE that is compatible with the SUNDIALS API.
@@ -353,8 +335,6 @@ namespace MEPBM {
           const auto agglomA = particleA.species(indexA);
 
           // Loop through all particleB particles
-          // FIXME? If particleA=particleB or if there is overlap, then there is some double counting
-          // FIXME? But this likely doesn't matter since the inverse problem will just find 1/2*k instead of k
           for (unsigned int indexB=particleB.index_start; indexB <= particleB.index_end; ++indexB)
           {
             // Extract particleB reactant species
@@ -376,7 +356,7 @@ namespace MEPBM {
             }
 
             // Calculate the reaction rate.
-            const auto rate = reaction_rate * growth_kernel(sizeA) * growth_kernel(sizeB);
+            const auto rate = growth_kernel(sizeA, sizeB);
 
             // Create the chemical reaction
             ChemicalReaction<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>> rxn(all_reactants, all_products, rate);
@@ -385,7 +365,6 @@ namespace MEPBM {
             auto rhs = rxn.rhs_function();
 
             // Apply the rhs to the inputs
-            // FIXME: should this be += instead of =?
             output_value = rhs(time, x, x_dot, user_data);
           }
         }
@@ -408,8 +387,6 @@ namespace MEPBM {
           const auto agglomA = particleA.species(indexA);
 
           // Loop through all particleB particles
-          // FIXME? If particleA=particleB or if there is overlap, then there is some double counting
-          // FIXME? But this likely doesn't matter since the inverse problem will just find 1/2*k instead of k
           for (unsigned int indexB=particleB.index_start; indexB <= particleB.index_end; ++indexB)
           {
             // Extract particleB reactant species
@@ -431,7 +408,7 @@ namespace MEPBM {
             }
 
             // Calculate the reaction rate.
-            const auto rate = reaction_rate * growth_kernel(sizeA) * growth_kernel(sizeB);
+            const auto rate = growth_kernel(sizeA, sizeB);
 
             // Create the chemical reaction
             ChemicalReaction<Real, Eigen::SparseMatrix<Real, Eigen::RowMajor>> rxn(all_reactants, all_products, rate);
@@ -440,7 +417,6 @@ namespace MEPBM {
             auto jac = rxn.jacobian_function();
 
             // Apply the rhs to the inputs
-            // FIXME: should this be += instead of =?
             output_value = jac(x, triplet_list, Jacobian);
           }
         }

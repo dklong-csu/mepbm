@@ -31,11 +31,9 @@ check_vars(InputType & rxn)
   std::cout << std::boolalpha << (rxn.particleB.index_end == 7) << std::endl;
   std::cout << std::boolalpha << (rxn.particleB.first_size == 3) << std::endl;
 
-  std::cout << std::boolalpha << (rxn.reaction_rate == 1.5) << std::endl;
-
   std::cout << std::boolalpha << (rxn.max_particle_size == 6) << std::endl;
 
-  std::cout << std::boolalpha << (rxn.growth_kernel(10) == 25.) << std::endl;
+  std::cout << std::boolalpha << (rxn.growth_kernel(5,2) == 25.) << std::endl;
 
   std::cout << std::boolalpha << (rxn.reactants.size() == 1) << std::endl;
   std::cout << std::boolalpha << (rxn.reactants[0].first.index == 0) << std::endl;
@@ -49,9 +47,9 @@ check_vars(InputType & rxn)
 
 
 Real
-growth_kernel(const unsigned int size)
+growth_kernel(const unsigned int sizeA, const unsigned int sizeB)
 {
-  return size * 2.5;
+  return sizeA * 2.5 * sizeB;
 }
 
 
@@ -68,12 +66,10 @@ int main ()
 
   const unsigned int max_particle_size = 6;
 
-  const Real reaction_rate = 1.5;
-
   // Test
-  MEPBM::ParticleAgglomeration<Real, DenseMatrix> agglom_dense(B,C,reaction_rate,max_particle_size,&growth_kernel,reactants, products);
+  MEPBM::ParticleAgglomeration<Real, DenseMatrix> agglom_dense(B,C,max_particle_size,&growth_kernel,reactants, products);
   check_vars(agglom_dense);
 
-  MEPBM::ParticleAgglomeration<Real, SparseMatrix> agglom_sparse(B,C,reaction_rate,max_particle_size,&growth_kernel,reactants, products);
+  MEPBM::ParticleAgglomeration<Real, SparseMatrix> agglom_sparse(B,C,max_particle_size,&growth_kernel,reactants, products);
   check_vars(agglom_sparse);
 }
