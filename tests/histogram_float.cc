@@ -1,4 +1,3 @@
-#include <boost/numeric/odeint.hpp>
 #include <iostream>
 #include <string>
 #include "src/histogram.h"
