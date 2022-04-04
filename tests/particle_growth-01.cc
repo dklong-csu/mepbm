@@ -25,8 +25,6 @@ check_rxn_members(const InputType & rxn)
   std::cout << std::boolalpha << (rxn.particle.index_end == 5) << std::endl;
   std::cout << std::boolalpha << (rxn.particle.first_size == 3) << std::endl;
 
-  std::cout << std::boolalpha << (rxn.reaction_rate == 1.5) << std::endl;
-
   std::cout << std::boolalpha << (rxn.growth_amount == 1) << std::endl;
 
   std::cout << std::boolalpha << (rxn.max_particle_size == 6) << std::endl;
@@ -60,7 +58,6 @@ int main ()
 
   ReactionPair rxnA = {A,2};
   ReactionPair rxnL = {L, 3};
-  const double reaction_rate = 1.5;
 
   const std::vector<ReactionPair> reactants = {rxnA};
   const std::vector<ReactionPair> products = {rxnL};
@@ -71,7 +68,6 @@ int main ()
 
   // Test for Dense and Sparse matrices
   MEPBM::ParticleGrowth<Real, DenseMatrix> growth_dense(B,
-                                                        reaction_rate,
                                                         growth_amount,
                                                         max_particle_size,
                                                         &growth_kernel<Real>,
@@ -82,7 +78,6 @@ int main ()
 
 
   MEPBM::ParticleGrowth<Real, SparseMatrix > growth_sparse(B,
-                                                        reaction_rate,
                                                         growth_amount,
                                                         max_particle_size,
                                                         &growth_kernel<Real>,

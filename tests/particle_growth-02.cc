@@ -150,7 +150,7 @@ template <typename Real>
 Real
 growth_kernel(const unsigned int size)
 {
-  return size * 2.5;
+  return size * 2.5 * 1.5;
 }
 
 
@@ -168,7 +168,6 @@ int main ()
 
   ReactionPair rxnA = {A,2};
   ReactionPair rxnL = {L, 3};
-  const double reaction_rate = 1.5;
 
   const std::vector<ReactionPair> reactants = {rxnA};
   const std::vector<ReactionPair> products = {rxnL};
@@ -179,7 +178,6 @@ int main ()
 
   // Test for dense matrix
   MEPBM::ParticleGrowth<Real, DenseMatrix> growth_dense(B,
-                                                        reaction_rate,
                                                         growth_amount,
                                                         max_particle_size,
                                                         &growth_kernel<Real>,
@@ -192,7 +190,6 @@ int main ()
 
   // Test for sparse matrix -- column storage
   MEPBM::ParticleGrowth<Real, SparseMatrix> growth_sparse(B,
-                                                        reaction_rate,
                                                         growth_amount,
                                                         max_particle_size,
                                                         &growth_kernel<Real>,
@@ -205,7 +202,6 @@ int main ()
 
   // Test for sparse matrix -- row storage
   MEPBM::ParticleGrowth<Real, SparseMatrix2> growth_sparse2(B,
-                                                          reaction_rate,
                                                           growth_amount,
                                                           max_particle_size,
                                                           &growth_kernel<Real>,

@@ -98,13 +98,11 @@ run_test()
                                                   1.0);
   MEPBM::ParticleGrowth<Real, Matrix> grow1(D,
                                                  1,
-                                                 1,
                                                  3,
                                                  &growth_kernel<Real>,
                                                  {{A,1}},
                                                  {});
   MEPBM::ParticleGrowth<Real, Matrix> grow2(E,
-                                                 1,
                                                  1,
                                                  3,
                                                  &growth_kernel<Real>,
