@@ -14,7 +14,8 @@
 #include <eigen3/Eigen/Sparse>
 
 #include <functional>
-#include <stdio.h>
+#include <cstdio>
+#include <utility>
 
 
 
@@ -37,12 +38,11 @@ namespace MEPBM {
            /*This just means to pass a function pointer that returns an `int` and has `Real, N_Vector, N_Vector, SUNMatrix, void *, N_Vector, N_Vector, N_Vector` as parameters*/
            int (*jacobian_function)(Real, N_Vector, N_Vector, SUNMatrix, void *, N_Vector, N_Vector, N_Vector),
            Real initial_time,
-           Real final_time)
+           Real final_time,
+           const int max_steps=-1)
      : template_vector(nullptr),
        cvode_memory(nullptr),
-       flag(-1),
-       initial_time(initial_time),
-       final_time(final_time)
+       flag(-1)
      {
        // Used for checking when SUNDIALS functions are called.
        int check = 0;
@@ -78,10 +78,8 @@ namespace MEPBM {
        assert(check == 0);
 
 
-       // Set maximum number of steps -- a negative value disables the test which is what we want by default
-       // This really should not be modified because if the solver fails to reach the desired time then the
-       // ODE solution cannot be trusted and should not be used for subsequent calculations.
-       flag = CVodeSetMaxNumSteps(cvode_memory, -1);
+       // Set maximum number of steps
+       flag = CVodeSetMaxNumSteps(cvode_memory, max_steps);
        check = check_flag(&flag, "CVodeSetMaxNumSteps", RETURNNONNEGATIVE);
        assert(check == 0);
 
@@ -141,15 +139,16 @@ namespace MEPBM {
      }
 
      /// Function to solve the ODE.
-     N_Vector
+     std::pair<N_Vector, int>
      solve(Real solve_time)
      {
        N_Vector solution = template_vector->ops->nvclone(template_vector);
        Real t;
        flag = CVode(cvode_memory, solve_time, solution, &t, CV_NORMAL);
        const int check = MEPBM::check_flag(&flag, "CVODE",MEPBM::RETURNNONNEGATIVE);
+       //std::cout << flag << std::endl;
        assert(check == 0);
-       return solution;
+       return {solution, check};
      }
 
 
@@ -163,12 +162,6 @@ namespace MEPBM {
 
      /// Flag for checking if the SUNDIALS functions worked.
      int flag;
-
-     /// The initial time, i.e. the time associated with the provided initial condition (usually time=0).
-     const Real initial_time;
-
-     /// The final time, i.e. the last time you want a solution vector.
-     const Real final_time;
 
      /// Error file
      FILE* err_file;
