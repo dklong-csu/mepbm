@@ -72,7 +72,8 @@ int main ()
   Real t = 0.1;
   while (t <= t1)
   {
-    auto solution = ode_solver.solve(t);
+    auto solution_pair = ode_solver.solve(t);
+    auto solution = solution_pair.first;
     // The answer should be close to exp(-10*t)
     const Vector s = *static_cast<Vector*>(solution->content);
     std::cout << std::setprecision(20) << std::fixed << s << std::endl;
