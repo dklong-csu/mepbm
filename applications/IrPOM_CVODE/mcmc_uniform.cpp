@@ -242,7 +242,8 @@ log_probability(const Sample & sample)
   Real log_prob = 0;
   for (unsigned int i=0; i<times.size();++i)
   {
-    auto sol = ode_solver.solve(times[i]);
+    auto sol_pair = ode_solver.solve(times[i]);
+    auto sol = sol_pair.first;
     log_prob += log_likelihood(sol, tem_data[i]);
     // Delete sol from the heap
     sol->ops->nvdestroy(sol);
