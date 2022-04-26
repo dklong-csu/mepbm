@@ -96,22 +96,23 @@ run_test()
   MEPBM::ChemicalReaction<Real, Matrix> rxn1({ {A,1}, {B,1} },
                                                   { {C,1} },
                                                   1.0);
+  auto g_fcn = [&](const unsigned int size){return 1 * growth_kernel<Real>(size);};
   MEPBM::ParticleGrowth<Real, Matrix> grow1(D,
                                                  1,
                                                  3,
-                                                 &growth_kernel<Real>,
+                                                 g_fcn,
                                                  {{A,1}},
                                                  {});
   MEPBM::ParticleGrowth<Real, Matrix> grow2(E,
                                                  1,
                                                  3,
-                                                 &growth_kernel<Real>,
+                                                 g_fcn,
                                                  {{A,1}},
                                                  {});
   MEPBM::ParticleAgglomeration<Real, Matrix> agglom1(D,
                                                           D,
                                                           3,
-                                                          [&](const unsigned int sizeA, const unsigned int sizeB){return growth_kernel<Real>(sizeA)*
+                                                          [&](const unsigned int sizeA, const unsigned int sizeB){return 1 *growth_kernel<Real>(sizeA)*
                                                                                                                          growth_kernel<Real>(sizeB);},
                                                           {},
                                                           {});
