@@ -2,8 +2,6 @@
 #include <iostream>
 #include "eigen3/Eigen/Dense"
 #include "eigen3/Eigen/Sparse"
-#include <vector>
-#include <utility>
 #include <cmath>
 
 
@@ -43,9 +41,9 @@ create_mechanism()
   const Real k1 = 1e4;
   const Real k2 = 1e4;
   const Real k3 = 1e3;
-  const unsigned int M = 50;
+  const unsigned int M = 20;
 
-  const unsigned int max_size = 800;
+  const unsigned int max_size = 450;
 
   // Form the mechanism
   // Index the vector in the order:
@@ -79,8 +77,7 @@ int rhs(Real t, N_Vector x, N_Vector x_dot, void * user_data)
   auto rhs = mech.rhs_function();
 
   // Apply the function
-  int err = 0;
-  err = rhs(t, x, x_dot, user_data);
+  int err = rhs(t, x, x_dot, user_data);
 
   return err;
 }
@@ -95,8 +92,7 @@ int jac(Real t, N_Vector x, N_Vector x_dot, SUNMatrix J, void * user_data, N_Vec
   auto jac = mech.jacobian_function();
 
   // Apply the function
-  int err = 0;
-  err = jac(t, x, x_dot, J, user_data, tmp1, tmp2, tmp3);
+  int err = jac(t, x, x_dot, J, user_data, tmp1, tmp2, tmp3);
 
   return err;
 }
@@ -106,7 +102,7 @@ int main ()
 {
   // Initial condition
   auto ic = MEPBM::create_eigen_nvector<Vector>(802);
-  Vector* ic_vec = static_cast<Vector*>(ic->content);
+  auto ic_vec = static_cast<Vector*>(ic->content);
   (*ic_vec)(0) = 0.0025;
   (*ic_vec)(1) = 0;
   (*ic_vec)(2) = 0.0625;
@@ -121,7 +117,7 @@ int main ()
   auto template_matrix = MEPBM::create_eigen_sunmatrix<Matrix>(ic->ops->nvgetlength(ic),ic->ops->nvgetlength(ic));
 
   // Create the linear solver
-  auto linear_solver = MEPBM::create_sparse_direct_solver<Matrix, Real, Solver>();
+  auto linear_solver = MEPBM::create_sparse_iterative_solver<Matrix, Real, Solver>();
 
   // Create the CVODE object
   MEPBM::CVODE<Real> ode_solver(ic,template_matrix, linear_solver,&rhs,&jac,t0,t1);
@@ -131,7 +127,8 @@ int main ()
   const Real dt = (t1-t0)/n_solutions;
   for (unsigned int s=0; s<n_solutions; ++s)
   {
-    auto solution = ode_solver.solve(dt + s*dt);
+    auto solution_pair = ode_solver.solve(dt + s*dt);
+    auto solution = solution_pair.first;
     const Vector sol = *static_cast<Vector*>(solution->content);
 
     // Multiply solution vector by number of Iridium atoms in each entry

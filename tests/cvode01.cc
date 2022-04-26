@@ -69,7 +69,8 @@ int main ()
   MEPBM::CVODE<Real> ode_solver(ic,template_matrix, linear_solver,&rhs,&jac,t0,t1);
 
   // Solve the ODE
-  auto solution = ode_solver.solve(t1);
+  auto solution_pair = ode_solver.solve(t1);
+  auto solution = solution_pair.first;
 
   // The answer should be close to exp(-10)
   const Vector s = *static_cast<Vector*>(solution->content);

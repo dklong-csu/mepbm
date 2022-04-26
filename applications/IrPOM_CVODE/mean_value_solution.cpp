@@ -121,7 +121,8 @@ solve_ode(const Sample & sample, const std::string & file_name)
   std::vector<Real> times = {0.918, 1.17, 2.336, 4.838};
   for (unsigned int i=0; i<times.size();++i)
   {
-    auto sol = ode_solver.solve(times[i]);
+    auto sol_pair = ode_solver.solve(times[i]);
+    auto sol = sol_pair.first;
     // output solution to a file in Matlab format
     std::string var_name = "sol" + std::to_string(i);
     out_file << var_name << " = [";

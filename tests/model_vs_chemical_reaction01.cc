@@ -1,7 +1,6 @@
 #include "sampling_sundials.h"
 #include "sampling_custom_ode.h"
 #include <iostream>
-#include <iomanip>
 
 
 
@@ -90,7 +89,6 @@ create_new_ode(const Real kf, const Real kb, const Real k1, const Real k2, const
   constexpr unsigned int A_index = 0;
   constexpr unsigned int As_index = 1;
   constexpr unsigned int ligand_index = 2;
-  constexpr unsigned int min_size = 3;
   constexpr unsigned int max_size = 2500;
   constexpr unsigned int conserved_size = 1;
   constexpr Real solvent = 11.3;
@@ -183,7 +181,8 @@ solve_ode_new(const Real t)
   auto linear_solver = MEPBM::create_sparse_iterative_solver<Matrix, Real, Solver>();
   MEPBM::CVODE<Real> ode_solver(ic, template_matrix, linear_solver,&cvode_rhs_func,&cvode_jac_func,0,1);
   ode_solver.set_tolerance(1e-7,1e-13);
-  auto sol = ode_solver.solve(t);
+  auto sol_pair = ode_solver.solve(t);
+  auto sol = sol_pair.first;
   auto s = *static_cast<Vector*>(sol->content);
 
   ic->ops->nvdestroy(ic);
@@ -242,7 +241,7 @@ int main ()
   const Real k3 = 6.22e3;
   const unsigned int M = 107;
 
-  const Real t_solv = 1;
+  const Real t_solv = 0.1;
 
 
 
