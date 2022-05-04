@@ -2,6 +2,7 @@
 #define MEPBM_IrHPO4_H
 
 #include "src/create_nvector.h"
+#include "src/chemical_reaction_network.h"
 
 
 namespace MEPBM {
@@ -75,19 +76,211 @@ namespace MEPBM {
         (*ic_ptr)(hpo4_index()) = IC_hpo4();
         return ic;
        }
+
+
+
+       std::pair<unsigned int, unsigned int> particle_index_range(const unsigned int n_nonparticle_species, const unsigned int first_particle_size) {
+         const auto first_index = n_nonparticle_species;
+         const auto last_index = vector_length(n_nonparticle_species, first_particle_size) - 1;
+         return {first_index, last_index};
+       }
      private:
        const unsigned int max_size;
        const Real solvent_conc;
        const Real precursor_conc;
        const Real hpo4_conc;
      };
+
+
+
+    /********************************************************************************
+    * Growth/Agglomeration functions
+    ********************************************************************************/
+
+
+    /**
+     * Each atom in a nanoparticle will be able to bind with other species, so long as it is on the outside
+     * of the particle. The reaction thus will be sped up in proportion to how many cluster are on the surface
+     * of the particle. Adapted from the work in https://doi.org/10.1007/s11244-005-9261-4.
+     *
+     * @param size - The particle size
+     * @return - The amount the base reaction rate should be multiplied by to account for the particle size.
+     */
+     template<typename Real>
+     Real r_func(const unsigned int size) {
+       return (1.0*size) * 2.677 * std::pow(1.0*size, -0.28);
+     }
+
+
+
+     /**
+      * Similar to r_func but caps the regression formula from https://doi.org/10.1007/s11244-005-9261-4 at 1.
+      * The original formula from the reference results in values above 1 for small particles sizes. Once
+      * multiplied by the size, the interpretation is "how many atoms are on the surface". Giving a number
+      * larger than the particle size (i.e. total number of atoms) is unphysical. So capping the number at surface
+      * atoms at the total number of atoms has a stronger physical interpretation.
+      *
+      * @tparam Real - The type representing real-valued numbers (e.g. double, float)
+      * @param size  - The particle size
+      * @return - The amount the base reaction rate should be multiplied by to account for the particle size.
+      */
+    template<typename Real>
+    Real r_func_capped(const unsigned int size) {
+      return std::min(1.0*size, r_func<Real>(size));
+    }
+
+
+
+    template<typename Real, typename Sample>
+    class BaseGrowthKernel {
+    public:
+      // Virtual function gets overriden by derived class. =0 means the derived class MUST define this function.
+      virtual std::function<Real(const unsigned int)> get_function(const Sample & sample) = 0;
+    };
+
+
+
+    template<typename Real, typename Sample>
+    class StepGrowthKernel : BaseGrowthKernel<Real, Sample> {
+    public:
+      /**
+       * Constructor
+       * @param calc_surface_atoms - Function used to modify the base growth rate to account for the number of surface atoms.
+       * @param sample_indices - the indices in the sample that provide the reaction rate for each step.
+       * @param step_locations - the particle sizes corresponding to where a new step takes place.
+       */
+      StepGrowthKernel(std::function<Real(const unsigned int)> calc_surface_atoms,
+                       const std::vector<unsigned int> sample_indices,
+                       const std::vector<unsigned int> step_locations)
+      : calc_surface_atoms(calc_surface_atoms),
+        sample_indices(sample_indices),
+        step_locations(step_locations)
+      {
+        assert(sample_indices.size() == step_locations.size() + 1);
+      }
+
+
+      std::function<Real(const unsigned int)> get_function(const Sample & sample) override {
+        auto result = [&](const unsigned int size) {
+          // See if the particle is smaller than any of the specified step locations
+          for (unsigned int i = 0; i<step_locations.size(); ++i) {
+            if (size < step_locations[i])
+              return sample(sample_indices[i]) * calc_surface_atoms(size);
+          }
+          // If not, then the last parameter specified in sample provides the base reaction rate
+          return sample(sample_indices.back()) * calc_surface_atoms(size);
+        };
+        return result;
+      }
+
+    private:
+      const std::function<Real(const unsigned int)> calc_surface_atoms;
+      const std::vector<unsigned int> sample_indices;
+      const std::vector<unsigned int> step_locations;
+    };
+
+
+
+
+    template<typename Real, typename Sample>
+    class BaseAgglomerationKernel {
+    public:
+      // Virtual function gets overriden by derived class. =0 means the derived class MUST define this function.
+      virtual std::function<Real(const unsigned int)> get_function(const Sample & sample) = 0;
+    };
+
+
+
     /********************************************************************************
      * Mechanism definitions
      ********************************************************************************/
 
-    /********************************************************************************
-     * Growth/Agglomeration functions
-     ********************************************************************************/
+
+    /**
+     *  Represents the mechanism
+     *      A_2 + 2solv     <->[kf,kb]          A_2(solv) + L
+     *      A_2(solv)        ->[k1]             B_2 + L
+     *      A_2 + B_i        ->[growth(i)]      B_{i+2} + 2L
+     *      B_i + B_j        ->[agglom(i,j)]    B_{i+j}
+     *  where growth(i) is a function giving the reaction rate for the growth of a particle of size i
+     *  and agglom(i,j) is a function giving the reaction rate for agglomeration between a particle of size i and j
+     */
+    template<typename Vector, typename Matrix, typename Real, typename Sample>
+    MEPBM::ChemicalReactionNetwork<Real, Matrix>
+    create_mech1A(const Sample & sample,
+                  const BaseGrowthKernel<Real, Sample> & growth_kernel,
+                  const BaseAgglomerationKernel<Real, Sample> & agglomeration_kernel) {
+      // Get the experimental design
+      const ExperimentalDesign<Vector, Real> design;
+
+
+      // Constants specific to the mechanism
+      const unsigned int n_nonparticle_species = 3;
+      const unsigned int first_particle_size = 2;
+      const unsigned int growth_amount = 2;
+
+
+      // Define chemical species being tracked
+      MEPBM::Species A(design.precursor_index());
+      MEPBM::Species L(design.hpo4_index());
+      MEPBM::Species Asolv(design.hpo4_index()+1);
+      const auto particle_index_range = design.particle_index_range(n_nonparticle_species, first_particle_size);
+      MEPBM::Particle B(particle_index_range.first, particle_index_range.second, first_particle_size);
+
+
+      // Extract constants relevant to the reactions
+      const auto kf = sample[0];
+      const auto kb = sample[1];
+      const auto k1 = sample[2];
+      const auto S = design.IC_solvent();
+      const auto growth_fcn = growth_kernel.get_function(sample);
+      const auto agglom_fcn = agglomeration_kernel.get_function(sample);
+
+
+      // Chemical reactions
+      MEPBM::ChemicalReaction<Real, Matrix> nucAf(
+          { {A, 1} },
+          { {Asolv, 1}, {L, 1} },
+          S*S*kf
+      );
+
+      MEPBM::ChemicalReaction<Real, Matrix> nucAb(
+          { {Asolv, 1}, {L, 1} },
+          { {A, 1} },
+          kb
+      );
+
+      auto B_nuc = B.species(B.index(first_particle_size));
+      MEPBM::ChemicalReaction<Real, Matrix> nucB(
+          { {Asolv, 1} },
+          { {B_nuc, 1}, {L, 1} },
+          k1
+      );
+
+      MEPBM::ParticleGrowth<Real, Matrix> growth(B,
+                                                 growth_amount,
+                                                 design.max_particle_size(),
+                                                 growth_fcn,
+                                                 { {A, 1} },
+                                                 { {L, 2}}
+      );
+
+      MEPBM::ParticleAgglomeration<Real, Matrix> agglom(B,
+                                                        B,
+                                                        design.max_particle_size(),
+                                                        agglom_fcn,
+                                                        {},
+                                                        {}
+      );
+
+      MEPBM::ChemicalReactionNetwork<Real, Matrix> network({nucAf, nucAb, nucB},
+                                                           {growth},
+                                                           {agglom});
+
+      return network;
+    }
+
+
 
     /********************************************************************************
      * Discrepancy/Log likelihood models
