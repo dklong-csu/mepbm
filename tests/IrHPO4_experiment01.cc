@@ -31,6 +31,10 @@ int main () {
   std::cout << design.precursor_index() << std::endl;
   std::cout << design.hpo4_index() << std::endl;
 
+  // Check the particle index range
+  std::cout << design.particle_index_range(n_nonparticle_species, first_particle_size).first << std::endl;
+  std::cout << design.particle_index_range(n_nonparticle_species, first_particle_size).second << std::endl;
+
   // Check initial condition vector
   auto ic = design.IC_vector(n_nonparticle_species, first_particle_size);
   std::cout << *(design.get_vector_pointer(ic)) << std::endl;
