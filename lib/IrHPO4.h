@@ -19,6 +19,7 @@ namespace MEPBM {
     /********************************************************************************
      * Experimental design
      ********************************************************************************/
+     // FIXME - add documentation
      template<typename Vector, typename Real>
      class ExperimentalDesign {
      public:
@@ -131,6 +132,30 @@ namespace MEPBM {
 
 
 
+    // FIXME - add documentation
+    template<typename Real>
+    class BackwardsLogisticCurve {
+      public:
+      BackwardsLogisticCurve(const Real height, const Real midpoint, const Real rate)
+        : height(height),
+          midpoint(midpoint),
+          rate(rate)
+        {}
+
+
+        Real evaluate(const Real x) {
+          return height - height / (1 + std::exp(-rate * (x - midpoint)));
+        };
+
+      private:
+        const Real height;
+        const Real midpoint;
+        const Real rate;
+      };
+
+
+
+    // FIXME - add documentation
     template<typename Real, typename Sample>
     class BaseGrowthKernel {
     public:
@@ -140,6 +165,7 @@ namespace MEPBM {
 
 
 
+    // FIXME - add documentation
     template<typename Real, typename Sample>
     class StepGrowthKernel : BaseGrowthKernel<Real, Sample> {
     public:
@@ -177,6 +203,49 @@ namespace MEPBM {
       const std::function<Real(const unsigned int)> calc_surface_atoms;
       const std::vector<unsigned int> sample_indices;
       const std::vector<unsigned int> step_locations;
+    };
+
+
+
+    // FIXME - add documentation
+    template<typename Real, typename Sample>
+    class LogisticCurveGrowthKernel : BaseGrowthKernel<Real, Sample> {
+    public:
+      LogisticCurveGrowthKernel(std::function<Real(const unsigned int)> calc_surface_atoms,
+                                const std::vector<Real> height_values,
+                                const std::vector<Real> midpoint_values,
+                                const std::vector<Real> rate_values)
+        : calc_surface_atoms(calc_surface_atoms),
+          height_values(height_values),
+          midpoint_values(midpoint_values),
+          rate_values(rate_values)
+      {
+        assert(height_values.size() - 1 == midpoint_values.size());
+        assert(midpoint_values.size() == rate_values.size());
+      }
+
+
+    std::function<Real(const unsigned int)> get_function(const Sample & sample) override {
+        auto result = [&](const unsigned int size) {
+          Real rate = height_values.back();
+          for (unsigned int i=0; i<midpoint_values.size(); ++i) {
+            const BackwardsLogisticCurve<Real> curve(height_values[i],
+                                                     midpoint_values[i],
+                                                     rate_values[i]);
+            rate += curve.evaluate(size);
+          }
+
+
+          return rate * calc_surface_atoms(size);
+        };
+
+        return result;
+      }
+
+    private:
+      const std::function<Real(const unsigned int)> calc_surface_atoms;
+      const std::vector<Real> height_values, midpoint_values, rate_values;
+
     };
 
 
