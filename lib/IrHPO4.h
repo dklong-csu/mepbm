@@ -251,11 +251,48 @@ namespace MEPBM {
 
 
 
+    // FIXME - add documentation
     template<typename Real, typename Sample>
     class BaseAgglomerationKernel {
     public:
       // Virtual function gets overriden by derived class. =0 means the derived class MUST define this function.
-      virtual std::function<Real(const unsigned int)> get_function(const Sample & sample) const = 0;
+      virtual std::function<Real(const unsigned int, const unsigned int)> get_function(const Sample & sample) const = 0;
+    };
+
+
+
+    template<typename Real, typename Sample>
+    class StepAgglomerationKernel : BaseAgglomerationKernel<Real, Sample> {
+    public:
+      StepAgglomerationKernel(std::function<Real(const unsigned int)> calc_surface_atoms,
+                              const std::vector<unsigned int> sample_indices,
+                              const std::vector<unsigned int> step_locations)
+        : calc_surface_atoms(calc_surface_atoms),
+          sample_indices(sample_indices),
+          step_locations(step_locations)
+      {}
+
+
+
+      std::function<Real(const unsigned int, const unsigned int)> get_function(const Sample & sample) const override {
+        auto result = [&](const unsigned int sizeA, const unsigned int sizeB) {
+          // See what region the two sizes are in
+          for (unsigned int i = 0; i<step_locations.size(); ++i) {
+            if ( sizeA < step_locations[i] && sizeB < step_locations[i])
+              return sample[sample_indices[i]] * calc_surface_atoms(sizeA) * calc_surface_atoms(sizeB);
+          }
+          // If not, then the last parameter specified in sample provides the base reaction rate
+          return sample[sample_indices.back()] * calc_surface_atoms(sizeA) * calc_surface_atoms(sizeB);
+        };
+        return result;
+      }
+
+
+
+    private:
+      const std::function<Real(const unsigned int)> calc_surface_atoms;
+      const std::vector<unsigned int> sample_indices;
+      const std::vector<unsigned int> step_locations;
     };
 
 
