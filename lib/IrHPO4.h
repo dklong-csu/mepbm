@@ -32,45 +32,45 @@ namespace MEPBM {
 
 
 
-       unsigned int max_particle_size() {return max_size;}
+       unsigned int max_particle_size() const {return max_size;}
 
 
 
-       unsigned int vector_length(const unsigned int n_nonparticle_species, const unsigned int first_particle_size) {
+       unsigned int vector_length(const unsigned int n_nonparticle_species, const unsigned int first_particle_size) const {
          const auto n_particles = max_size - first_particle_size + 1;
          return n_nonparticle_species + n_particles;
        }
 
 
 
-       Real IC_solvent() {return solvent_conc;}
+       Real IC_solvent() const {return solvent_conc;}
 
 
 
-       Real IC_precursor() {return precursor_conc;}
+       Real IC_precursor() const {return precursor_conc;}
 
 
 
-       Real IC_hpo4() {return hpo4_conc;}
+       Real IC_hpo4() const {return hpo4_conc;}
 
 
 
-       unsigned int precursor_index() {return 0;}
+       unsigned int precursor_index() const {return 0;}
 
 
 
-       unsigned int hpo4_index() {return 1;}
+       unsigned int hpo4_index() const {return 1;}
 
 
 
-       Vector* get_vector_pointer(N_Vector vec) {
+       Vector* get_vector_pointer(N_Vector vec) const {
          auto vec_ptr = static_cast<Vector*>(vec->content);
          return vec_ptr;
        }
 
 
 
-      N_Vector IC_vector(const unsigned int n_nonparticle_species, const unsigned int first_particle_size) {
+      N_Vector IC_vector(const unsigned int n_nonparticle_species, const unsigned int first_particle_size) const {
          auto ic = MEPBM::create_eigen_nvector<Vector>(vector_length(n_nonparticle_species, first_particle_size));
          auto ic_ptr = get_vector_pointer(ic);
         (*ic_ptr)(precursor_index()) = IC_precursor();
@@ -80,7 +80,7 @@ namespace MEPBM {
 
 
 
-       std::pair<unsigned int, unsigned int> particle_index_range(const unsigned int n_nonparticle_species, const unsigned int first_particle_size) {
+       std::pair<unsigned int, unsigned int> particle_index_range(const unsigned int n_nonparticle_species, const unsigned int first_particle_size) const {
          const auto first_index = n_nonparticle_species;
          const auto last_index = vector_length(n_nonparticle_species, first_particle_size) - 1;
          return {first_index, last_index};
@@ -160,7 +160,7 @@ namespace MEPBM {
     class BaseGrowthKernel {
     public:
       // Virtual function gets overriden by derived class. =0 means the derived class MUST define this function.
-      virtual std::function<Real(const unsigned int)> get_function(const Sample & sample) = 0;
+      virtual std::function<Real(const unsigned int)> get_function(const Sample & sample) const = 0;
     };
 
 
@@ -186,7 +186,7 @@ namespace MEPBM {
       }
 
 
-      std::function<Real(const unsigned int)> get_function(const Sample & sample) override {
+      std::function<Real(const unsigned int)> get_function(const Sample & sample) const override {
         auto result = [&](const unsigned int size) {
           // See if the particle is smaller than any of the specified step locations
           for (unsigned int i = 0; i<step_locations.size(); ++i) {
@@ -225,7 +225,7 @@ namespace MEPBM {
       }
 
 
-    std::function<Real(const unsigned int)> get_function(const Sample & sample) override {
+    std::function<Real(const unsigned int)> get_function(const Sample & sample) const override {
         auto result = [&](const unsigned int size) {
           Real rate = sample[height_indices.back()];
           for (unsigned int i=0; i<midpoints.size(); ++i) {
@@ -255,7 +255,7 @@ namespace MEPBM {
     class BaseAgglomerationKernel {
     public:
       // Virtual function gets overriden by derived class. =0 means the derived class MUST define this function.
-      virtual std::function<Real(const unsigned int)> get_function(const Sample & sample) = 0;
+      virtual std::function<Real(const unsigned int)> get_function(const Sample & sample) const = 0;
     };
 
 
