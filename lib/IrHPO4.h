@@ -165,10 +165,10 @@ namespace MEPBM {
           // See if the particle is smaller than any of the specified step locations
           for (unsigned int i = 0; i<step_locations.size(); ++i) {
             if (size < step_locations[i])
-              return sample(sample_indices[i]) * calc_surface_atoms(size);
+              return sample[sample_indices[i]] * calc_surface_atoms(size);
           }
           // If not, then the last parameter specified in sample provides the base reaction rate
-          return sample(sample_indices.back()) * calc_surface_atoms(size);
+          return sample[sample_indices.back()] * calc_surface_atoms(size);
         };
         return result;
       }
