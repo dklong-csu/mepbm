@@ -143,7 +143,7 @@ namespace MEPBM {
         {}
 
 
-        Real evaluate(const Real x) {
+        Real evaluate(const Real x) const {
           return height - height / (1 + std::exp(-rate * (x - midpoint)));
         };
 
@@ -212,26 +212,26 @@ namespace MEPBM {
     class LogisticCurveGrowthKernel : BaseGrowthKernel<Real, Sample> {
     public:
       LogisticCurveGrowthKernel(std::function<Real(const unsigned int)> calc_surface_atoms,
-                                const std::vector<Real> height_values,
-                                const std::vector<Real> midpoint_values,
-                                const std::vector<Real> rate_values)
+                                const std::vector<unsigned int> height_indices,
+                                const std::vector<unsigned int> midpoints,
+                                const std::vector<unsigned int> rate_indices)
         : calc_surface_atoms(calc_surface_atoms),
-          height_values(height_values),
-          midpoint_values(midpoint_values),
-          rate_values(rate_values)
+          height_indices(height_indices),
+          midpoints(midpoints),
+          rate_indices(rate_indices)
       {
-        assert(height_values.size() - 1 == midpoint_values.size());
-        assert(midpoint_values.size() == rate_values.size());
+        assert(height_indices.size() - 1 == midpoints.size());
+        assert(midpoints.size() == rate_indices.size());
       }
 
 
     std::function<Real(const unsigned int)> get_function(const Sample & sample) override {
         auto result = [&](const unsigned int size) {
-          Real rate = height_values.back();
-          for (unsigned int i=0; i<midpoint_values.size(); ++i) {
-            const BackwardsLogisticCurve<Real> curve(height_values[i],
-                                                     midpoint_values[i],
-                                                     rate_values[i]);
+          Real rate = sample[height_indices.back()];
+          for (unsigned int i=0; i<midpoints.size(); ++i) {
+            const BackwardsLogisticCurve<Real> curve(sample[height_indices[i]],
+                                                     midpoints[i],
+                                                     sample[rate_indices[i]]);
             rate += curve.evaluate(size);
           }
 
@@ -244,7 +244,7 @@ namespace MEPBM {
 
     private:
       const std::function<Real(const unsigned int)> calc_surface_atoms;
-      const std::vector<Real> height_values, midpoint_values, rate_values;
+      const std::vector<unsigned int> height_indices, midpoints, rate_indices;
 
     };
 
