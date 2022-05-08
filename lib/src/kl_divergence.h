@@ -7,6 +7,7 @@
 #include <cmath>
 #include <numeric>
 #include <stdexcept>
+#include <limits>
 
 
 
@@ -33,8 +34,13 @@ namespace MEPBM {
     Real kl_div = 0.0;
     for (unsigned int i=0; i<distribution.size(); ++i) {
       // If distribution[i] == 0, the contribution is interpreted to be zero.
-      if (distribution[i] > 0) {
+      if (distribution[i] > 0 && ref_distribution[i] > 0) {
         kl_div += distribution[i] * std::log(distribution[i] / ref_distribution[i]);
+      }
+      else if (distribution[i] > 0 && ref_distribution[i] <= 0) {
+        // If the reference distribution has a category with 0 probability but the comparison distribution does not
+        // then the KL divergence is infinity
+        return std::numeric_limits<Real>::max();
       }
     }
     return kl_div;
