@@ -1,6 +1,5 @@
 #include "IrHPO4.h"
 #include <iostream>
-#include <iomanip>
 
 int main () {
   // Sample to use for all of the tests
