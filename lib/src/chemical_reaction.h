@@ -292,7 +292,9 @@ namespace MEPBM {
             assert(row <= J->cols());
             assert(row >= 0);
             // Reactants have negative derivatives.
-            triplet_list.push_back(Eigen::Triplet<Real>(row, col, -1.0 * chemical.second * deriv));
+            auto rxn = -1.0 * chemical.second * deriv;
+            if (rxn != 0.0)
+              triplet_list.push_back(Eigen::Triplet<Real>(row, col, rxn));
           }
 
           // Add to the triplet list for each product.
@@ -304,7 +306,9 @@ namespace MEPBM {
             assert(row <= J->cols());
             assert(row >= 0);
             // Products have positive derivatives.
-            triplet_list.push_back(Eigen::Triplet<Real>(row, col, chemical.second * deriv));
+            auto rxn = chemical.second * deriv;
+            if (rxn != 0.0)
+              triplet_list.push_back(Eigen::Triplet<Real>(row, col, rxn));
           }
         }
 
@@ -448,7 +452,9 @@ namespace MEPBM {
             assert(row <= J->cols());
             assert(row >= 0);
             // Reactants have negative derivatives.
-            triplet_list.push_back(Eigen::Triplet<Real>(row, col, -1.0 * chemical.second * deriv));
+            auto rxn = -1.0 * chemical.second * deriv;
+            if (rxn != 0.0)
+              triplet_list.push_back(Eigen::Triplet<Real>(row, col, rxn));
           }
 
           // Add to the triplet list for each product.
@@ -460,7 +466,9 @@ namespace MEPBM {
             assert(row <= J->cols());
             assert(row >= 0);
             // Products have positive derivatives.
-            triplet_list.push_back(Eigen::Triplet<Real>(row, col, chemical.second * deriv));
+            auto rxn = chemical.second * deriv;
+            if (rxn != 0.0)
+              triplet_list.push_back(Eigen::Triplet<Real>(row, col, rxn));
           }
         }
 
