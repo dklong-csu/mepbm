@@ -1,3 +1,8 @@
+#ifndef MEPBM_OUTPUT_RESULT_H
+#define MEPBM_OUTPUT_RESULT_H
+
+
+
 #include <string>
 #include <fstream>
 #include <iostream>
@@ -6,6 +11,12 @@
 
 
 namespace MEPBM {
+  /**
+   * A function that exports a result to a specified file.
+   * @tparam ResultType - Type associated with the result being exported. ResultType must have a `std::ofstream <<` operator defined.
+   * @param result - The information to be output to a file.
+   * @param file_path - The name of the file containing the output.
+   */
   template<typename ResultType>
   void
   output_result(const ResultType & result, const std::string file_path) {
@@ -14,3 +25,5 @@ namespace MEPBM {
     outputfile.close();
   }
 }
+
+#endif // MEPBM_OUTPUT_RESULT_H
