@@ -29,6 +29,13 @@ namespace MEPBM {
    class CVODE
    {
    public:
+     CVODE()
+       : template_vector(nullptr),
+       cvode_memory(nullptr),
+       flag(-1),
+       err_file(nullptr)
+     {}
+
      /// Constructor
      CVODE(N_Vector initial_condition,
            SUNMatrix template_matrix,
