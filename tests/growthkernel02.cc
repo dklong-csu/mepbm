@@ -1,4 +1,4 @@
-#include "IrHPO4.h"
+#include "src/growth_kernel.h"
 #include <iostream>
 #include <iomanip>
 
@@ -16,7 +16,7 @@ int main () {
 
 
   // Test for one logistic curve
-  MEPBM::IrHPO4::LogisticCurveGrowthKernel<double, std::vector<double>> kern1(one_fcn,
+  MEPBM::LogisticCurveGrowthKernel<double, std::vector<double>> kern1(one_fcn,
                                                                               {0, 2},
                                                                               {2},
                                                                               {1});
@@ -27,7 +27,7 @@ int main () {
 
 
   // Test for two logistic curves
-  MEPBM::IrHPO4::LogisticCurveGrowthKernel<double, std::vector<double>> kern2(one_fcn,
+  MEPBM::LogisticCurveGrowthKernel<double, std::vector<double>> kern2(one_fcn,
                                                                               {0, 2, 4},
                                                                               {2, 3},
                                                                               {1, 3});
@@ -39,7 +39,7 @@ int main () {
 
   // Test for one logistic curve + non-trivial surface atoms function
   auto interesting_fcn = [](const unsigned int s) {return 1.0 * s;};
-  MEPBM::IrHPO4::LogisticCurveGrowthKernel<double, std::vector<double>> kern3(interesting_fcn,
+  MEPBM::LogisticCurveGrowthKernel<double, std::vector<double>> kern3(interesting_fcn,
                                                                               {0, 2},
                                                                               {2},
                                                                               {1});
