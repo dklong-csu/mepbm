@@ -1,4 +1,4 @@
-#include "IrHPO4.h"
+#include "src/agglomeration_kernel.h"
 #include <iostream>
 
 int main () {
@@ -13,7 +13,7 @@ int main () {
 
 
   // Test for 1 step
-  MEPBM::IrHPO4::StepAgglomerationKernel<double, std::vector<double>> kern1(one_fcn,
+  MEPBM::StepAgglomerationKernel<double, std::vector<double>> kern1(one_fcn,
                                                                             {0,1},
                                                                             {2});
   auto kern1_fcn = kern1.get_function(sample);
@@ -23,7 +23,7 @@ int main () {
 
 
   // Test for 2 steps
-  MEPBM::IrHPO4::StepAgglomerationKernel<double, std::vector<double>> kern2(one_fcn,
+  MEPBM::StepAgglomerationKernel<double, std::vector<double>> kern2(one_fcn,
                                                                             {0,1,2},
                                                                             {2,3});
   auto kern2_fcn = kern2.get_function(sample);
@@ -33,7 +33,7 @@ int main () {
 
   // Test with non-identity surface atoms function
   auto interesting_fcn = [](const unsigned int s) {return 1.0 * s;};
-  MEPBM::IrHPO4::StepAgglomerationKernel<double, std::vector<double>> kern3(interesting_fcn,
+  MEPBM::StepAgglomerationKernel<double, std::vector<double>> kern3(interesting_fcn,
                                                                             {0,1},
                                                                             {2});
   auto kern3_fcn = kern3.get_function(sample);
