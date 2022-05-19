@@ -1,11 +1,22 @@
 #ifndef MEPBM_IMPORT_PARAMETERS_H
 #define MEPBM_IMPORT_PARAMETERS_H
 
+
+
 #include <string>
 #include <fstream>
 #include <sstream>
 
+
+
 namespace MEPBM {
+  /**
+   * A function that imports parameters from a file and returns an object containing those parameters.
+   * @tparam SampleType - An object containing parameters accessible via the `[]` operator.
+   * @param file_path  - The name of the file that contains parameters formatted in a single column.
+   * @param n_prm - The number of parameters expected.
+   * @return
+   */
   template<typename SampleType>
   SampleType
   import_parameters(const std::string file_path, const unsigned int n_prm)
