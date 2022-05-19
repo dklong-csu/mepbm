@@ -12,7 +12,11 @@ using Vector = Eigen::VectorXd;
 
 int main () {
   // The default constructor should make the design that matches the collected data.
-  MEPBM::ExperimentalDesign<Vector, double> design;
+  MEPBM::ExperimentalDesign<Vector, double> design(450,
+                                                   11.7,
+                                                   0.0025,
+                                                   0.0625,
+                                                   10.0);
 
   // Check the max particle size
   std::cout << design.max_particle_size() << std::endl;
