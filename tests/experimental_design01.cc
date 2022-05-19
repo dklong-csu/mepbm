@@ -1,4 +1,4 @@
-#include "IrHPO4.h"
+#include "src/experimental_design.h"
 #include <iostream>
 #include <eigen3/Eigen/Core>
 
@@ -12,7 +12,7 @@ using Vector = Eigen::VectorXd;
 
 int main () {
   // The default constructor should make the design that matches the collected data.
-  MEPBM::IrHPO4::ExperimentalDesign<Vector, double> design;
+  MEPBM::ExperimentalDesign<Vector, double> design;
 
   // Check the max particle size
   std::cout << design.max_particle_size() << std::endl;
@@ -25,11 +25,11 @@ int main () {
   // Check the initial concentrations
   std::cout << design.IC_solvent() << std::endl;
   std::cout << design.IC_precursor() << std::endl;
-  std::cout << design.IC_hpo4() << std::endl;
+  std::cout << design.IC_ligand() << std::endl;
 
   // Check the indices for the precursor and HPO4
   std::cout << design.precursor_index() << std::endl;
-  std::cout << design.hpo4_index() << std::endl;
+  std::cout << design.ligand_index() << std::endl;
 
   // Check the particle index range
   std::cout << design.particle_index_range(n_nonparticle_species, first_particle_size).first << std::endl;
