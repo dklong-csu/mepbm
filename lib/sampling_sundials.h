@@ -23,5 +23,7 @@
 #include "src/chemical_reaction_network.h"
 #include "src/atoms_to_diameter.h"
 #include "src/bfgs.h"
+#include "src/kl_divergence.h"
+#include "src/inverse_problem.h"
 
 #endif // MEPBM_SAMPLING_SUNDIALS_H
