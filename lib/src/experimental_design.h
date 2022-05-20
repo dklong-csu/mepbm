@@ -134,7 +134,7 @@ namespace MEPBM {
 
 
     /// Returns the end time of the reaction.
-    Real get_end_time() {return final_time;}
+    Real get_end_time() const {return final_time;}
 
 
 
