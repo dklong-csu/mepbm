@@ -2,12 +2,12 @@ CMAKE_MINIMUM_REQUIRED (VERSION 3.1)
 
 FIND_PACKAGE (Threads)
 
-ADD_EXECUTABLE(process_samples_3step
-        process_samples_3step.cpp)
-TARGET_LINK_LIBRARIES (process_samples_3step
+ADD_EXECUTABLE(calc_log_likelihood
+        calc_log_likelihood.cpp)
+TARGET_LINK_LIBRARIES(calc_log_likelihood
         libmepbm)
 
-ADD_EXECUTABLE(process_samples_4step
-        process_samples_4step.cpp)
-TARGET_LINK_LIBRARIES (process_samples_4step
+ADD_EXECUTABLE(solve_ode
+        solve_ode.cpp)
+TARGET_LINK_LIBRARIES(solve_ode
         libmepbm)
