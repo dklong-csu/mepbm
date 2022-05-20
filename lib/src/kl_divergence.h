@@ -12,7 +12,7 @@
 
 
 namespace MEPBM {
-
+  // FIXME: documentation
   template<typename Real, typename Vector>
   Real
   kl_divergence(const Vector & distribution, const Vector & ref_distribution) {
@@ -44,6 +44,31 @@ namespace MEPBM {
       }
     }
     return kl_div;
+  }
+
+
+
+  // FIXME: documentation
+  template<typename Real, typename Vector>
+  Real
+  kl_divergence(const Vector & particles,
+                const std::vector<Real> & diams,
+                const std::vector<Real> & data_diameters,
+                const MEPBM::Parameters<Real> & hist_prm) {
+    // Format solution
+    auto particles_normed = MEPBM::normalize_concentrations(particles);
+    auto particle_prob = MEPBM::to_vector(particles_normed);
+    const auto sim_pmf = MEPBM::create_histogram(particle_prob, diams, hist_prm);
+    const auto Q = sim_pmf.count;
+
+
+    // Format data
+    std::vector<Real> weights(data_diameters.size(), 1.0 / data_diameters.size());
+    const auto data_pmf = MEPBM::create_histogram(weights, data_diameters, hist_prm);
+    const auto P = data_pmf.count;
+
+
+    return kl_divergence< Real, std::vector<Real> >(P, Q);
   }
 }
 
