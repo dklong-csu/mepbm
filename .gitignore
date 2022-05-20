@@ -4,7 +4,6 @@ mepbm
 !/**/
 !*.*
 *.exe
-*.out
 *.app
 /build/
 
@@ -40,14 +39,6 @@ tests/*
 *.png
 *.jpg
 *.pdf
-
-# Convenience scripts
-*.sh
-
-# UQLab files
-*.inp
-*.out
-*.tpl
 
 # Log files
 *.log
