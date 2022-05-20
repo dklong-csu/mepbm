@@ -8,6 +8,10 @@
 #include <numeric>
 #include <stdexcept>
 #include <limits>
+#include <vector>
+#include "src/histogram.h"
+#include "src/normalize_concentrations.h"
+#include "src/to_vector.h"
 
 
 
