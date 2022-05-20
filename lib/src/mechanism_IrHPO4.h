@@ -40,8 +40,8 @@ namespace MEPBM {
                                                              const BaseAgglomerationKernel<Real, Sample> & agglomeration_kernel) const override {
         // Define chemical species being tracked
         MEPBM::Species A(design.precursor_index());
-        MEPBM::Species L(design.hpo4_index());
-        MEPBM::Species Asolv(design.hpo4_index()+1);
+        MEPBM::Species L(design.ligand_index());
+        MEPBM::Species Asolv(design.ligand_index()+1);
         const auto particle_index_range = design.particle_index_range(n_nonparticle_species, first_particle_size);
         MEPBM::Particle B(particle_index_range.first, particle_index_range.second, first_particle_size);
 
@@ -83,8 +83,12 @@ namespace MEPBM {
                                                    { {L, 2}}
         );
 
-        MEPBM::ParticleAgglomeration<Real, Matrix> agglom(B,
-                                                          B,
+
+        // Restricting the particle size for agglomeration MASSIVELY speeds up the ODE solve
+        // FIXME: Make the 13 not hard-coded?
+        MEPBM::Particle B_agglom(particle_index_range.first, B.index(13), first_particle_size);
+        MEPBM::ParticleAgglomeration<Real, Matrix> agglom(B_agglom,
+                                                          B_agglom,
                                                           design.max_particle_size(),
                                                           agglom_fcn,
                                                           {},
