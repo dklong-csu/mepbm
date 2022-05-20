@@ -28,11 +28,13 @@ CMakeFiles
 Testing
 cmake_install.cmake
 CTestTestfile.cmake
+.cmake/
 
 # In the tests/ directory, ignore everything but the .cc and .output files
 tests/*
 !tests/*cc
 !tests/*output
+!tests/*input
 
 # Images
 *.png
@@ -41,3 +43,12 @@ tests/*
 
 # Convenience scripts
 *.sh
+
+# UQLab files
+*.inp
+*.out
+*.tpl
+
+# Log files
+*.log
+SUNDIALS_error_log.txt

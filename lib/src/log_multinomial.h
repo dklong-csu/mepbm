@@ -5,6 +5,8 @@
 #include <cmath>
 #include "src/histogram.h"
 #include <cassert>
+#include "src/normalize_concentrations.h"
+#include "src/to_vector.h"
 
 
 namespace MEPBM {
@@ -31,6 +33,34 @@ namespace MEPBM {
     }
     return log_probability;
   }
+
+
+
+  /**
+   * A function to calculate the logarithm of the (un-normalized) probability of a set of counts
+   * based on a multinomial distribution with probabilites taken from the solution vector
+   */
+   template<typename Real, typename Vector>
+   Real
+   log_multinomial(const Vector & particles,
+                   const std::vector<Real> & diams,
+                   const std::vector<Real> & data_diameters,
+                   const MEPBM::Parameters<Real> & hist_prm) {
+     // Format solution
+     auto particles_normed = MEPBM::normalize_concentrations(particles);
+     auto particle_prob = MEPBM::to_vector(particles_normed);
+     const auto pmf = MEPBM::create_histogram(particle_prob, diams, hist_prm);
+
+
+
+     // Format data
+     std::vector<Real> ones(data_diameters.size(), 1.0);
+     const auto data_binned = MEPBM::create_histogram(ones, data_diameters, hist_prm);
+
+
+
+     return log_multinomial<Real>(pmf, data_binned);
+   }
 }
 
 
