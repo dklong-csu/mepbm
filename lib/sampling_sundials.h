@@ -22,7 +22,6 @@
 #include "src/to_vector.h"
 #include "src/chemical_reaction_network.h"
 #include "src/atoms_to_diameter.h"
-#include "src/bfgs.h"
 #include "src/kl_divergence.h"
 #include "src/import_parameters.h"
 #include "src/r_function.h"
