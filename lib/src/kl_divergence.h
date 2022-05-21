@@ -31,6 +31,7 @@ namespace MEPBM {
 
     const Real ref_sum = std::accumulate(ref_distribution.begin(), ref_distribution.end(), 0.0);
     if (std::abs(ref_sum - 1.0) >= 1e-8) {
+      std::cout << "Ref sum = " << ref_sum << std::endl;
       throw std::invalid_argument("The sum of distribution elements is not equal to 1. Check the input parameter `ref_distribution`.");
     }
 
@@ -60,10 +61,14 @@ namespace MEPBM {
                 const std::vector<Real> & data_diameters,
                 const MEPBM::Parameters<Real> & hist_prm) {
     // Format solution
-    auto particles_normed = MEPBM::normalize_concentrations(particles);
-    auto particle_prob = MEPBM::to_vector(particles_normed);
-    const auto sim_pmf = MEPBM::create_histogram(particle_prob, diams, hist_prm);
-    const auto Q = sim_pmf.count;
+    auto particle_vec = MEPBM::to_vector(particles);
+    const auto sim_pmf = MEPBM::create_histogram(particle_vec, diams, hist_prm);
+    auto Q = sim_pmf.count;
+    const auto Q_sum = std::accumulate(Q.begin(), Q.end(), 0.0);
+    for (auto & q : Q){
+      q /= Q_sum;
+    }
+
 
 
     // Format data
