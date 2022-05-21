@@ -131,12 +131,13 @@ int main (int argc, char** argv)
       auto solution = ode_solver.solve(times[i]);
       if (solution.second != 0) {
         // ODE solver required many time steps which means the solution is probably unphysical
+        std::cout << "unphysical sol" << std::endl;
         log_likelihood = std::numeric_limits<Real>::lowest();
       }
       else {
         auto particles = mech.extract_particles(solution.first);
         auto diams = mech.get_particle_diameters();
-        log_likelihood += MEPBM::kl_divergence(particles,
+        log_likelihood -= MEPBM::js_divergence(particles,
                                                  diams,
                                                  tem_data[i],
                                                  hist_prm);
