@@ -51,6 +51,7 @@ tests/*
 
 # Matlab files
 *.asv
+*.mat
 
 # Log files
 *.log
