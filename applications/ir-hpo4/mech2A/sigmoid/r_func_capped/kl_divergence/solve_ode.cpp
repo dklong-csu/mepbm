@@ -146,7 +146,7 @@ int main (int argc, char** argv)
                    << std::endl;
 
         auto diams = mech.get_particle_diameters();
-        log_likelihood += MEPBM::js_divergence(particles,
+        log_likelihood -= MEPBM::js_divergence(particles,
                                                  diams,
                                                  tem_data[i],
                                                  hist_prm);
