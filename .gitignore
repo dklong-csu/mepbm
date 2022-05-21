@@ -49,6 +49,9 @@ tests/*
 *.out
 *.tpl
 
+# Matlab files
+*.asv
+
 # Log files
 *.log
 SUNDIALS_error_log.txt
