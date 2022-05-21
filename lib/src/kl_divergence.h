@@ -31,7 +31,6 @@ namespace MEPBM {
 
     const Real ref_sum = std::accumulate(ref_distribution.begin(), ref_distribution.end(), 0.0);
     if (std::abs(ref_sum - 1.0) >= 1e-8) {
-      std::cout << "Ref sum = " << ref_sum << std::endl;
       throw std::invalid_argument("The sum of distribution elements is not equal to 1. Check the input parameter `ref_distribution`.");
     }
 
@@ -78,6 +77,43 @@ namespace MEPBM {
 
 
     return kl_divergence< Real, std::vector<Real> >(P, Q);
+  }
+
+
+
+  // FIXME: documentation
+  template<typename Real, typename Vector>
+  Real
+  js_divergence(const Vector & particles,
+                const std::vector<Real> & diams,
+                const std::vector<Real> & data_diameters,
+                const MEPBM::Parameters<Real> & hist_prm) {
+    // Format solution
+    auto particle_vec = MEPBM::to_vector(particles);
+    const auto sim_pmf = MEPBM::create_histogram(particle_vec, diams, hist_prm);
+    auto Q = sim_pmf.count;
+    const auto Q_sum = std::accumulate(Q.begin(), Q.end(), 0.0);
+    for (auto & q : Q){
+      q /= Q_sum;
+    }
+
+
+
+    // Format data
+    std::vector<Real> weights(data_diameters.size(), 1.0 / data_diameters.size());
+    const auto data_pmf = MEPBM::create_histogram(weights, data_diameters, hist_prm);
+    const auto P = data_pmf.count;
+
+
+
+    // Average distribution
+    std::vector<Real> M(P.size());
+    for (unsigned int i=0; i<P.size(); ++i){
+      M[i] = 0.5*(Q[i]+P[i]);
+    }
+
+
+    return 0.5*( kl_divergence< Real, std::vector<Real> >(P, M) + kl_divergence< Real, std::vector<Real> >(Q, M) );
   }
 }
 
