@@ -136,7 +136,7 @@ int main (int argc, char** argv)
       else {
         auto particles = mech.extract_particles(solution.first);
         auto diams = mech.get_particle_diameters();
-        log_likelihood += MEPBM::kl_divergence(particles,
+        log_likelihood += MEPBM::js_divergence(particles,
                                                  diams,
                                                  tem_data[i],
                                                  hist_prm);
