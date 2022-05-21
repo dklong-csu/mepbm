@@ -2,7 +2,7 @@
 run("./HPO4data.m")
 
 %%
-run("./plot_mean_prm.m")
+run("./plot_MAP_prm.m")
 
 
 %%

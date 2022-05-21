@@ -5,17 +5,16 @@ clc
 
 uqlab -nosplash
 
-% Sampler settings
-seed = 1;
-n_chains = 3; % recommended: 2x # of parameters
-n_samples = 5;
-previous_run_file = 'old_delete/BI_run_seed_1_ver_1.mat';
-%previous_run_file = '';
-
 % Parameter information
 var_names = ["kf", "kb", "k1", "L1", "L2", "L3", "r1", "r2", "k4"];
 lb = realmin * ones(1,9); % lower bound for the prior 
 ub = [1e9, 1e9, 1e9, 1e9, 1e9, 1e9, 1e2, 1e2, 1e9]; % upper bound for the prior
+
+% Sampler settings
+seed = 1;
+n_chains = 2*length(var_names); % recommended: 2x # of parameters
+n_samples = 50;
+previous_run_file = '';
 
 % File names
 ll_exec_name = 'calc_log_likelihood_2A_sig_rcap_kl';
