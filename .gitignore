@@ -40,6 +40,21 @@ tests/*
 *.jpg
 *.pdf
 
+# Convenience scripts
+*.sh
+
+# UQLab files
+*.inp
+*.out
+*.tpl
+
+# Matlab files
+*.asv
+*.mat
+
+# Analysis specific files
+plot_*_prm.*
+
 # Log files
 *.log
 SUNDIALS_error_log.txt

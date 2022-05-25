@@ -60,10 +60,14 @@ namespace MEPBM {
                 const std::vector<Real> & data_diameters,
                 const MEPBM::Parameters<Real> & hist_prm) {
     // Format solution
-    auto particles_normed = MEPBM::normalize_concentrations(particles);
-    auto particle_prob = MEPBM::to_vector(particles_normed);
-    const auto sim_pmf = MEPBM::create_histogram(particle_prob, diams, hist_prm);
-    const auto Q = sim_pmf.count;
+    auto particle_vec = MEPBM::to_vector(particles);
+    const auto sim_pmf = MEPBM::create_histogram(particle_vec, diams, hist_prm);
+    auto Q = sim_pmf.count;
+    const auto Q_sum = std::accumulate(Q.begin(), Q.end(), 0.0);
+    for (auto & q : Q){
+      q /= Q_sum;
+    }
+
 
 
     // Format data
@@ -73,6 +77,43 @@ namespace MEPBM {
 
 
     return kl_divergence< Real, std::vector<Real> >(P, Q);
+  }
+
+
+
+  // FIXME: documentation
+  template<typename Real, typename Vector>
+  Real
+  js_divergence(const Vector & particles,
+                const std::vector<Real> & diams,
+                const std::vector<Real> & data_diameters,
+                const MEPBM::Parameters<Real> & hist_prm) {
+    // Format solution
+    auto particle_vec = MEPBM::to_vector(particles);
+    const auto sim_pmf = MEPBM::create_histogram(particle_vec, diams, hist_prm);
+    auto Q = sim_pmf.count;
+    const auto Q_sum = std::accumulate(Q.begin(), Q.end(), 0.0);
+    for (auto & q : Q){
+      q /= Q_sum;
+    }
+
+
+
+    // Format data
+    std::vector<Real> weights(data_diameters.size(), 1.0 / data_diameters.size());
+    const auto data_pmf = MEPBM::create_histogram(weights, data_diameters, hist_prm);
+    const auto P = data_pmf.count;
+
+
+
+    // Average distribution
+    std::vector<Real> M(P.size());
+    for (unsigned int i=0; i<P.size(); ++i){
+      M[i] = 0.5*(Q[i]+P[i]);
+    }
+
+
+    return 0.5*( kl_divergence< Real, std::vector<Real> >(P, M) + kl_divergence< Real, std::vector<Real> >(Q, M) );
   }
 }
 
