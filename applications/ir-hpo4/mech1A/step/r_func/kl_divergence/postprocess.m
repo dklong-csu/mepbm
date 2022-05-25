@@ -3,7 +3,7 @@ clc
 close all
 uqlab
 
-combined_bi = extractAnalysis("BI_seed_1_ver_1.mat");
+combined_bi = extractAnalysis("BI_seed_1_ver_3.mat");
 
 postProcess(combined_bi);
 
@@ -21,7 +21,7 @@ function postProcess(BI)
 uq_postProcessInversion(BI, ...
     'gelmanRubin',true, ...
     'pointEstimate', {'MAP','Mean'}, ...
-    'burnIn', 0.5)
+    'burnIn', 1)
 uq_print(BI)
 uq_display(BI, ...,
     'scatterplot', 'all', ...

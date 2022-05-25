@@ -8,12 +8,12 @@ uqlab -nosplash
 % Parameter information
 var_names = ["kf", "kb", "k1", "L1", "L2", "L3", "r1", "r2", "k4"];
 lb = realmin * ones(1,9); % lower bound for the prior 
-ub = [1e9, 1e9, 1e9, 1e9, 1e9, 1e9, 1e2, 1e2, 1e9]; % upper bound for the prior
+ub = [1e3, 1e9, 1e7, 1e7, 1e7, 1e8, 5, 5, 1e8]; % upper bound for the prior
 
 % Sampler settings
 seed = 1;
 n_chains = 2*length(var_names); % recommended: 2x # of parameters
-n_samples = 50; % as many as you're willing to wait; this is samples per chain
+n_samples = 250000; % as many as you're willing to wait; this is samples per chain
 previous_run_file = '';
 
 % File names

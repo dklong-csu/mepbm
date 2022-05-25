@@ -8,12 +8,12 @@ uqlab -nosplash
 % Parameter information
 var_names = ["kf", "kb", "k1", "k2", "k3", "k4"];
 lb = realmin * ones(1,6); % lower bound for the prior 
-ub = [1e9, 1e9, 1e9, 1e9, 1e9, 1e9]; % upper bound for the prior
+ub = [1e3, 1e9, 1e6, 1e6, 1e6, 1e7]; % upper bound for the prior
 
 % Sampler settings
 seed = 1;
 n_chains = 2*length(var_names); % recommended: 2x # of parameters
-n_samples = 50;
+n_samples = 250000;
 previous_run_file = '';
 
 % File names
@@ -84,7 +84,7 @@ if ~strcmp('',previous_run_file) && isfile(previous_run_file)
     post_samp = BI.Results.PostProc.PostSample;
     [n_samps_prev, ~, n_chains_prev] = size(post_samp);
     indices = [randi(n_samps_prev,Solver.MCMC.NChains,1) randi(n_chains_prev, Solver.MCMC.NChains,1)];
-    starting_samps = zeros(9, Solver.MCMC.NChains);
+    starting_samps = zeros(6, Solver.MCMC.NChains);
     for ii=1:Solver.MCMC.NChains
         starting_samps(:,ii) = post_samp(indices(ii,1), :, indices(ii,2));
     end
