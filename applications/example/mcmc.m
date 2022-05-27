@@ -5,20 +5,19 @@ clc
 
 uqlab -nosplash
 
-% Sampler settings
-seed = 1;
-n_chains = 3; % recommended: 2x # of parameters
-n_samples = 5;
-previous_run_file = 'old_delete/BI_run_seed_1_ver_1.mat';
-%previous_run_file = '';
-
 % Parameter information
 var_names = ["kf", "kb", "k1", "L1", "L2", "L3", "r1", "r2", "k4"];
-lb = realmin * ones(1,9); % lower bound for the prior 
+lb = realmin * ones(1,length(var_names)); % lower bound for the prior 
 ub = [1e9, 1e9, 1e9, 1e9, 1e9, 1e9, 1e2, 1e2, 1e9]; % upper bound for the prior
 
+% Sampler settings
+seed = 1;
+n_chains = 2*length(var_names); % recommended: 2x # of parameters
+n_samples = 5;
+previous_run_file = '';
+
 % File names
-ll_exec_name = 'calc_log_likelihood';
+ll_exec_name = 'calc_log_likelihood_example';
 uq_link_root = "hpo4";
 
 %% Perform MCMC
@@ -85,7 +84,7 @@ if ~strcmp('',previous_run_file) && isfile(previous_run_file)
     post_samp = BI.Results.PostProc.PostSample;
     [n_samps_prev, ~, n_chains_prev] = size(post_samp);
     indices = [randi(n_samps_prev,Solver.MCMC.NChains,1) randi(n_chains_prev, Solver.MCMC.NChains,1)];
-    starting_samps = zeros(9, Solver.MCMC.NChains);
+    starting_samps = zeros(length(var_names), Solver.MCMC.NChains);
     for ii=1:Solver.MCMC.NChains
         starting_samps(:,ii) = post_samp(indices(ii,1), :, indices(ii,2));
     end
