@@ -34,7 +34,7 @@ int main (int argc, char** argv)
   const auto sample = MEPBM::import_parameters<SampleType>(input_file, 9);
 
   MEPBM::ExperimentalDesign<Vector, Real> design(450,
-                                                 11.7,
+                                                 13.5,
                                                  0.0025,
                                                  0.0625,
                                                  10.0);
