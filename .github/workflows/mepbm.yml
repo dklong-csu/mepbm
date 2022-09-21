@@ -19,7 +19,7 @@ jobs:
         sudo apt-get install --fix-missing doxygen graphviz libboost-all-dev numdiff -y
         doxygen --version
         git clone https://github.com/bangerth/SampleFlow.git
-        wget https://gitlab.com/libeigen/eigen/-/archive/3.3.9/eigen-3.3.9.tar.bz2
+        wget https://gitlab.com/libeigen/eigen/-/archive/3.3.9/eigen-3.3.9.tar.gz
         tar zxf eigen-3.3.9.tar.bz2 eigen
         mkdir ./eigen/build
         mkdir ./eigen/install
