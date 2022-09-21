@@ -44,9 +44,9 @@ tests/*
 *.sh
 
 # UQLab files
-*.inp
-*.out
-*.tpl
+#*.inp
+#*.out
+#*.tpl
 
 # Matlab files
 *.asv
