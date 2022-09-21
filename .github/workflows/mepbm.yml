@@ -20,7 +20,7 @@ jobs:
         doxygen --version
         git clone https://github.com/bangerth/SampleFlow.git
         wget https://gitlab.com/libeigen/eigen/-/archive/3.3.9/eigen-3.3.9.tar.gz
-        tar zxf eigen-3.3.9.tar.bz2 eigen
+        tar zxf eigen-3.3.9.tar.gz eigen
         mkdir ./eigen/build
         mkdir ./eigen/install
         cd ./eigen/build
