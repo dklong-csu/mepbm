@@ -254,8 +254,8 @@ int main ()
 
   // Prune the vectors so that "basically zero" values are set to zero to not throw off comparisons
   // e.g. 10^-13 and 10^-20 are both "basically zero" in this context but the % error is massive.
-  auto pruned_old = prune_vector(sol_old, 1e-11);
-  auto pruned_new = prune_vector(sol_new, 1e-11);
+  auto pruned_old = prune_vector(sol_old, 1e-10);
+  auto pruned_new = prune_vector(sol_new, 1e-10);
 
   auto diff = percent_diff(pruned_old, pruned_new);
   auto max_diff = diff.maxCoeff();
