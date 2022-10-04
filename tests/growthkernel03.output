@@ -1,0 +1,70 @@
+Global constant test
+10
+10
+10
+10
+10
+10
+10
+10
+10
+Global linear test
+14.5
+10.0
+5.5
+1.0
+-3.5
+-8.0
+-12.5
+-17.0
+-21.5
+Piecewise linear test (3 points)
+14.5
+10.0
+5.5
+1.0
+5.0
+9.0
+13.0
+17.0
+21.0
+Piecewise linear test (4 points)
+14.5
+10.0
+5.5
+1.0
+5.0
+9.0
+5.5
+2.0
+-1.5
+Non-identity test (global constant)
+0.0
+10.0
+20.0
+30.0
+40.0
+50.0
+60.0
+70.0
+80.0
+Non-identity test (global linear)
+0.0
+10.0
+11.0
+3.0
+-14.0
+-40.0
+-75.0
+-119.0
+-172.0
+Non-identity test (piecewise linear)
+0.0
+10.0
+11.0
+3.0
+20.0
+45.0
+78.0
+119.0
+168.0
