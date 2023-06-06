@@ -9,6 +9,7 @@
 #include <vector>
 #include "src/models.h"
 #include <iostream>
+#include <cassert>
 
 
 namespace ODE

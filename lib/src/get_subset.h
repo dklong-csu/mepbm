@@ -3,6 +3,7 @@
 
 #include <eigen3/Eigen/Dense>
 #include <sundials/sundials_nvector.h>
+#include <cassert>
 
 namespace MEPBM {
   /**
