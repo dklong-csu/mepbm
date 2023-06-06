@@ -17,21 +17,6 @@ ADD_EXECUTABLE(calc_likelihood_model_select
 TARGET_LINK_LIBRARIES (calc_likelihood_model_select
         libmepbm)
 
-ADD_EXECUTABLE(calc_likelihood_times_beta_3step
-        calc_likelihood_times_beta_3step.cpp)
-TARGET_LINK_LIBRARIES (calc_likelihood_times_beta_3step
-        libmepbm)
-
-ADD_EXECUTABLE(calc_likelihood_times_beta_4step
-        calc_likelihood_times_beta_4step.cpp)
-TARGET_LINK_LIBRARIES (calc_likelihood_times_beta_4step
-        libmepbm)
-
-ADD_EXECUTABLE(calc_likelihood_times_beta_model_select
-        calc_likelihood_times_beta_model_select.cpp)
-TARGET_LINK_LIBRARIES (calc_likelihood_times_beta_model_select
-        libmepbm)
-
 ADD_EXECUTABLE(calc_concentrations_3step
         calc_concentrations_3step.cpp)
 TARGET_LINK_LIBRARIES (calc_concentrations_3step
