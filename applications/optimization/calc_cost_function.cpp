@@ -320,7 +320,8 @@ int main(int argc, char** argv){
       auto sol = solve_ode(samples[i], opt_prm);
       A_conc[i] = sol(0);
       const Vector particles = sol.tail(2498);
-      const auto pmf = MEPBM::normalize_concentrations(particles);
+      // const auto pmf = MEPBM::normalize_concentrations(particles);
+      const Eigen::Matrix<Real, Eigen::Dynamic, 1> pmf = MEPBM::normalize_concentrations(particles);
       double pmf_sum = 0.0;
       for (const auto & p : pmf){
         pmf_sum += p;
