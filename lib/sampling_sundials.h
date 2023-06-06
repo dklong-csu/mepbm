@@ -2,6 +2,7 @@
 #ifndef MEPBM_SAMPLING_SUNDIALS_H
 #define MEPBM_SAMPLING_SUNDIALS_H
 
+#include <cassert>
 #include "src/check_sundials_flags.h"
 #include "src/chemical_reaction.h"
 #include "src/create_nvector.h"

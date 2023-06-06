@@ -1,0 +1,70 @@
+function simData = simulateDataFromNumerator(design, posterior_samps_filename, n_draws)
+writeDesignPrm2File(design, 'design_prm.inp')
+
+data = load(posterior_samps_filename);
+stacked_samps = data.stacked_samps;
+draws = draw_from_kde(stacked_samps, n_draws);
+fileID = fopen('samples4LFIRE.txt','w');
+for ii=1:size(draws,1)
+    d = draws(ii,:);
+    for jj=1:length(d)
+        fprintf(fileID, "%.20f",d(jj));
+        if jj < length(d)
+            fprintf(fileID,", ");
+        else
+            fprintf(fileID,"\n");
+        end
+    end
+end
+fclose(fileID);
+
+% Call the executable
+[status, cmdout] = system("./calc_size_distribution_LFIRE");
+
+n_particles = 2498; 
+fileID = fopen('design_prm.out','r');
+formatSpec = '%f';
+sizeArray = [n_particles Inf];
+
+% variable number of files to read from based on number of times being
+% estimated
+% design = [A, POM, Solv, t1, t2, ..., N]
+% so length(design) - 3 = number of times
+n_time_points = length(design) - 3;
+simData = 
+for tt=0:n_time_points-1
+    filename = strcat("design_prm_t",num2str(tt),".out");
+    fileID = fopen(filename,'r');
+    formatSpec = '%f';
+    sizeArray = [n_particles Inf];
+    PSDs = fscanf(fileID, formatSpec, sizeArray);
+
+    % Each row of PSDs gives the concentrations of each particle
+    % Loop through each row
+    % Create multinomial distribution
+    % do N draws from the multinomial
+    % compute mean particle size
+    % compute variance of the sizes
+    n_rows = size(PSDs, 1);
+    partialData = cell(n_rows,);
+    diams = atoms_to_diam(3:2500);
+    for ii=1:n_rows
+        conc = PSDs(ii,:);
+        conc = max(conc,0);
+        probs = conc / sum(conc);
+        pd = makedist('Multinomial','probabilities',probs);
+        dataRowI = zeros(1001,2);
+        for jj=1:1001 % number of draws per parameter
+            r = random(pd, 300, 1);
+            drawnDiameters = diams(r);
+            dataRowI(jj, 1) = mean(drawnDiameters);
+            dataRowI(jj, 2) = var(drawnDiameters);
+        end
+        data{ii} = dataRowI;
+    end
+
+
+    fclose(fileID);
+end
+  
+end

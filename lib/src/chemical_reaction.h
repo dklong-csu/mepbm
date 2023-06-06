@@ -9,6 +9,7 @@
 #include <functional>
 #include <sundials/sundials_nvector.h>
 #include <sundials/sundials_matrix.h>
+#include <cassert>
 
 
 

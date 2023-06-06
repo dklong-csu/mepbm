@@ -4,7 +4,7 @@
 #ifndef MEPBM_SAMPLING_CUSTOM_H
 #define MEPBM_SAMPLING_CUSTOM_H
 
-
+#include <cassert>
 #include "src/histogram.h"
 #include "src/ir_pom_data.h"
 #include "src/models.h"
