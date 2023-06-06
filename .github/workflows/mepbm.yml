@@ -44,7 +44,7 @@ jobs:
         cmake ../ -DCMAKE_INSTALL_PREFIX=../install
         make install
     - name: cmake
-      run: cmake -DSAMPLEFLOW_DIR="$PWD/SampleFlow" -DEIGEN_DIR="$PWD/eigen-3.3.9/install" -DSUNDIALS_DIR="$PWD/sundials/sundials-5.7.0/install" -DCMAKE_BUILD_TYPE=release .
+      run: cmake -DSAMPLEFLOW_DIR="$PWD/SampleFlow" -DEIGEN_DIR="$PWD/eigen/install" -DSUNDIALS_DIR="$PWD/sundials/sundials-5.7.0/install" -DCMAKE_BUILD_TYPE=release .
     - name: build
       run: make
     - name: ctest
