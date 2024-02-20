@@ -40,3 +40,9 @@ make -j4
 
 ctest --output-on-failure -j4
 ```
+
+# Instructions for use
+
+## Optimization of Particle Size Distribution
+
+Navigate to 
