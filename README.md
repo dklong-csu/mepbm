@@ -45,4 +45,4 @@ ctest --output-on-failure -j4
 
 ## Optimization of Particle Size Distribution
 
-Navigate to 
+Navigate to `applications/optimization`. The script `optimize_psd_shape.m` performs the optimization problem.
