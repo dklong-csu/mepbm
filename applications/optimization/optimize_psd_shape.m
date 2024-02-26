@@ -11,10 +11,17 @@ rng('default')
 
 %% Decide which variables to optimize
 
+%    For the optimization paper:
+%        Experiment #1: A0,tend,POM0=true. Others =false
+%        Experiment #2: A0,tend,POM0,kf_mult,k1_mult=true. Others=false
+
 A0 = optimizableVariable('A0',[1e-4, 1],'Transform','log','Optimize',true);
 tend = optimizableVariable('tend',[0.1, 100],'Transform','log','Optimize',true);
+%-----------------------------------------------------------------------------------------
+%    Currently unsupported
 drip_rate = optimizableVariable('drip_rate',[1e-10, 1],'Transform','log','Optimize',false);
 drip_time = optimizableVariable('drip_time',[0.1, 30],'Transform','none','Optimize',false);
+%-----------------------------------------------------------------------------------------
 POM0 = optimizableVariable('POM0',[1e-4, 1],'Transform','log','Optimize',false);
 solvent = optimizableVariable('solvent',[1, 11.3],'Transform','none','Optimize',false);
 kf_mult = optimizableVariable('kf_mult',[0.1, 10],'Transform','log','Optimize',false);
